@@ -14,11 +14,11 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* --- KEY CHANGE: Lock the page scroll --- */
+        /* --- Page Scroll Lock --- */
         html, body {
             width: 100%;
-            height: 100%;       /* Force full height */
-            overflow: hidden;   /* Disable scrolling */
+            height: 100%;       
+            overflow: hidden;   
             background-color: #F3ECE5; 
         }
 
@@ -30,15 +30,13 @@
 
         /* ----- Header ----- */
         .header {
-            /* Fixed height header */
-            flex-shrink: 0; /* Prevent shrinking */
+            flex-shrink: 0; 
             padding: 60px 24px 20px 24px; 
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        /* Brown Buttons */
         .brown-btn {
             background-color: #9C7C66;
             display: flex;
@@ -47,45 +45,31 @@
             cursor: pointer;
         }
 
-        .avatar-placeholder {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-        }
+        .avatar-placeholder { width: 50px; height: 50px; border-radius: 50%; }
 
         .search-pill {
-            height: 50px;
-            width: 140px;
-            border-radius: 25px;
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            padding-left: 15px;
+            height: 50px; width: 140px; border-radius: 25px;
+            display: flex; justify-content: flex-start; align-items: center; padding-left: 15px;
         }
 
-        .chat-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-        }
+        .chat-btn { width: 50px; height: 50px; border-radius: 50%; }
 
         /* ----- Main Content ----- */
         .content {
-            flex: 1; /* Take up all remaining space */
+            flex: 1; 
             width: 100%;
-            padding: 20px 24px; /* Reduced padding slightly to fit content better */
+            padding: 20px 24px; 
             display: flex;
             justify-content: center;
-            align-items: center; /* Center the card vertically too */
-            overflow: hidden; /* Ensure content doesn't cause scroll */
+            align-items: center; 
+            overflow: hidden; 
         }
 
         .card {
             width: 100%;
-            max-width: 500px; /* Slightly smaller max-width */
-            /* Using aspect-ratio is good, but let's make sure it fits */
+            max-width: 500px; 
             aspect-ratio: 1 / 1; 
-            max-height: 100%; /* Ensure it doesn't overflow height */
+            max-height: 100%; 
             border-radius: 35px;
             overflow: hidden;
             background-color: #ddd;
@@ -101,8 +85,8 @@
 
         /* ----- Footer ----- */
         .footer {
-            flex-shrink: 0; /* Prevent shrinking */
-            padding: 20px 40px 100px 40px; /* Adjusted padding */
+            flex-shrink: 0; 
+            padding: 20px 40px 100px 40px; 
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -112,99 +96,46 @@
         }
 
         .icon-brown {
-            stroke: #9C7C66;
-            fill: none;
-            stroke-width: 2.5;
-            stroke-linecap: round;
-            stroke-linejoin: round;
+            stroke: #9C7C66; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
         }
         
         .shutter-btn {
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            border: 4px solid #9C7C66;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: transform 0.1s;
+            width: 72px; height: 72px; border-radius: 50%; border: 4px solid #9C7C66;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.1s;
         }
-
-        .shutter-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .shutter-inner {
-            width: 56px;
-            height: 56px;
-            background-color: #9C7C66;
-            border-radius: 50%;
-        }
+        .shutter-btn:active { transform: scale(0.95); }
+        .shutter-inner { width: 56px; height: 56px; background-color: #9C7C66; border-radius: 50%; }
 
         svg { display: block; }
 
         /* ----- Modal / Action Sheet ----- */
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
-            z-index: 200;
-            display: none;
-            justify-content: center;
-            align-items: flex-end;
-            opacity: 0;
-            transition: opacity 0.3s;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); z-index: 200;
+            display: none; justify-content: center; align-items: flex-end;
+            opacity: 0; transition: opacity 0.3s;
         }
-
-        .modal-overlay.show {
-            display: flex;
-            opacity: 1;
-        }
+        .modal-overlay.show { display: flex; opacity: 1; }
 
         .action-sheet {
-            width: 100%;
-            max-width: 100%;
-            margin-bottom: 0;
-            background-color: #F3ECE5;
-            border-top-left-radius: 24px;
-            border-top-right-radius: 24px;
-            display: flex;
-            flex-direction: column;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            width: 100%; max-width: 100%; margin-bottom: 0; background-color: #F3ECE5;
+            border-top-left-radius: 24px; border-top-right-radius: 24px;
+            display: flex; flex-direction: column;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             overflow: hidden;
         }
-
-        .modal-overlay.show .action-sheet {
-            transform: translateY(0);
-        }
+        .modal-overlay.show .action-sheet { transform: translateY(0); }
 
         .action-btn {
-            background-color: #F3ECE5;
-            padding: 20px;
-            text-align: center;
-            font-size: 18px;
-            font-weight: 500;
-            color: #9C7C66;
-            cursor: pointer;
+            background-color: #F3ECE5; padding: 20px; text-align: center;
+            font-size: 18px; font-weight: 500; color: #9C7C66; cursor: pointer;
             border-bottom: 1px solid rgba(156, 124, 102, 0.2);
         }
-        
-        .action-btn:active {
-            background-color: #E0D5CC; 
-        }
-
+        .action-btn:active { background-color: #E0D5CC; }
         .action-btn.cancel {
-            font-weight: 700;
-            border-bottom: none;
-            color: #8C735D;
+            font-weight: 700; border-bottom: none; color: #8C735D;
             padding-bottom: calc(20px + env(safe-area-inset-bottom)); 
         }
-
     </style>
 </head>
 <body>
@@ -246,7 +177,7 @@
 
         <label class="shutter-btn">
             <div class="shutter-inner"></div>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+            <input type="button" style="display: none;">
         </label>
 
         <a href="edit.html" style="text-decoration: none; display: flex;">
@@ -257,7 +188,7 @@
     </div>
 
     <input type="file" id="real-camera-input" accept="image/*" capture="environment" style="display: none;">
-    <input type="file" id="real-gallery-input" accept="image/*" style="display: none;">
+    <input type="file" id="real-gallery-input" accept="image/*" multiple style="display: none;">
 
     <div id="action-sheet-overlay" class="modal-overlay">
         <div class="action-sheet">
@@ -282,7 +213,7 @@
         const realGalleryInput = document.getElementById('real-gallery-input');
 
         shutterBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent label from triggering default file input
+            e.preventDefault(); 
             overlay.classList.add('show');
         });
 
@@ -304,19 +235,49 @@
             closeSheet(); 
         }
 
+        // --- 處理多張檔案選擇 ---
         function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const base64String = event.target.result;
-                    mainImage.src = base64String;
-                    saveToMemories(base64String);
-                };
-                reader.readAsDataURL(file);
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                // 1. 為了避免存多張大圖導致空間不足，加入壓縮功能
+                Array.from(files).forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        // 壓縮並儲存
+                        compressImage(event.target.result, 800, 0.7, function(compressedBase64) {
+                            saveToMemories(compressedBase64);
+                            
+                            // 更新畫面：顯示最後選取的那一張
+                            // (如果是多選，畫面會快速切換，最後停在最後一張)
+                            mainImage.src = compressedBase64;
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                });
             }
         }
 
+        // --- 圖片壓縮函式 (跟 memories.html 一樣) ---
+        function compressImage(base64Str, maxWidth, quality, callback) {
+            const img = new Image();
+            img.src = base64Str;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL('image/jpeg', quality));
+            };
+        }
+
+        // --- 儲存邏輯 (升級版：支援陣列) ---
         function saveToMemories(imageBase64) {
             const now = new Date();
             const year = now.getFullYear();
@@ -324,14 +285,25 @@
             const day = now.getDate();
             const dateKey = `${year}-${month}-${day}`;
 
-            const currentMemories = JSON.parse(localStorage.getItem('myMemories')) || {};
-            currentMemories[dateKey] = imageBase64;
+            // 讀取現有資料
+            let currentMemories = JSON.parse(localStorage.getItem('myMemories')) || {};
+
+            // 確保今天的資料格式是「陣列」，如果不是(或是空的)，就初始化為陣列
+            if (!currentMemories[dateKey]) {
+                currentMemories[dateKey] = [];
+            } else if (!Array.isArray(currentMemories[dateKey])) {
+                // 相容舊資料：如果之前只存了一張字串，把它轉成陣列
+                currentMemories[dateKey] = [currentMemories[dateKey]];
+            }
+
+            // 將新照片加入陣列 (Push)
+            currentMemories[dateKey].push(imageBase64);
 
             try {
                 localStorage.setItem('myMemories', JSON.stringify(currentMemories));
                 console.log("Image saved to " + dateKey);
             } catch (e) {
-                alert("Storage full, cannot save image.");
+                alert("儲存空間已滿 (瀏覽器限制 5MB)，無法儲存更多照片。建議清除一些舊回憶。");
             }
         }
 
