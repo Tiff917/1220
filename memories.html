@@ -5,15 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Memories</title>
     <style>
-        /* CSS 保持不變，為節省篇幅直接沿用您之前的設定 */
+        /* --- 全局基礎設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: #F3ECE5; padding: 24px; color: #8C7B6D; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overscroll-behavior-y: none; }
+
+        /* 標題區 */
         h1 { font-size: 32px; font-weight: 700; color: #8C735D; margin-bottom: 5px; text-align: center; }
         .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 20px; text-align: center; }
         
-        .add-btn { background-color: #8C735D; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 25px; cursor: pointer; box-shadow: 0 4px 10px rgba(140, 115, 93, 0.3); display: flex; align-items: center; gap: 8px; transition: transform 0.1s; }
+        /* 按鈕容器 */
+        .btn-container { display: flex; gap: 10px; margin-bottom: 25px; }
+
+        /* 上傳按鈕 */
+        .add-btn { background-color: #8C735D; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(140, 115, 93, 0.3); display: flex; align-items: center; gap: 8px; transition: transform 0.1s; }
         .add-btn:active { transform: scale(0.95); }
-        
+
+        /* 清除全部按鈕 (測試用) */
+        .clear-btn { background-color: #e5e5e5; color: #666; border: none; padding: 10px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .clear-btn:active { background-color: #d4d4d4; }
+
+        /* 日曆樣式 */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 350px; margin-bottom: 20px; }
         .month-label { font-size: 20px; font-weight: 600; color: #6D5D50; text-align: center; width: 180px; }
         .nav-btn { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
@@ -32,6 +43,7 @@
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* --- Story Viewer --- */
         .story-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s; touch-action: none; }
         .story-overlay.active { display: flex; opacity: 1; transform: translateY(0); }
         .story-image { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
@@ -40,6 +52,15 @@
         .bar { flex: 1; height: 100%; background-color: rgba(255, 255, 255, 0.3); border-radius: 2px; overflow: hidden; position: relative; }
         .bar-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background-color: #ffffff; transition: width 0.1s linear; }
         .bar.watched .bar-fill { width: 100%; }
+
+        /* --- 新增：垃圾桶刪除按鈕 --- */
+        .delete-btn {
+            position: absolute; top: 40px; right: 20px; z-index: 10002;
+            width: 40px; height: 40px; display: flex; justify-content: center; align-items: center;
+            background: rgba(0, 0, 0, 0.3); border-radius: 50%; cursor: pointer;
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        }
+        .delete-btn svg { stroke: white; width: 20px; height: 20px; }
 
         .tap-area { position: absolute; top: 0; height: 100%; width: 35%; z-index: 1001; }
         .tap-left { left: 0; }
@@ -50,11 +71,21 @@
 </head>
 <body>
 
-    <div><h1>My Memories</h1><div class="subtitle">Keep your moments</div></div>
+    <div>
+        <h1>My Memories</h1>
+        <div class="subtitle">Keep your moments</div>
+    </div>
 
-    <button class="add-btn" onclick="triggerUpload()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory
-    </button>
+    <div class="btn-container">
+        <button class="add-btn" onclick="triggerUpload()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            Add
+        </button>
+        <button class="clear-btn" onclick="clearAllData()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            Reset
+        </button>
+    </div>
     
     <input type="file" id="fileInput" accept="image/*" multiple>
 
@@ -69,22 +100,26 @@
     <div id="storyOverlay" class="story-overlay">
         <img id="storyImageDisplay" class="story-image" src="" alt="Story">
         <div id="progressBarContainer" class="progress-container"></div>
+        
+        <div class="delete-btn" onclick="deleteCurrentStory(event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </div>
+
         <div class="tap-area tap-left" onclick="prevStory(event)"></div>
         <div class="tap-area tap-right" onclick="nextStory(event)"></div>
     </div>
 
     <script>
-        // --- 1. IndexedDB + 監聽廣播 ---
+        // --- 1. IndexedDB 與 廣播設定 ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
-        const channel = new BroadcastChannel('memory_update'); // 監聽同一頻道
+        const channel = new BroadcastChannel('memory_update'); 
         let db;
         let savedMemories = {};
 
-        // 當收到首頁更新的訊號，立刻重新讀取資料
+        // 監聽來自 home.html 的更新通知
         channel.onmessage = async function(event) {
             if (event.data === 'updated') {
-                console.log("收到更新通知，正在重整日曆...");
                 savedMemories = await getAllMemories();
                 renderCalendar();
             }
@@ -115,7 +150,7 @@
                 req.onerror = () => resolve({});
             });
         }
-        
+
         function saveAllMemories(data) {
             return new Promise((resolve, reject) => {
                 const tx = db.transaction([storeName], "readwrite");
@@ -126,22 +161,33 @@
             });
         }
 
-        // --- 2. 頁面邏輯 ---
+        // --- 2. 應用程式邏輯 ---
         let displayDate = new Date(); 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-        
+
         // 啟動程式
         initDB().then(async () => {
             savedMemories = await getAllMemories();
-            // 資料格式檢查
+            // 確保資料格式
             for (let key in savedMemories) {
                 if (!Array.isArray(savedMemories[key])) savedMemories[key] = [savedMemories[key]];
             }
             renderCalendar();
         });
 
-        // --- 上傳邏輯 (Memories 頁面自己的上傳按鈕) ---
+        // --- 3. 清除全部資料功能 ---
+        async function clearAllData() {
+            if (confirm("確定要刪除所有照片嗎？這無法復原喔！")) {
+                savedMemories = {}; // 清空記憶體變數
+                await saveAllMemories(savedMemories); // 清空資料庫
+                renderCalendar(); // 重繪日曆
+                channel.postMessage('updated'); // 通知首頁
+                alert("已全部清除！");
+            }
+        }
+
+        // --- 4. 上傳邏輯 ---
         const fileInput = document.getElementById('fileInput');
         const addBtn = document.querySelector('.add-btn');
 
@@ -151,12 +197,12 @@
             const files = event.target.files;
             if (!files || files.length === 0) return;
 
-            addBtn.textContent = `Saving ${files.length}...`;
+            addBtn.textContent = `Saving...`;
             addBtn.style.opacity = "0.7";
 
             let processedCount = 0;
-            const now = new Date();
-            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+            const today = new Date();
+            const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
             
             if (!savedMemories[dateKey]) savedMemories[dateKey] = [];
 
@@ -168,10 +214,15 @@
                         processedCount++;
                         if (processedCount === files.length) {
                             await saveAllMemories(savedMemories);
-                            renderCalendar();
-                            channel.postMessage('updated'); // 這裡也發送通知，雖然是給別人聽的
                             
-                            addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
+                            // 若當前不在該月份，跳轉顯示
+                            if (displayDate.getFullYear() !== today.getFullYear() || displayDate.getMonth() !== today.getMonth()) {
+                                displayDate = new Date();
+                            }
+                            renderCalendar();
+                            channel.postMessage('updated');
+                            
+                            addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add`;
                             addBtn.style.opacity = "1";
                         }
                     });
@@ -194,14 +245,16 @@
             };
         }
 
-        // --- 渲染與 Story 邏輯 (維持不變) ---
+        // --- 5. 渲染日曆 ---
         function renderCalendar() {
             const container = document.getElementById('calendarContainer');
             const label = document.getElementById('monthLabel');
             container.innerHTML = '';
+
             const year = displayDate.getFullYear();
             const month = displayDate.getMonth();
             label.innerText = `${monthNames[month]} ${year}`;
+
             const grid = document.createElement('div');
             grid.className = 'calendar-grid fade-in';
 
@@ -223,6 +276,7 @@
                 if (savedMemories[dateKey] && savedMemories[dateKey].length > 0) {
                     const photos = savedMemories[dateKey];
                     const lastPhoto = photos[photos.length - 1];
+                    
                     if (photos.length > 1) {
                         const ind = document.createElement('div');
                         ind.className = 'multiple-indicator';
@@ -256,19 +310,26 @@
             renderCalendar();
         }
 
-        // Story Viewer (極簡)
-        let storyList = [], currentIndex = 0, storyTimer, startY = 0, currentY = 0, isDragging = false;
+        // --- 6. Story Viewer 與 刪除邏輯 ---
+        let storyList = [];
+        let currentIndex = 0;
+        let storyTimer; 
+        const DURATION = 3000;
+        let startY = 0, currentY = 0, isDragging = false;
         const overlay = document.getElementById('storyOverlay');
 
         function openStoryViewer(clickedDateKey) {
             storyList = [];
-            const sortedKeys = Object.keys(savedMemories).sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
-            let targetIndex = 0, foundTarget = false;
+            const sortedKeys = Object.keys(savedMemories)
+                .sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
+
+            let targetIndex = 0;
+            let foundTarget = false;
 
             sortedKeys.forEach(key => {
                 const photos = savedMemories[key];
                 photos.forEach((url, idx) => {
-                    storyList.push({ date: key, url: url });
+                    storyList.push({ date: key, url: url, indexInArray: idx }); // 紀錄原始索引以便刪除
                     if (key === clickedDateKey && idx === 0 && !foundTarget) {
                         targetIndex = storyList.length - 1; foundTarget = true;
                     }
@@ -280,37 +341,97 @@
             renderStory();
         }
 
+        // --- 核心新增：刪除單張功能 ---
+        async function deleteCurrentStory(e) {
+            if(e) e.stopPropagation();
+            if (confirm("要刪除這張照片嗎？")) {
+                clearTimeout(storyTimer);
+                
+                const currentItem = storyList[currentIndex];
+                const dateKey = currentItem.date;
+                const photoUrl = currentItem.url;
+
+                // 1. 從 savedMemories 移除
+                const photoIndex = savedMemories[dateKey].indexOf(photoUrl);
+                if (photoIndex > -1) {
+                    savedMemories[dateKey].splice(photoIndex, 1);
+                }
+
+                // 2. 如果那天沒照片了，刪除該 key
+                if (savedMemories[dateKey].length === 0) {
+                    delete savedMemories[dateKey];
+                }
+
+                // 3. 存回資料庫
+                await saveAllMemories(savedMemories);
+                channel.postMessage('updated'); // 通知首頁
+
+                // 4. 更新 Story 播放列表
+                storyList.splice(currentIndex, 1);
+
+                // 5. 決定下一步
+                if (storyList.length === 0) {
+                    // 全刪光了
+                    closeStory();
+                    renderCalendar();
+                } else {
+                    // 還有照片，播下一張(或上一張)
+                    if (currentIndex >= storyList.length) {
+                        currentIndex = storyList.length - 1;
+                    }
+                    renderStory(); // 重新渲染 Story 畫面
+                    renderCalendar(); // 背景日曆也要更新
+                }
+            }
+        }
+
         function renderStory() {
             if (currentIndex < 0 || currentIndex >= storyList.length) return;
-            const item = storyList[currentIndex];
-            document.getElementById('storyImageDisplay').src = item.url;
+            const currentItem = storyList[currentIndex];
+            document.getElementById('storyImageDisplay').src = currentItem.url;
 
-            const sameDay = storyList.filter(s => s.date === item.date);
-            const idxInDay = sameDay.findIndex(s => s.url === item.url);
+            const sameDayStories = storyList.filter(s => s.date === currentItem.date);
+            const indexInDay = sameDayStories.findIndex(s => s.url === currentItem.url);
+            
             const barContainer = document.getElementById('progressBarContainer');
             barContainer.innerHTML = '';
-
-            sameDay.forEach((s, i) => {
+            
+            sameDayStories.forEach((item, index) => {
                 const bar = document.createElement('div');
-                bar.className = 'bar ' + (i < idxInDay ? 'watched' : '');
+                bar.className = 'bar ' + (index < indexInDay ? 'watched' : '');
                 const fill = document.createElement('div');
                 fill.className = 'bar-fill';
                 bar.appendChild(fill);
                 barContainer.appendChild(bar);
-                if (i === idxInDay) {
-                    setTimeout(() => { fill.style.width = '100%'; fill.style.transition = 'width 3s linear'; }, 10);
-                } else if (i < idxInDay) {
-                    fill.style.width = '100%';
+
+                if (index === indexInDay) {
+                    setTimeout(() => { fill.style.width = '100%'; fill.style.transition = `width ${DURATION}ms linear`; }, 10);
+                } else if (index < indexInDay) {
+                    fill.style.width = '100%'; 
                 }
             });
 
             clearTimeout(storyTimer);
-            storyTimer = setTimeout(() => nextStory(), 3000);
+            storyTimer = setTimeout(() => nextStory(), DURATION);
         }
 
-        function nextStory(e) { if(e) e.stopPropagation(); if (currentIndex < storyList.length - 1) { currentIndex++; renderStory(); } else { closeStory(); } }
-        function prevStory(e) { if(e) e.stopPropagation(); if (currentIndex > 0) { currentIndex--; renderStory(); } else { renderStory(); } }
-        function closeStory() { clearTimeout(storyTimer); overlay.classList.remove('active'); }
+        function nextStory(e) {
+            if (isDragging) return; if(e) e.stopPropagation();
+            if (currentIndex < storyList.length - 1) { currentIndex++; renderStory(); } else { closeStory(); }
+        }
+
+        function prevStory(e) {
+            if (isDragging) return; if(e) e.stopPropagation();
+            if (currentIndex > 0) { currentIndex--; renderStory(); } else { renderStory(); }
+        }
+
+        function closeStory() {
+            clearTimeout(storyTimer);
+            overlay.style.transition = 'transform 0.3s ease-out, opacity 0.3s';
+            overlay.style.transform = 'translateY(100%)';
+            overlay.style.opacity = '0';
+            setTimeout(() => { overlay.classList.remove('active'); overlay.style.transition = ''; }, 300);
+        }
 
         overlay.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; isDragging = false; overlay.style.transition = 'none'; });
         overlay.addEventListener('touchmove', (e) => { currentY = e.touches[0].clientY; const diff = currentY - startY; if (diff > 0) { isDragging = true; e.preventDefault(); overlay.style.transform = `translateY(${diff}px)`; overlay.style.opacity = 1 - (diff / 600); } });
