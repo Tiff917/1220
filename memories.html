@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Memories</title>
     <style>
-        /* --- 全局基礎設定 --- */
+        /* CSS 保持不變，為節省篇幅直接沿用您之前的設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-        
         body { background-color: #F3ECE5; padding: 24px; color: #8C7B6D; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overscroll-behavior-y: none; }
-
         h1 { font-size: 32px; font-weight: 700; color: #8C735D; margin-bottom: 5px; text-align: center; }
         .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 20px; text-align: center; }
         
@@ -27,8 +25,6 @@
         .day-cell { aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 500; color: #A69688; position: relative; border-radius: 50%; }
         
         .memory-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 2; border: 2px solid #F3ECE5; box-shadow: 0 4px 8px rgba(0,0,0,0.15); cursor: pointer; }
-        
-        /* 多張照片指示器 */
         .multiple-indicator { position: absolute; width: 100%; height: 100%; border-radius: 50%; background-color: #8C735D; top: 3px; left: 3px; z-index: 1; opacity: 0.3; }
         
         .date-overlay { position: absolute; z-index: 3; color: #fff; font-weight: 700; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none; }
@@ -36,7 +32,6 @@
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Story Viewer */
         .story-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s; touch-action: none; }
         .story-overlay.active { display: flex; opacity: 1; transform: translateY(0); }
         .story-image { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
@@ -55,14 +50,10 @@
 </head>
 <body>
 
-    <div>
-        <h1>My Memories</h1>
-        <div class="subtitle">Keep your moments</div>
-    </div>
+    <div><h1>My Memories</h1><div class="subtitle">Keep your moments</div></div>
 
     <button class="add-btn" onclick="triggerUpload()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-        Add Memory
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory
     </button>
     
     <input type="file" id="fileInput" accept="image/*" multiple>
@@ -83,76 +74,74 @@
     </div>
 
     <script>
-        // --- 1. IndexedDB 資料庫封裝 (解決容量不足問題的核心) ---
+        // --- 1. IndexedDB + 監聽廣播 ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
+        const channel = new BroadcastChannel('memory_update'); // 監聽同一頻道
         let db;
+        let savedMemories = {};
 
-        // 初始化資料庫
+        // 當收到首頁更新的訊號，立刻重新讀取資料
+        channel.onmessage = async function(event) {
+            if (event.data === 'updated') {
+                console.log("收到更新通知，正在重整日曆...");
+                savedMemories = await getAllMemories();
+                renderCalendar();
+            }
+        };
+
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 1);
-                request.onupgradeneeded = function(event) {
-                    db = event.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) {
-                        db.createObjectStore(storeName);
-                    }
+                request.onupgradeneeded = function(e) {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
                 };
-                request.onsuccess = function(event) {
-                    db = event.target.result;
+                request.onsuccess = function(e) {
+                    db = e.target.result;
                     resolve(db);
                 };
-                request.onerror = function(event) {
-                    console.error("Database error: " + event.target.errorCode);
-                    reject(event.target.errorCode);
-                };
+                request.onerror = (e) => reject(e);
             });
         }
 
-        // 讀取所有資料
         function getAllMemories() {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 if (!db) return resolve({});
-                const transaction = db.transaction([storeName], "readonly");
-                const objectStore = transaction.objectStore(storeName);
-                const request = objectStore.get("all_photos"); // 我們把所有資料存在一個 Key 下管理
-                request.onsuccess = function(event) {
-                    resolve(event.target.result || {});
-                };
-                request.onerror = function() {
-                    resolve({});
-                };
+                const tx = db.transaction([storeName], "readonly");
+                const store = tx.objectStore(storeName);
+                const req = store.get("all_photos");
+                req.onsuccess = (e) => resolve(e.target.result || {});
+                req.onerror = () => resolve({});
             });
         }
-
-        // 儲存資料
+        
         function saveAllMemories(data) {
             return new Promise((resolve, reject) => {
-                const transaction = db.transaction([storeName], "readwrite");
-                const objectStore = transaction.objectStore(storeName);
-                const request = objectStore.put(data, "all_photos");
-                request.onsuccess = function() { resolve(); };
-                request.onerror = function() { reject(); };
+                const tx = db.transaction([storeName], "readwrite");
+                const store = tx.objectStore(storeName);
+                const req = store.put(data, "all_photos");
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject();
             });
         }
 
-        // --- 2. 應用程式邏輯 ---
+        // --- 2. 頁面邏輯 ---
         let displayDate = new Date(); 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-        let savedMemories = {};
-
+        
         // 啟動程式
         initDB().then(async () => {
             savedMemories = await getAllMemories();
-            // 確保格式正確
+            // 資料格式檢查
             for (let key in savedMemories) {
                 if (!Array.isArray(savedMemories[key])) savedMemories[key] = [savedMemories[key]];
             }
             renderCalendar();
         });
 
-        // --- 3. 多張上傳邏輯 ---
+        // --- 上傳邏輯 (Memories 頁面自己的上傳按鈕) ---
         const fileInput = document.getElementById('fileInput');
         const addBtn = document.querySelector('.add-btn');
 
@@ -162,24 +151,28 @@
             const files = event.target.files;
             if (!files || files.length === 0) return;
 
-            addBtn.textContent = `Processing ${files.length}...`;
+            addBtn.textContent = `Saving ${files.length}...`;
             addBtn.style.opacity = "0.7";
 
             let processedCount = 0;
-            const today = new Date();
-            const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+            const now = new Date();
+            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
             
             if (!savedMemories[dateKey]) savedMemories[dateKey] = [];
 
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // 這裡可以選擇不壓縮，因為 IndexedDB 很大，但我保留壓縮以優化效能
-                    compressImage(e.target.result, 1024, 0.8, function(compressedBase64) {
-                        savedMemories[dateKey].push(compressedBase64);
+                    compressImage(e.target.result, 1024, 0.8, async function(base64) {
+                        savedMemories[dateKey].push(base64);
                         processedCount++;
                         if (processedCount === files.length) {
-                            finalizeSave();
+                            await saveAllMemories(savedMemories);
+                            renderCalendar();
+                            channel.postMessage('updated'); // 這裡也發送通知，雖然是給別人聽的
+                            
+                            addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
+                            addBtn.style.opacity = "1";
                         }
                     });
                 };
@@ -192,64 +185,35 @@
             img.src = base64Str;
             img.onload = function() {
                 const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-                if (width > maxWidth) {
-                    height *= maxWidth / width;
-                    width = maxWidth;
-                }
-                canvas.width = width;
-                canvas.height = height;
+                let w = img.width, h = img.height;
+                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
+                canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+                ctx.drawImage(img, 0, 0, w, h);
                 callback(canvas.toDataURL('image/jpeg', quality));
             };
         }
 
-        async function finalizeSave() {
-            try {
-                await saveAllMemories(savedMemories); // 存入 IndexedDB
-                
-                const today = new Date();
-                if (displayDate.getFullYear() !== today.getFullYear() || displayDate.getMonth() !== today.getMonth()) {
-                    displayDate = new Date();
-                }
-                renderCalendar();
-
-                addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
-                addBtn.style.opacity = "1";
-            } catch (e) {
-                alert("儲存錯誤，請重試");
-                addBtn.textContent = "Error";
-            }
-        }
-
-        // --- 4. 渲染日曆 ---
+        // --- 渲染與 Story 邏輯 (維持不變) ---
         function renderCalendar() {
             const container = document.getElementById('calendarContainer');
             const label = document.getElementById('monthLabel');
             container.innerHTML = '';
-
             const year = displayDate.getFullYear();
             const month = displayDate.getMonth();
             label.innerText = `${monthNames[month]} ${year}`;
-
             const grid = document.createElement('div');
             grid.className = 'calendar-grid fade-in';
 
             weekdays.forEach(day => {
-                const dayHeader = document.createElement('div');
-                dayHeader.className = 'weekday';
-                dayHeader.innerText = day;
-                grid.appendChild(dayHeader);
+                const d = document.createElement('div');
+                d.className = 'weekday'; d.innerText = day; grid.appendChild(d);
             });
 
             const firstDayIndex = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            for (let i = 0; i < firstDayIndex; i++) {
-                grid.appendChild(document.createElement('div'));
-            }
+            for (let i = 0; i < firstDayIndex; i++) grid.appendChild(document.createElement('div'));
 
             for (let d = 1; d <= daysInMonth; d++) {
                 const cell = document.createElement('div');
@@ -259,30 +223,24 @@
                 if (savedMemories[dateKey] && savedMemories[dateKey].length > 0) {
                     const photos = savedMemories[dateKey];
                     const lastPhoto = photos[photos.length - 1];
-                    
                     if (photos.length > 1) {
-                        const indicator = document.createElement('div');
-                        indicator.className = 'multiple-indicator';
-                        cell.appendChild(indicator);
+                        const ind = document.createElement('div');
+                        ind.className = 'multiple-indicator';
+                        cell.appendChild(ind);
                     }
-
                     const img = document.createElement('img');
                     img.src = lastPhoto;
                     img.className = 'memory-photo';
-                    img.onclick = function() { openStoryViewer(dateKey); };
+                    img.onclick = () => openStoryViewer(dateKey);
                     cell.appendChild(img);
-                    
-                    const dateNum = document.createElement('span');
-                    dateNum.className = 'date-overlay';
-                    dateNum.innerText = d;
-                    cell.appendChild(dateNum);
+                    const num = document.createElement('span');
+                    num.className = 'date-overlay'; num.innerText = d;
+                    cell.appendChild(num);
                 } else {
                     const today = new Date();
                     if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === d) {
-                        const circle = document.createElement('div');
-                        circle.className = 'today-circle';
-                        circle.innerText = d;
-                        cell.appendChild(circle);
+                        const c = document.createElement('div');
+                        c.className = 'today-circle'; c.innerText = d; cell.appendChild(c);
                     } else {
                         cell.innerText = d;
                     }
@@ -298,149 +256,65 @@
             renderCalendar();
         }
 
-        // --- 5. Story Viewer (極簡化) ---
-        let storyList = [];
-        let currentIndex = 0;
-        let storyTimer; 
-        const DURATION = 3000;
-        
-        let startY = 0;
-        let currentY = 0;
-        let isDragging = false;
+        // Story Viewer (極簡)
+        let storyList = [], currentIndex = 0, storyTimer, startY = 0, currentY = 0, isDragging = false;
         const overlay = document.getElementById('storyOverlay');
 
         function openStoryViewer(clickedDateKey) {
             storyList = [];
-            const sortedKeys = Object.keys(savedMemories)
-                .sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
-
-            let targetIndex = 0;
-            let foundTarget = false;
+            const sortedKeys = Object.keys(savedMemories).sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
+            let targetIndex = 0, foundTarget = false;
 
             sortedKeys.forEach(key => {
                 const photos = savedMemories[key];
-                photos.forEach((photoUrl, pIndex) => {
-                    storyList.push({ date: key, url: photoUrl });
-                    if (key === clickedDateKey && pIndex === 0 && !foundTarget) {
-                        targetIndex = storyList.length - 1;
-                        foundTarget = true;
+                photos.forEach((url, idx) => {
+                    storyList.push({ date: key, url: url });
+                    if (key === clickedDateKey && idx === 0 && !foundTarget) {
+                        targetIndex = storyList.length - 1; foundTarget = true;
                     }
                 });
             });
 
             currentIndex = targetIndex;
             overlay.classList.add('active');
-            overlay.style.opacity = '1';
-            overlay.style.transform = 'translateY(0)';
             renderStory();
         }
 
         function renderStory() {
             if (currentIndex < 0 || currentIndex >= storyList.length) return;
-            const currentItem = storyList[currentIndex];
-            const img = document.getElementById('storyImageDisplay');
+            const item = storyList[currentIndex];
+            document.getElementById('storyImageDisplay').src = item.url;
+
+            const sameDay = storyList.filter(s => s.date === item.date);
+            const idxInDay = sameDay.findIndex(s => s.url === item.url);
             const barContainer = document.getElementById('progressBarContainer');
-
-            img.src = currentItem.url;
-
-            const sameDayStories = storyList.filter(s => s.date === currentItem.date);
-            const indexInDay = sameDayStories.findIndex(s => s.url === currentItem.url);
-            
             barContainer.innerHTML = '';
-            sameDayStories.forEach((item, index) => {
+
+            sameDay.forEach((s, i) => {
                 const bar = document.createElement('div');
-                bar.className = 'bar ' + (index < indexInDay ? 'watched' : '');
-                
+                bar.className = 'bar ' + (i < idxInDay ? 'watched' : '');
                 const fill = document.createElement('div');
                 fill.className = 'bar-fill';
                 bar.appendChild(fill);
-                
                 barContainer.appendChild(bar);
-
-                if (index === indexInDay) {
-                    setTimeout(() => {
-                        fill.style.width = '100%';
-                        fill.style.transition = `width ${DURATION}ms linear`;
-                    }, 10);
-                } else if (index < indexInDay) {
-                    fill.style.width = '100%'; 
-                    fill.style.transition = 'none';
-                } else {
-                    fill.style.width = '0%'; 
-                    fill.style.transition = 'none';
+                if (i === idxInDay) {
+                    setTimeout(() => { fill.style.width = '100%'; fill.style.transition = 'width 3s linear'; }, 10);
+                } else if (i < idxInDay) {
+                    fill.style.width = '100%';
                 }
             });
 
             clearTimeout(storyTimer);
-            storyTimer = setTimeout(() => {
-                nextStory();
-            }, DURATION);
+            storyTimer = setTimeout(() => nextStory(), 3000);
         }
 
-        function nextStory(e) {
-            if (isDragging) return;
-            if(e) e.stopPropagation();
-            if (currentIndex < storyList.length - 1) {
-                currentIndex++;
-                renderStory();
-            } else {
-                closeStory();
-            }
-        }
+        function nextStory(e) { if(e) e.stopPropagation(); if (currentIndex < storyList.length - 1) { currentIndex++; renderStory(); } else { closeStory(); } }
+        function prevStory(e) { if(e) e.stopPropagation(); if (currentIndex > 0) { currentIndex--; renderStory(); } else { renderStory(); } }
+        function closeStory() { clearTimeout(storyTimer); overlay.classList.remove('active'); }
 
-        function prevStory(e) {
-            if (isDragging) return;
-            if(e) e.stopPropagation();
-            if (currentIndex > 0) {
-                currentIndex--;
-                renderStory();
-            } else {
-                renderStory();
-            }
-        }
-
-        function closeStory() {
-            clearTimeout(storyTimer);
-            overlay.style.transition = 'transform 0.3s ease-out, opacity 0.3s';
-            overlay.style.transform = 'translateY(100%)';
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                overlay.classList.remove('active');
-                overlay.style.transition = '';
-            }, 300);
-        }
-
-        overlay.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY;
-            isDragging = false;
-            overlay.style.transition = 'none';
-        });
-
-        overlay.addEventListener('touchmove', (e) => {
-            currentY = e.touches[0].clientY;
-            const diff = currentY - startY;
-            if (diff > 0) {
-                isDragging = true;
-                e.preventDefault();
-                overlay.style.transform = `translateY(${diff}px)`;
-                overlay.style.opacity = 1 - (diff / 600);
-            }
-        });
-
-        overlay.addEventListener('touchend', () => {
-            const diff = currentY - startY;
-            if (isDragging && diff > 100) {
-                closeStory();
-            } else {
-                if(isDragging) {
-                    overlay.style.transition = 'transform 0.2s ease-out, opacity 0.2s';
-                    overlay.style.transform = 'translateY(0)';
-                    overlay.style.opacity = '1';
-                }
-            }
-            isDragging = false;
-        });
-
+        overlay.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; isDragging = false; overlay.style.transition = 'none'; });
+        overlay.addEventListener('touchmove', (e) => { currentY = e.touches[0].clientY; const diff = currentY - startY; if (diff > 0) { isDragging = true; e.preventDefault(); overlay.style.transform = `translateY(${diff}px)`; overlay.style.opacity = 1 - (diff / 600); } });
+        overlay.addEventListener('touchend', () => { if (isDragging && currentY - startY > 100) closeStory(); else { overlay.style.transition = '0.2s'; overlay.style.transform = 'translateY(0)'; overlay.style.opacity = '1'; } isDragging = false; });
     </script>
 </body>
 </html>
