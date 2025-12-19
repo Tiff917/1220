@@ -5,65 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Edit Photo</title>
     <style>
-        /* --- 全局設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: #F3ECE5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* --- 頂部導航 --- */
-        .header {
-            flex-shrink: 0; padding: 50px 20px 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            background-color: #F3ECE5; z-index: 10;
-        }
-
-        .cancel-btn {
-            font-size: 16px; color: #8C7B6D; text-decoration: none; font-weight: 500;
-        }
-
-        .title {
-            font-size: 18px; font-weight: 700; color: #6D5D50;
-        }
-
-        /* Share 按鈕 (存檔用) */
-        .share-btn {
-            font-size: 16px; font-weight: 700; color: #fff;
-            background-color: #9C7C66; border: none; padding: 8px 16px;
-            border-radius: 20px; cursor: pointer;
-        }
+        .header { flex-shrink: 0; padding: 50px 20px 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #F3ECE5; z-index: 10; }
+        .cancel-btn { font-size: 16px; color: #8C7B6D; text-decoration: none; font-weight: 500; }
+        .title { font-size: 18px; font-weight: 700; color: #6D5D50; }
+        .share-btn { font-size: 16px; font-weight: 700; color: #fff; background-color: #9C7C66; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
         .share-btn:active { opacity: 0.8; transform: scale(0.95); }
 
-        /* --- 預覽區域 --- */
-        .editor-container {
-            flex: 1; display: flex; justify-content: center; align-items: center;
-            padding: 20px; overflow: hidden; position: relative;
-            background-color: #F3ECE5;
-        }
+        .editor-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; overflow: hidden; position: relative; background-color: #F3ECE5; }
+        canvas { max-width: 100%; max-height: 100%; box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2); border-radius: 8px; display: none; }
 
-        /* Canvas 用來顯示與壓縮圖片，不加任何濾鏡效果 */
-        canvas {
-            max-width: 100%; max-height: 100%;
-            box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2);
-            border-radius: 8px; display: none;
-        }
-
-        /* 載入圖片按鈕區 */
-        .upload-placeholder {
-            text-align: center; color: #8C7B6D;
-            display: flex; flex-direction: column; align-items: center; gap: 15px;
-        }
-        
-        .upload-icon {
-            font-size: 48px; opacity: 0.5;
-        }
-
-        .upload-btn {
-            padding: 12px 24px;
-            background: #9C7C66; color: white; border-radius: 25px; font-weight: 600; font-size: 16px;
-            display: flex; align-items: center; gap: 8px; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(156, 124, 102, 0.3);
-            transition: transform 0.1s;
-        }
+        .upload-placeholder { text-align: center; color: #8C7B6D; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .upload-icon { font-size: 48px; opacity: 0.5; }
+        .upload-btn { padding: 12px 24px; background: #9C7C66; color: white; border-radius: 25px; font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(156, 124, 102, 0.3); transition: transform 0.1s; }
         .upload-btn:active { transform: scale(0.95); }
+
+        /* 新增：重選按鈕 (Re-select) */
+        .reselect-btn {
+            position: absolute; bottom: 20px; right: 20px;
+            width: 44px; height: 44px; border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: none; /* 預設隱藏 */
+            justify-content: center; align-items: center;
+            cursor: pointer; z-index: 20; color: #666;
+        }
+        .reselect-btn:active { background-color: #ddd; }
     </style>
 </head>
 <body>
@@ -79,38 +48,36 @@
             <div class="upload-icon">📷</div>
             <p>Select a photo</p>
             <label class="upload-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                Open Gallery
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> Open Gallery
                 <input type="file" id="imageLoader" accept="image/*" style="display: none;">
             </label>
         </div>
+        
         <canvas id="imageCanvas"></canvas>
+
+        <div class="reselect-btn" id="reselectBtn" onclick="resetSelection()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        </div>
     </div>
 
     <script>
-        // --- 1. IndexedDB 設定 (必須與 Home/Memories 完全一致) ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
         let db;
 
-        // 初始化資料庫連線
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 1);
-                request.onupgradeneeded = function(e) {
+                request.onupgradeneeded = (e) => {
                     db = e.target.result;
                     if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
                 };
-                request.onsuccess = function(e) {
-                    db = e.target.result;
-                    resolve(db);
-                };
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e);
             });
         }
 
-        // 讀取回憶
         function getAllMemories() {
             return new Promise((resolve) => {
                 if (!db) return resolve({});
@@ -122,7 +89,6 @@
             });
         }
 
-        // 儲存回憶
         function saveAllMemories(data) {
             return new Promise((resolve, reject) => {
                 const tx = db.transaction([storeName], "readwrite");
@@ -133,14 +99,15 @@
             });
         }
 
-        // --- 2. 圖片處理邏輯 (無濾鏡) ---
+        // --- 介面邏輯 ---
         const imageLoader = document.getElementById('imageLoader');
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
         const placeholder = document.getElementById('placeholder');
+        const reselectBtn = document.getElementById('reselectBtn');
         let currentImgObj = null; 
 
-        // 載入圖片並顯示
+        // 載入圖片
         imageLoader.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if(!file) return;
@@ -150,8 +117,6 @@
                 const img = new Image();
                 img.onload = function() {
                     currentImgObj = img;
-                    
-                    // 自動調整大小 (保持壓縮以節省空間，同時確保畫質)
                     let maxWidth = 1024; 
                     let width = img.width;
                     let height = img.height;
@@ -164,11 +129,11 @@
                     canvas.width = width;
                     canvas.height = height;
                     
-                    // 顯示 Canvas，隱藏按鈕
+                    // UI 切換
                     placeholder.style.display = 'none';
                     canvas.style.display = 'block';
+                    reselectBtn.style.display = 'flex'; // 顯示重選按鈕
 
-                    // 直接繪製，不加濾鏡
                     ctx.drawImage(currentImgObj, 0, 0, canvas.width, canvas.height);
                 }
                 img.src = event.target.result;
@@ -176,12 +141,19 @@
             reader.readAsDataURL(file);
         });
 
-        // --- 3. Share 按鈕邏輯 (存檔 + 更新 Home) ---
-        const shareBtn = document.getElementById('shareBtn');
+        // 重選邏輯
+        function resetSelection() {
+            currentImgObj = null;
+            imageLoader.value = ""; // 清空 input 才能重複選同一張
+            canvas.style.display = 'none';
+            reselectBtn.style.display = 'none';
+            placeholder.style.display = 'flex';
+        }
 
+        // Share 邏輯
+        const shareBtn = document.getElementById('shareBtn');
         shareBtn.addEventListener('click', async () => {
             if (!currentImgObj) {
-                // 如果沒選照片，提示一下，或者自動點擊 Open Gallery
                 document.querySelector('.upload-btn').click();
                 return;
             }
@@ -189,45 +161,33 @@
             shareBtn.textContent = "Saving...";
             shareBtn.style.opacity = "0.7";
             
-            // 1. 將 Canvas 內容轉為 Base64 圖片字串 (畫質 0.8)
             const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
-            // 2. 連線資料庫
             if (!db) await initDB();
             let memories = await getAllMemories();
 
-            // 3. 準備今天的 Key
             const now = new Date();
             const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 
-            // 4. 初始化陣列並加入新照片
             if (!memories[dateKey]) memories[dateKey] = [];
             if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
 
             memories[dateKey].push(imageData);
 
-            // 5. 寫回資料庫
             try {
                 await saveAllMemories(memories);
-                
-                // 6. 發送廣播 (讓 memories.html 知道)
                 channel.postMessage('updated');
-                
-                // 7. 跳轉回首頁 (home.html 會重新載入並讀取最新照片)
                 alert("Shared to Memories!");
                 window.location.href = "home.html";
-                
             } catch (err) {
                 console.error(err);
-                alert("Save failed. Storage might be full.");
+                alert("Save failed.");
                 shareBtn.textContent = "Share";
                 shareBtn.style.opacity = "1";
             }
         });
 
-        // 初始化資料庫
         initDB();
-
     </script>
 </body>
 </html>
