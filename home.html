@@ -5,26 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Home</title>
     <style>
-        /* Global Settings */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-
-        /* Page Scroll Lock */
         html, body { width: 100%; height: 100%; overflow: hidden; background-color: #F3ECE5; }
         body { display: flex; flex-direction: column; justify-content: space-between; }
 
-        /* Header */
         .header { flex-shrink: 0; padding: 60px 24px 20px 24px; display: flex; justify-content: space-between; align-items: center; }
         .brown-btn { background-color: #9C7C66; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         .avatar-placeholder { width: 50px; height: 50px; border-radius: 50%; }
         .search-pill { height: 50px; width: 140px; border-radius: 25px; display: flex; justify-content: flex-start; align-items: center; padding-left: 15px; }
         .chat-btn { width: 50px; height: 50px; border-radius: 50%; }
 
-        /* Main Content */
         .content { flex: 1; width: 100%; padding: 20px 24px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .card { width: 100%; max-width: 500px; aspect-ratio: 1 / 1; max-height: 100%; border-radius: 35px; overflow: hidden; background-color: #ddd; position: relative; box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2); }
         .card img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Footer */
         .footer { flex-shrink: 0; padding: 20px 40px 100px 40px; display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; align-self: center; }
         .icon-brown { stroke: #9C7C66; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
         
@@ -33,7 +27,7 @@
         .shutter-inner { width: 56px; height: 56px; background-color: #9C7C66; border-radius: 50%; }
         svg { display: block; }
 
-        /* Modal / Action Sheet */
+        /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.4); z-index: 200; display: none; justify-content: center; align-items: flex-end; opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.show { display: flex; opacity: 1; }
         .action-sheet { width: 100%; max-width: 100%; margin-bottom: 0; background-color: #F3ECE5; border-top-left-radius: 24px; border-top-right-radius: 24px; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); overflow: hidden; }
@@ -42,28 +36,18 @@
         .action-btn:active { background-color: #E0D5CC; }
         .action-btn.cancel { font-weight: 700; border-bottom: none; color: #8C735D; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
         
-        /* 儲存中的提示 */
         #loading-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 15px 25px; border-radius: 25px; font-size: 14px; z-index: 300; display: none; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <a href="profile.html" style="text-decoration: none;">
-          <div class="brown-btn avatar-placeholder"></div>
-        </a>
+        <a href="profile.html" style="text-decoration: none;"><div class="brown-btn avatar-placeholder"></div></a>
         <div class="brown-btn search-pill">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         </div>
         <a href="message.html" class="brown-btn chat-btn" style="text-decoration: none;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
         </a>
     </div>
 
@@ -74,112 +58,102 @@
     </div>
 
     <div class="footer">
-        <a href="search.html" style="text-decoration: none; display: flex;">
-            <svg class="icon-brown" width="32" height="32" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        </a>
-        <label class="shutter-btn">
-            <div class="shutter-inner"></div>
-            <input type="button" style="display: none;">
-        </label>
-        <a href="edit.html" style="text-decoration: none; display: flex;">
-            <svg class="icon-brown" width="32" height="32" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-        </a>
+        <a href="search.html" style="text-decoration: none; display: flex;"><svg class="icon-brown" width="32" height="32" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></a>
+        <label class="shutter-btn"><div class="shutter-inner"></div></label>
+        <a href="edit.html" style="text-decoration: none; display: flex;"><svg class="icon-brown" width="32" height="32" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></a>
     </div>
 
-    <input type="file" id="real-camera-input" accept="image/*" capture="environment" style="display: none;">
-    <input type="file" id="real-gallery-input" accept="image/*" multiple style="display: none;">
+    <input type="file" id="input_camera" accept="image/*" capture="environment" style="display: none;">
+    <input type="file" id="input_gallery" accept="image/*" multiple style="display: none;">
 
     <div id="action-sheet-overlay" class="modal-overlay">
         <div class="action-sheet">
-            <div class="action-btn" onclick="triggerCamera()">立即拍照</div>
-            <div class="action-btn" onclick="triggerGallery()">從相簿選擇</div>
-            <div class="action-btn cancel" onclick="closeSheet()">取消</div>
+            <div class="action-btn" id="btn_camera">立即拍照</div>
+            <div class="action-btn" id="btn_gallery">從相簿選擇 (可多選)</div>
+            <div class="action-btn cancel" id="btn_cancel">取消</div>
         </div>
     </div>
 
     <div id="loading-toast">Saving...</div>
 
     <script>
-        // --- 1. IndexedDB 核心 (必須與 Memories 頁面完全一致) ---
+        // --- 1. IndexedDB 與 廣播設定 ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
+        const channel = new BroadcastChannel('memory_update'); // 建立廣播頻道
         let db;
 
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 1);
-                request.onupgradeneeded = function(event) {
-                    db = event.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) {
-                        db.createObjectStore(storeName);
-                    }
+                request.onupgradeneeded = function(e) {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
                 };
-                request.onsuccess = function(event) {
-                    db = event.target.result;
+                request.onsuccess = function(e) {
+                    db = e.target.result;
                     resolve(db);
                 };
-                request.onerror = function(event) {
-                    console.error("DB Error", event);
-                    reject(event);
-                };
+                request.onerror = (e) => reject(e);
             });
         }
 
-        // 讀取回憶
         function getAllMemories() {
             return new Promise((resolve) => {
                 if (!db) return resolve({});
-                const transaction = db.transaction([storeName], "readonly");
-                const store = transaction.objectStore(storeName);
+                const tx = db.transaction([storeName], "readonly");
+                const store = tx.objectStore(storeName);
                 const req = store.get("all_photos");
                 req.onsuccess = (e) => resolve(e.target.result || {});
                 req.onerror = () => resolve({});
             });
         }
 
-        // 儲存回憶
         function saveAllMemories(data) {
             return new Promise((resolve, reject) => {
-                const transaction = db.transaction([storeName], "readwrite");
-                const store = transaction.objectStore(storeName);
+                const tx = db.transaction([storeName], "readwrite");
+                const store = tx.objectStore(storeName);
                 const req = store.put(data, "all_photos");
                 req.onsuccess = () => resolve();
                 req.onerror = () => reject();
             });
         }
 
-        // --- 2. 介面邏輯 ---
+        // --- 2. 介面控制 ---
         const shutterBtn = document.querySelector('.shutter-btn');
         const overlay = document.getElementById('action-sheet-overlay');
         const mainImage = document.querySelector('.card img');
         const toast = document.getElementById('loading-toast');
         
-        const realCameraInput = document.getElementById('real-camera-input');
-        const realGalleryInput = document.getElementById('real-gallery-input');
+        // 按鈕綁定
+        shutterBtn.addEventListener('click', (e) => { e.preventDefault(); overlay.classList.add('show'); });
+        document.getElementById('btn_cancel').addEventListener('click', () => overlay.classList.remove('show'));
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('show'); });
 
-        // 初始化 DB
+        // 觸發相機
+        document.getElementById('btn_camera').addEventListener('click', () => {
+            document.getElementById('input_camera').click();
+            overlay.classList.remove('show');
+        });
+
+        // 觸發相簿
+        document.getElementById('btn_gallery').addEventListener('click', () => {
+            document.getElementById('input_gallery').click();
+            overlay.classList.remove('show');
+        });
+
+        // --- 3. 檔案處理 ---
         initDB();
 
-        shutterBtn.addEventListener('click', (e) => { e.preventDefault(); overlay.classList.add('show'); });
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSheet(); });
-        function closeSheet() { overlay.classList.remove('show'); }
-        function triggerCamera() { realCameraInput.click(); closeSheet(); }
-        function triggerGallery() { realGalleryInput.click(); closeSheet(); }
-
-        // --- 3. 檔案處理 (支援多選 + 寫入 IndexedDB) ---
         async function handleFileSelect(e) {
             const files = e.target.files;
             if (!files || files.length === 0) return;
 
-            toast.style.display = 'block'; // 顯示儲存中
-
-            // 確保 DB 已連線
+            toast.style.display = 'block';
             if (!db) await initDB();
             
-            // 讀取目前所有的回憶
             let memories = await getAllMemories();
             
-            // 準備今天的 Key
             const now = new Date();
             const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
             
@@ -191,25 +165,23 @@
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    // 壓縮圖片 (為了效能)
                     compressImage(event.target.result, 1024, 0.8, async function(base64) {
                         
-                        // 加入陣列
                         memories[dateKey].push(base64);
-                        
-                        // 更新首頁顯示 (顯示最後一張)
-                        mainImage.src = base64;
-                        
+                        mainImage.src = base64; // 更新首頁圖片
                         processedCount++;
                         
-                        // 全部處理完，一次寫入 DB
                         if (processedCount === files.length) {
                             try {
                                 await saveAllMemories(memories);
+                                
+                                // ★★★ 關鍵：通知 memories.html 更新 ★★★
+                                channel.postMessage('updated'); 
+                                
                                 toast.textContent = "Saved to Memories!";
                                 setTimeout(() => { 
                                     toast.style.display = 'none'; 
-                                    toast.textContent = "Saving..."; // 重置文字
+                                    toast.textContent = "Saving..."; 
                                 }, 1500);
                             } catch (err) {
                                 alert("Save failed.");
@@ -227,23 +199,17 @@
             img.src = base64Str;
             img.onload = function() {
                 const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-                if (width > maxWidth) {
-                    height *= maxWidth / width;
-                    width = maxWidth;
-                }
-                canvas.width = width;
-                canvas.height = height;
+                let w = img.width, h = img.height;
+                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
+                canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+                ctx.drawImage(img, 0, 0, w, h);
                 callback(canvas.toDataURL('image/jpeg', quality));
             };
         }
 
-        realCameraInput.addEventListener('change', handleFileSelect);
-        realGalleryInput.addEventListener('change', handleFileSelect);
+        document.getElementById('input_camera').addEventListener('change', handleFileSelect);
+        document.getElementById('input_gallery').addEventListener('change', handleFileSelect);
     </script>
-
 </body>
 </html>
