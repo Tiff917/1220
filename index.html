@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Swipe App Container</title>
+    <style>
+        /* 1. 歸零 */
+        * { margin: 0; padding: 0; box-sizing: border-box; border: 0; outline: 0; }
+
+        /* 2. 背景設定 (確保跟 App 同色) */
+        html, body {
+            width: 100%; height: 100%;
+            background-color: #F3ECE5; /* 關鍵：米色背景 */
+            overflow: hidden;
+        }
+
+        /* 3. 滑動容器 */
+        .app-container {
+            display: flex;
+            flex-wrap: nowrap;
+            width: 101%; height: 100%;
+            
+            overflow-x: scroll; 
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            
+            background-color: #F3ECE5; /* 容器也設米色 */
+            
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+            scroll-behavior: auto;
+        }
+        .app-container::-webkit-scrollbar { display: none; }
+
+        /* 4. iframe 設定 */
+        iframe {
+            display: block;
+            /* 設為 100% 寬度 */
+            min-width: 100.5%; 
+            width: 100.5%;
+            height: 100%;
+            
+            /* 關鍵：強制移除所有邊框和陰影 */
+            border: none !important;
+            box-shadow: none !important;
+            
+            background-color: #F3ECE5;
+            scroll-snap-align: start; 
+            scroll-snap-stop: always;
+        }
+
+        /* 5. 終極修正：相鄰的 iframe 往左擠 */
+        /* 只要不是第一個 iframe，全部往左拉 2px，蓋住上一張的邊緣 */
+        iframe + iframe {
+            margin-left: -4px;
+        }
+
+    </style>
+</head>
+<body>
+    
+    <div class="app-container" id="appContainer">
+        <iframe src="memories.html" frameborder="0"></iframe>
+        <iframe src="home.html" id="homeFrame" frameborder="0"></iframe>
+        <iframe src="social.html" frameborder="0"></iframe>
+    </div>
+
+    <script>
+        const container = document.getElementById('appContainer');
+        const homeFrame = document.getElementById('homeFrame');
+
+        // 1. 初始化定位
+        window.onload = function() {
+            setTimeout(() => {
+                if(container && homeFrame) {
+                    container.scrollLeft = homeFrame.offsetLeft;
+                }
+            }, 10);
+        };
+
+        // 2. 智慧鎖定邏輯 (維持你原本的功能)
+        setInterval(function() {
+            let shouldLock = false; 
+            try {
+                const url = homeFrame.contentWindow.location.href.toLowerCase();
+                if (url.includes('search.html') || url.includes('edit.html') || url.includes('message.html')) {
+                    shouldLock = true;
+                }
+            } catch (e) { shouldLock = false; }
+
+            if (shouldLock) {
+                if (container.style.overflowX !== 'hidden') container.style.overflowX = 'hidden';
+                if (container.scrollLeft !== homeFrame.offsetLeft) container.scrollLeft = homeFrame.offsetLeft;
+            } else {
+                if (container.style.overflowX !== 'scroll') container.style.overflowX = 'scroll';
+            }
+        }, 100);
+    </script>
+</body>
+</html>
