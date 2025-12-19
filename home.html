@@ -1,1 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>App UI Responsive</title>
+    <style>
+        /* Global Settings */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
+        /* --- KEY CHANGE: Lock the page scroll --- */
+        html, body {
+            width: 100%;
+            height: 100%;       /* Force full height */
+            overflow: hidden;   /* Disable scrolling */
+            background-color: #F3ECE5; 
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ----- Header ----- */
+        .header {
+            /* Fixed height header */
+            flex-shrink: 0; /* Prevent shrinking */
+            padding: 60px 24px 20px 24px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Brown Buttons */
+        .brown-btn {
+            background-color: #9C7C66;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .avatar-placeholder {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        .search-pill {
+            height: 50px;
+            width: 140px;
+            border-radius: 25px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding-left: 15px;
+        }
+
+        .chat-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        /* ----- Main Content ----- */
+        .content {
+            flex: 1; /* Take up all remaining space */
+            width: 100%;
+            padding: 20px 24px; /* Reduced padding slightly to fit content better */
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Center the card vertically too */
+            overflow: hidden; /* Ensure content doesn't cause scroll */
+        }
+
+        .card {
+            width: 100%;
+            max-width: 500px; /* Slightly smaller max-width */
+            /* Using aspect-ratio is good, but let's make sure it fits */
+            aspect-ratio: 1 / 1; 
+            max-height: 100%; /* Ensure it doesn't overflow height */
+            border-radius: 35px;
+            overflow: hidden;
+            background-color: #ddd;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2);
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ----- Footer ----- */
+        .footer {
+            flex-shrink: 0; /* Prevent shrinking */
+            padding: 20px 40px 100px 40px; /* Adjusted padding */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            align-self: center;
+        }
+
+        .icon-brown {
+            stroke: #9C7C66;
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        .shutter-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 4px solid #9C7C66;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .shutter-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .shutter-inner {
+            width: 56px;
+            height: 56px;
+            background-color: #9C7C66;
+            border-radius: 50%;
+        }
+
+        svg { display: block; }
+
+        /* ----- Modal / Action Sheet ----- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .action-sheet {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 0;
+            background-color: #F3ECE5;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .modal-overlay.show .action-sheet {
+            transform: translateY(0);
+        }
+
+        .action-btn {
+            background-color: #F3ECE5;
+            padding: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 500;
+            color: #9C7C66;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(156, 124, 102, 0.2);
+        }
+        
+        .action-btn:active {
+            background-color: #E0D5CC; 
+        }
+
+        .action-btn.cancel {
+            font-weight: 700;
+            border-bottom: none;
+            color: #8C735D;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom)); 
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="profile.html" style="text-decoration: none;">
+          <div class="brown-btn avatar-placeholder"></div>
+        </a>
+        
+        <div class="brown-btn search-pill">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+        </div>
+
+        <a href="message.html" class="brown-btn chat-btn" style="text-decoration: none;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </a>
+    </div>
+
+    <div class="content">
+        <div class="card">
+            <img src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=2070&auto=format&fit=crop" alt="Delicious Souffle">
+        </div>
+    </div>
+
+    <div class="footer">
+        <a href="search.html" style="text-decoration: none; display: flex;">
+            <svg class="icon-brown" width="32" height="32" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </a>
+
+        <label class="shutter-btn">
+            <div class="shutter-inner"></div>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+        </label>
+
+        <a href="edit.html" style="text-decoration: none; display: flex;">
+            <svg class="icon-brown" width="32" height="32" viewBox="0 0 24 24">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+        </a>
+    </div>
+
+    <input type="file" id="real-camera-input" accept="image/*" capture="environment" style="display: none;">
+    <input type="file" id="real-gallery-input" accept="image/*" style="display: none;">
+
+    <div id="action-sheet-overlay" class="modal-overlay">
+        <div class="action-sheet">
+            <div class="action-btn" onclick="triggerCamera()">
+                立即拍照
+            </div>
+            <div class="action-btn" onclick="triggerGallery()">
+                從相簿選擇
+            </div>
+            <div class="action-btn cancel" onclick="closeSheet()">
+                取消
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const shutterBtn = document.querySelector('.shutter-btn');
+        const overlay = document.getElementById('action-sheet-overlay');
+        const mainImage = document.querySelector('.card img');
+        
+        const realCameraInput = document.getElementById('real-camera-input');
+        const realGalleryInput = document.getElementById('real-gallery-input');
+
+        shutterBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent label from triggering default file input
+            overlay.classList.add('show');
+        });
+
+        overlay.addEventListener('click', (e) => { 
+            if (e.target === overlay) closeSheet(); 
+        });
+
+        function closeSheet() { 
+            overlay.classList.remove('show'); 
+        }
+
+        function triggerCamera() { 
+            realCameraInput.click(); 
+            closeSheet(); 
+        }
+
+        function triggerGallery() { 
+            realGalleryInput.click(); 
+            closeSheet(); 
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64String = event.target.result;
+                    mainImage.src = base64String;
+                    saveToMemories(base64String);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveToMemories(imageBase64) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const dateKey = `${year}-${month}-${day}`;
+
+            const currentMemories = JSON.parse(localStorage.getItem('myMemories')) || {};
+            currentMemories[dateKey] = imageBase64;
+
+            try {
+                localStorage.setItem('myMemories', JSON.stringify(currentMemories));
+                console.log("Image saved to " + dateKey);
+            } catch (e) {
+                alert("Storage full, cannot save image.");
+            }
+        }
+
+        realCameraInput.addEventListener('change', handleFileSelect);
+        realGalleryInput.addEventListener('change', handleFileSelect);
+    </script>
+
+</body>
+</html>
