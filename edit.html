@@ -32,69 +32,54 @@
         }
         .share-btn:active { opacity: 0.8; transform: scale(0.95); }
 
-        /* --- 編輯區域 (Canvas) --- */
+        /* --- 預覽區域 --- */
         .editor-container {
             flex: 1; display: flex; justify-content: center; align-items: center;
             padding: 20px; overflow: hidden; position: relative;
+            background-color: #F3ECE5;
         }
 
-        /* 預設隱藏 Canvas，等載入圖片後顯示 */
+        /* Canvas 用來顯示與壓縮圖片，不加任何濾鏡效果 */
         canvas {
             max-width: 100%; max-height: 100%;
             box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2);
-            border-radius: 4px; display: none;
+            border-radius: 8px; display: none;
         }
 
-        /* --- 底部濾鏡選單 --- */
-        .filters-scroll {
-            flex-shrink: 0; height: 120px;
-            display: flex; align-items: center; gap: 15px;
-            overflow-x: auto; padding: 0 20px;
-            background-color: #F3ECE5;
-            /* 隱藏捲軸 */
-            scrollbar-width: none; -ms-overflow-style: none;
-        }
-        .filters-scroll::-webkit-scrollbar { display: none; }
-
-        .filter-item {
-            display: flex; flex-direction: column; align-items: center; gap: 5px;
-            cursor: pointer; opacity: 0.7; transition: opacity 0.2s;
-        }
-        .filter-item.active { opacity: 1; transform: scale(1.05); }
-        .filter-item.active span { font-weight: 700; color: #6D5D50; }
-
-        .filter-preview {
-            width: 60px; height: 60px; border-radius: 8px; background-color: #ddd;
-            overflow: hidden; border: 2px solid transparent;
-        }
-        .filter-item.active .filter-preview { border-color: #9C7C66; }
-        
-        .filter-preview img { width: 100%; height: 100%; object-fit: cover; }
-        .filter-label { font-size: 12px; color: #8C7B6D; }
-
-        /* 載入圖片按鈕 (模擬從相簿選圖編輯) */
+        /* 載入圖片按鈕區 */
         .upload-placeholder {
             text-align: center; color: #8C7B6D;
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
         }
+        
+        .upload-icon {
+            font-size: 48px; opacity: 0.5;
+        }
+
         .upload-btn {
-            margin-top: 10px; padding: 10px 20px;
-            background: #9C7C66; color: white; border-radius: 20px; font-weight: 600;
-            display: inline-block; cursor: pointer;
+            padding: 12px 24px;
+            background: #9C7C66; color: white; border-radius: 25px; font-weight: 600; font-size: 16px;
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(156, 124, 102, 0.3);
+            transition: transform 0.1s;
         }
+        .upload-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
     <div class="header">
         <a href="home.html" class="cancel-btn">Cancel</a>
-        <div class="title">Edit</div>
+        <div class="title">New Post</div>
         <button class="share-btn" id="shareBtn">Share</button>
     </div>
 
     <div class="editor-container">
         <div class="upload-placeholder" id="placeholder">
-            <p>Select a photo to edit</p>
+            <div class="upload-icon">📷</div>
+            <p>Select a photo from your gallery</p>
             <label class="upload-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 Open Gallery
                 <input type="file" id="imageLoader" accept="image/*" style="display: none;">
             </label>
@@ -102,31 +87,8 @@
         <canvas id="imageCanvas"></canvas>
     </div>
 
-    <div class="filters-scroll">
-        <div class="filter-item active" onclick="applyFilter('none', this)">
-            <div class="filter-preview"><img src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=100" style="filter: none;"></div>
-            <span class="filter-label">Original</span>
-        </div>
-        <div class="filter-item" onclick="applyFilter('grayscale(100%)', this)">
-            <div class="filter-preview"><img src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=100" style="filter: grayscale(100%);"></div>
-            <span class="filter-label">B&W</span>
-        </div>
-        <div class="filter-item" onclick="applyFilter('sepia(60%)', this)">
-            <div class="filter-preview"><img src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=100" style="filter: sepia(60%);"></div>
-            <span class="filter-label">Sepia</span>
-        </div>
-        <div class="filter-item" onclick="applyFilter('contrast(150%)', this)">
-            <div class="filter-preview"><img src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=100" style="filter: contrast(150%);"></div>
-            <span class="filter-label">Vivid</span>
-        </div>
-        <div class="filter-item" onclick="applyFilter('brightness(120%) saturate(120%)', this)">
-            <div class="filter-preview"><img src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=100" style="filter: brightness(120%) saturate(120%);"></div>
-            <span class="filter-label">Bright</span>
-        </div>
-    </div>
-
     <script>
-        // --- 1. IndexedDB & 廣播 (與其他頁面同步) ---
+        // --- 1. IndexedDB & 廣播 (必備：與 Memories 同步) ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
@@ -168,23 +130,26 @@
             });
         }
 
-        // --- 2. 圖片編輯邏輯 ---
+        // --- 2. 圖片處理邏輯 (無濾鏡) ---
         const imageLoader = document.getElementById('imageLoader');
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
         const placeholder = document.getElementById('placeholder');
-        let currentImgObj = null; // 儲存原始圖片物件
-        let currentFilter = 'none'; // 當前濾鏡
+        let currentImgObj = null; 
 
         // 載入圖片
         imageLoader.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
                     currentImgObj = img;
-                    // 調整 Canvas 大小
-                    let maxWidth = 800; // 限制最大寬度以防卡頓
+                    
+                    // 自動調整大小 (保持壓縮以節省空間)
+                    let maxWidth = 1024; 
                     let width = img.width;
                     let height = img.height;
                     
@@ -196,87 +161,62 @@
                     canvas.width = width;
                     canvas.height = height;
                     
-                    // 顯示 Canvas，隱藏選單
+                    // 顯示 Canvas，隱藏按鈕
                     placeholder.style.display = 'none';
                     canvas.style.display = 'block';
 
-                    // 繪製圖片
-                    draw(); 
+                    // 直接繪製，不加濾鏡
+                    ctx.drawImage(currentImgObj, 0, 0, canvas.width, canvas.height);
                 }
                 img.src = event.target.result;
             }
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(file);
         });
 
-        // 套用濾鏡
-        window.applyFilter = function(filterStr, element) {
-            // UI 更新
-            document.querySelectorAll('.filter-item').forEach(el => el.classList.remove('active'));
-            element.classList.add('active');
-
-            // 邏輯更新
-            currentFilter = filterStr;
-            if(currentImgObj) draw();
-        }
-
-        function draw() {
-            // 清除畫布
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // 設定濾鏡
-            ctx.filter = currentFilter;
-            // 繪圖
-            ctx.drawImage(currentImgObj, 0, 0, canvas.width, canvas.height);
-        }
-
-        // --- 3. Share 按鈕邏輯 (存入回憶) ---
+        // --- 3. Share 按鈕邏輯 (存檔) ---
         const shareBtn = document.getElementById('shareBtn');
 
         shareBtn.addEventListener('click', async () => {
             if (!currentImgObj) {
-                alert("Please select a photo first!");
+                // 如果沒選照片，提示一下，或者讓他點擊 Open Gallery
+                document.querySelector('.upload-btn').click();
                 return;
             }
 
             shareBtn.textContent = "Saving...";
+            shareBtn.style.opacity = "0.7";
             
-            // 1. 將 Canvas 內容轉為 Base64 圖片字串 (同時壓縮)
+            // 1. 轉為 Base64 (畫質 0.8)
             const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
-            // 2. 準備 DB 連線
+            // 2. 存入資料庫
             if (!db) await initDB();
-
-            // 3. 取得現有回憶
             let memories = await getAllMemories();
 
-            // 4. 準備今天的日期 Key
             const now = new Date();
             const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 
-            // 5. 初始化陣列
             if (!memories[dateKey]) memories[dateKey] = [];
             if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
 
-            // 6. 加入新照片
             memories[dateKey].push(imageData);
 
-            // 7. 寫回資料庫
             try {
                 await saveAllMemories(memories);
                 
-                // 8. 發送廣播通知 memories.html 更新
+                // 3. 廣播並跳轉
                 channel.postMessage('updated');
-
-                // 9. 成功後跳轉回首頁
                 alert("Saved to Memories!");
                 window.location.href = "home.html";
             } catch (err) {
                 console.error(err);
-                alert("Save failed. Storage might be full.");
+                alert("Save failed.");
                 shareBtn.textContent = "Share";
+                shareBtn.style.opacity = "1";
             }
         });
 
-        // 初始化 DB
+        // 初始化
         initDB();
 
     </script>
