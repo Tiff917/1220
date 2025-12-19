@@ -29,7 +29,7 @@
         h1 { font-size: 32px; font-weight: 700; color: #8C735D; margin-bottom: 5px; text-align: center; }
         .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 20px; text-align: center; }
         
-        /* 新增：上傳按鈕樣式 */
+        /* 上傳按鈕樣式 */
         .add-btn {
             background-color: #8C735D;
             color: white;
@@ -58,14 +58,17 @@
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; text-align: center; }
         .weekday { font-size: 13px; font-weight: 600; margin-bottom: 15px; color: #B0A093; }
         .day-cell { aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 500; color: #A69688; position: relative; border-radius: 50%; }
+        
+        /* 照片樣式：加上 object-fit cover 確保圓形 */
         .memory-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 2; border: 2px solid #F3ECE5; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transition: transform 0.2s; cursor: pointer; }
         .memory-photo:active { transform: scale(0.95); }
+        
         .date-overlay { position: absolute; z-index: 3; color: #fff; font-weight: 700; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none; }
         .today-circle { background-color: #8C735D; color: white; width: 100%; height: 100%; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-out; }
 
-        /* Story Overlay (保持不變) */
+        /* Story Overlay */
         .story-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 999;
             display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -80,9 +83,7 @@
         .tap-left { left: 0; }
         .tap-right { right: 0; }
 
-        /* 隱藏真正的 input */
         #fileInput { display: none; }
-
     </style>
 </head>
 <body>
@@ -119,23 +120,23 @@
     </div>
 
     <script>
-        // --- 日曆初始化 ---
-        let displayDate = new Date(); // 預設為當前月份
+        // --- 初始化設定 ---
+        let displayDate = new Date(); 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
         
-        // 讀取 LocalStorage，如果沒有則使用預設假資料
         let savedMemories = JSON.parse(localStorage.getItem('myMemories')) || {};
 
+        // 預設假資料 (如果完全沒資料才顯示)
         if (Object.keys(savedMemories).length === 0) {
             savedMemories = {
-                "2024-11-20": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&fit=crop",
-                "2024-12-05": "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&fit=crop"
+                "2024-11-20": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&fit=crop",
             };
         }
 
-        // --- 新增：拍照/上傳功能 ---
+        // --- 核心：壓縮與儲存邏輯 ---
         const fileInput = document.getElementById('fileInput');
+        const addBtn = document.querySelector('.add-btn');
 
         function triggerUpload() {
             fileInput.click();
@@ -143,45 +144,81 @@
 
         fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64String = e.target.result;
-                    savePhoto(base64String);
-                };
-                reader.readAsDataURL(file);
-            }
+            if (!file) return;
+
+            // 顯示載入中...
+            addBtn.textContent = "Saving...";
+            addBtn.style.opacity = "0.7";
+
+            // 使用 FileReader 讀取檔案
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // 開始壓縮圖片
+                compressImage(e.target.result, 800, 0.7, function(compressedBase64) {
+                    savePhoto(compressedBase64);
+                    
+                    // 恢復按鈕文字
+                    addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
+                    addBtn.style.opacity = "1";
+                });
+            };
+            reader.readAsDataURL(file);
         });
 
+        // 圖片壓縮函式 (關鍵！)
+        function compressImage(base64Str, maxWidth, quality, callback) {
+            const img = new Image();
+            img.src = base64Str;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // 調整尺寸
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // 輸出壓縮後的 Base64
+                const newBase64 = canvas.toDataURL('image/jpeg', quality);
+                callback(newBase64);
+            };
+        }
+
         function savePhoto(imageData) {
-            // 取得「今天」的日期 Key (格式: YYYY-M-D)
             const today = new Date();
             const year = today.getFullYear();
             const month = today.getMonth() + 1;
             const day = today.getDate();
             const dateKey = `${year}-${month}-${day}`;
 
-            // 儲存到物件與 LocalStorage
+            // 存入變數
             savedMemories[dateKey] = imageData;
+
+            // 存入 LocalStorage
             try {
                 localStorage.setItem('myMemories', JSON.stringify(savedMemories));
-                alert("Photo saved to " + dateKey + "!");
                 
-                // 如果目前的日曆是這個月，重新渲染
-                if (displayDate.getFullYear() === year && displayDate.getMonth() === (month - 1)) {
-                    renderCalendar();
-                } else {
-                    // 如果不在當前月份，跳轉回今天
-                    displayDate = new Date();
-                    renderCalendar();
+                // 檢查是否需要切換月份到今天
+                if (displayDate.getFullYear() !== year || displayDate.getMonth() !== (month - 1)) {
+                    displayDate = new Date(); // 切換回今天
                 }
-
+                
+                renderCalendar(); // 重新渲染畫面
+                
             } catch (e) {
-                alert("Storage full! Cannot save more photos.");
+                alert("儲存失敗：空間已滿。請嘗試清除瀏覽器資料。");
+                console.error(e);
             }
         }
 
-        // --- 渲染日曆 (含縮放動畫修正) ---
+        // --- 渲染日曆 ---
         function renderCalendar() {
             const container = document.getElementById('calendarContainer');
             const label = document.getElementById('monthLabel');
@@ -214,17 +251,22 @@
                 const dateKey = `${year}-${month + 1}-${d}`;
                 
                 if (savedMemories[dateKey]) {
+                    // 有照片
                     const img = document.createElement('img');
                     img.src = savedMemories[dateKey];
                     img.className = 'memory-photo';
+                    // 點擊事件
                     img.onclick = function() { openStoryViewer(dateKey); };
                     cell.appendChild(img);
+                    
                     const dateNum = document.createElement('span');
                     dateNum.className = 'date-overlay';
                     dateNum.innerText = d;
                     cell.appendChild(dateNum);
                 } else {
+                    // 沒照片
                     const today = new Date();
+                    // 如果是今天，顯示圈圈
                     if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === d) {
                         const circle = document.createElement('div');
                         circle.className = 'today-circle';
@@ -245,7 +287,7 @@
             renderCalendar();
         }
 
-        // --- Story Viewer 邏輯 (保持不變) ---
+        // --- Story Viewer (簡潔版) ---
         let storyList = [];
         let currentIndex = 0;
         let startY = 0;
@@ -273,7 +315,6 @@
             const barContainer = document.getElementById('progressBarContainer');
 
             img.src = currentItem.url;
-
             barContainer.innerHTML = '';
             storyList.forEach((item, index) => {
                 const bar = document.createElement('div');
@@ -312,7 +353,7 @@
             }, 300);
         }
 
-        // --- 下滑關閉手勢 ---
+        // 下滑關閉
         overlay.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
             isDragging = false;
@@ -326,15 +367,13 @@
                 isDragging = true;
                 e.preventDefault();
                 overlay.style.transform = `translateY(${diff}px)`;
-                const opacity = 1 - (diff / 600); 
-                overlay.style.opacity = opacity < 0 ? 0 : opacity;
+                overlay.style.opacity = 1 - (diff / 600);
             }
         });
 
         overlay.addEventListener('touchend', () => {
             const diff = currentY - startY;
-            const threshold = 100;
-            if (isDragging && diff > threshold) {
+            if (isDragging && diff > 100) {
                 closeStory();
             } else {
                 overlay.style.transition = 'transform 0.2s ease-out, opacity 0.2s';
