@@ -23,13 +23,30 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            /* 防止下拉重新整理影響滑動手勢 */
             overscroll-behavior-y: none; 
         }
 
-        /* 標題與導航樣式 (保持不變) */
         h1 { font-size: 32px; font-weight: 700; color: #8C735D; margin-bottom: 5px; text-align: center; }
-        .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 30px; text-align: center; }
+        .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 20px; text-align: center; }
+        
+        /* 新增：上傳按鈕樣式 */
+        .add-btn {
+            background-color: #8C735D;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(140, 115, 93, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.1s;
+        }
+        .add-btn:active { transform: scale(0.95); }
         
         .calendar-header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 350px; margin-bottom: 20px; }
         .month-label { font-size: 20px; font-weight: 600; color: #6D5D50; text-align: center; width: 180px; }
@@ -37,7 +54,6 @@
         .nav-btn:active { background-color: rgba(140, 123, 109, 0.1); }
         .nav-btn svg { width: 24px; height: 24px; stroke: #8C7B6D; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 
-        /* 日曆樣式 (保持不變) */
         .calendar-container { width: 100%; max-width: 350px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; text-align: center; }
         .weekday { font-size: 13px; font-weight: 600; margin-bottom: 15px; color: #B0A093; }
@@ -49,73 +65,23 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-out; }
 
-        /* ---------------------------------------------------- */
-        /* --- 全螢幕檢視器 (修改版：極簡 + 下滑關閉) --- */
-        /* ---------------------------------------------------- */
+        /* Story Overlay (保持不變) */
         .story-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #000;
-            z-index: 999;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            /* 關鍵：讓滑動時有彈性 */
-            transition: transform 0.1s linear, opacity 0.2s;
-            touch-action: none; /* 防止瀏覽器預設捲動 */
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 999;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            transition: transform 0.1s linear, opacity 0.2s; touch-action: none;
         }
-
-        .story-overlay.active {
-            display: flex;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* 圖片本體 */
-        .story-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* 保持比例 */
-            pointer-events: none; /* 讓點擊穿透到下面的 tap-area */
-        }
-
-        /* 進度條容器 (移到下方) */
-        .progress-container {
-            position: absolute;
-            bottom: 40px; /* 距離底部 */
-            left: 5%;
-            width: 90%;
-            z-index: 1001;
-            display: flex;
-            gap: 4px;
-        }
-
-        .bar {
-            height: 2px;
-            background-color: rgba(255,255,255,0.3);
-            flex: 1;
-            border-radius: 2px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.5); /* 加點陰影在淺色圖片才看得到 */
-        }
-        
-        .bar.active {
-            background-color: #fff;
-        }
-
-        /* 隱形點擊區域 (左/右) */
-        .tap-area {
-            position: absolute;
-            top: 0;
-            height: 100%;
-            width: 50%; /* 左右各一半 */
-            z-index: 1000;
-        }
+        .story-overlay.active { display: flex; opacity: 1; transform: translateY(0); }
+        .story-image { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+        .progress-container { position: absolute; bottom: 40px; left: 5%; width: 90%; z-index: 1001; display: flex; gap: 4px; }
+        .bar { height: 2px; background-color: rgba(255,255,255,0.3); flex: 1; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .bar.active { background-color: #fff; }
+        .tap-area { position: absolute; top: 0; height: 100%; width: 50%; z-index: 1000; }
         .tap-left { left: 0; }
         .tap-right { right: 0; }
+
+        /* 隱藏真正的 input */
+        #fileInput { display: none; }
 
     </style>
 </head>
@@ -125,6 +91,13 @@
         <h1>My Memories</h1>
         <div class="subtitle">Keep your moments</div>
     </div>
+
+    <button class="add-btn" onclick="triggerUpload()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+        Add Memory
+    </button>
+    
+    <input type="file" id="fileInput" accept="image/*">
 
     <div class="calendar-header">
         <button class="nav-btn" onclick="changeMonth(-1)">
@@ -139,34 +112,76 @@
     <div class="calendar-container" id="calendarContainer"></div>
 
     <div id="storyOverlay" class="story-overlay">
-        
         <img id="storyImageDisplay" class="story-image" src="" alt="Story">
-        
         <div id="progressBarContainer" class="progress-container"></div>
-
         <div class="tap-area tap-left" onclick="prevStory(event)"></div>
         <div class="tap-area tap-right" onclick="nextStory(event)"></div>
     </div>
 
     <script>
-        // --- 日曆初始化邏輯 (保持不變) ---
-        let displayDate = new Date(2024, 11, 1);
+        // --- 日曆初始化 ---
+        let displayDate = new Date(); // 預設為當前月份
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        
+        // 讀取 LocalStorage，如果沒有則使用預設假資料
         let savedMemories = JSON.parse(localStorage.getItem('myMemories')) || {};
 
         if (Object.keys(savedMemories).length === 0) {
             savedMemories = {
                 "2024-11-20": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&fit=crop",
-                "2024-12-05": "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&fit=crop",
-                "2024-12-14": "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=600&fit=crop",
-                "2024-12-25": "https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=600&fit=crop",
-                "2024-12-31": "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=600&fit=crop",
-                "2025-1-1": "https://images.unsplash.com/photo-1472653431158-6364773b2710?w=600&fit=crop",
-                "2025-1-15": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&fit=crop"
+                "2024-12-05": "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&fit=crop"
             };
         }
 
+        // --- 新增：拍照/上傳功能 ---
+        const fileInput = document.getElementById('fileInput');
+
+        function triggerUpload() {
+            fileInput.click();
+        }
+
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64String = e.target.result;
+                    savePhoto(base64String);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function savePhoto(imageData) {
+            // 取得「今天」的日期 Key (格式: YYYY-M-D)
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1;
+            const day = today.getDate();
+            const dateKey = `${year}-${month}-${day}`;
+
+            // 儲存到物件與 LocalStorage
+            savedMemories[dateKey] = imageData;
+            try {
+                localStorage.setItem('myMemories', JSON.stringify(savedMemories));
+                alert("Photo saved to " + dateKey + "!");
+                
+                // 如果目前的日曆是這個月，重新渲染
+                if (displayDate.getFullYear() === year && displayDate.getMonth() === (month - 1)) {
+                    renderCalendar();
+                } else {
+                    // 如果不在當前月份，跳轉回今天
+                    displayDate = new Date();
+                    renderCalendar();
+                }
+
+            } catch (e) {
+                alert("Storage full! Cannot save more photos.");
+            }
+        }
+
+        // --- 渲染日曆 (含縮放動畫修正) ---
         function renderCalendar() {
             const container = document.getElementById('calendarContainer');
             const label = document.getElementById('monthLabel');
@@ -230,11 +245,9 @@
             renderCalendar();
         }
 
-        // --- Story Viewer 邏輯 ---
+        // --- Story Viewer 邏輯 (保持不變) ---
         let storyList = [];
         let currentIndex = 0;
-        
-        // 滑動手勢變數
         let startY = 0;
         let currentY = 0;
         let isDragging = false;
@@ -249,7 +262,7 @@
 
             overlay.classList.add('active');
             overlay.style.opacity = '1';
-            overlay.style.transform = 'translateY(0)'; // 重置位置
+            overlay.style.transform = 'translateY(0)';
             renderStory();
         }
 
@@ -261,7 +274,6 @@
 
             img.src = currentItem.url;
 
-            // 只更新進度條，不顯示文字
             barContainer.innerHTML = '';
             storyList.forEach((item, index) => {
                 const bar = document.createElement('div');
@@ -271,7 +283,7 @@
         }
 
         function nextStory(e) {
-            if (isDragging) return; // 拖曳中禁止切換
+            if (isDragging) return;
             if(e) e.stopPropagation();
             if (currentIndex < storyList.length - 1) {
                 currentIndex++;
@@ -291,39 +303,29 @@
         }
 
         function closeStory() {
-            // 使用 CSS transition 讓它滑下去消失
             overlay.style.transition = 'transform 0.3s ease-out, opacity 0.3s';
             overlay.style.transform = 'translateY(100%)';
             overlay.style.opacity = '0';
-            
-            // 動畫結束後才移除 class
             setTimeout(() => {
                 overlay.classList.remove('active');
-                overlay.style.transition = ''; // 移除動畫設定，重置狀態
+                overlay.style.transition = '';
             }, 300);
         }
 
-        // --- 下滑關閉手勢邏輯 (Swipe Down) ---
-        
+        // --- 下滑關閉手勢 ---
         overlay.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
             isDragging = false;
-            // 移除 transition 以便實現即時跟隨手指
             overlay.style.transition = 'none';
         });
 
         overlay.addEventListener('touchmove', (e) => {
             currentY = e.touches[0].clientY;
             const diff = currentY - startY;
-
-            // 只允許向下滑動 (diff > 0)
             if (diff > 0) {
                 isDragging = true;
-                e.preventDefault(); // 防止背景捲動
-                // 讓 overlay 跟隨手指移動，並隨著距離變透明
+                e.preventDefault();
                 overlay.style.transform = `translateY(${diff}px)`;
-                
-                // 根據拉動距離計算透明度 (拉越下面越透明)
                 const opacity = 1 - (diff / 600); 
                 overlay.style.opacity = opacity < 0 ? 0 : opacity;
             }
@@ -331,12 +333,10 @@
 
         overlay.addEventListener('touchend', () => {
             const diff = currentY - startY;
-            const threshold = 100; // 超過 100px 就觸發關閉
-
+            const threshold = 100;
             if (isDragging && diff > threshold) {
                 closeStory();
             } else {
-                // 如果沒拉超過閾值，彈回去
                 overlay.style.transition = 'transform 0.2s ease-out, opacity 0.2s';
                 overlay.style.transform = 'translateY(0)';
                 overlay.style.opacity = '1';
