@@ -13,23 +13,12 @@
         h1 { font-size: 32px; font-weight: 700; color: #8C735D; margin-bottom: 5px; text-align: center; margin-top: 40px; }
         .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 20px; text-align: center; }
         
-        /* --- 修正 1: 強制顯示 Reset 按鈕 (左上角) --- */
+        /* Reset 按鈕 (左上角) */
         .clear-btn {
-            position: absolute; 
-            top: 20px; 
-            left: 20px; 
-            z-index: 100; /* 確保浮在最上層 */
-            background-color: rgba(255, 255, 255, 0.8); 
-            color: #d32f2f; /* 紅色文字比較顯眼 */
-            border: 1px solid #d32f2f; 
-            padding: 8px 12px; 
-            border-radius: 20px; 
-            font-size: 12px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            gap: 5px;
+            position: absolute; top: 20px; left: 20px; z-index: 100;
+            background-color: rgba(255, 255, 255, 0.8); color: #d32f2f; border: 1px solid #d32f2f; 
+            padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; 
+            display: flex; align-items: center; gap: 5px;
         }
 
         /* 上傳按鈕 */
@@ -65,26 +54,24 @@
         .bar-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background-color: #ffffff; transition: width 0.1s linear; }
         .bar.watched .bar-fill { width: 100%; }
 
-        /* --- 修正 2: 強制顯示垃圾桶按鈕 (右上角) --- */
+        /* --- 修正：垃圾桶按鈕 (加強點擊感應) --- */
         .delete-btn {
             position: absolute; 
-            top: 50px;       /* 避開手機瀏海 */
-            right: 20px; 
-            z-index: 20000;  /* 超級高的層級，確保不被蓋住 */
-            width: 44px; 
-            height: 44px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            background: rgba(255, 255, 255, 0.2); /* 半透明白色背景 */
+            top: 60px; /* 往下移一點，避開手機頂部邊緣 */
+            right: 25px; 
+            z-index: 2147483647; /* 瀏覽器最大層級 */
+            width: 50px; /* 加大按鈕 */
+            height: 50px; 
+            display: flex; justify-content: center; align-items: center;
+            background: rgba(0, 0, 0, 0.4); /* 深色背景看比較清楚 */
             border-radius: 50%; 
             cursor: pointer;
             backdrop-filter: blur(5px); 
-            -webkit-backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.4);
+            border: 1px solid rgba(255,255,255,0.3);
+            pointer-events: auto !important; /* 強制接收點擊 */
         }
-        /* 垃圾桶圖示設為白色 */
-        .delete-btn svg { stroke: white; width: 24px; height: 24px; }
+        .delete-btn:active { transform: scale(0.9); background: rgba(200, 0, 0, 0.6); } /* 點下去變紅 */
+        .delete-btn svg { stroke: white; width: 24px; height: 24px; pointer-events: none; }
 
         /* 隱形觸控區 */
         .tap-area { position: absolute; top: 0; height: 100%; width: 35%; z-index: 1001; }
@@ -101,14 +88,10 @@
         RESET
     </button>
 
-    <div>
-        <h1>My Memories</h1>
-        <div class="subtitle">Keep your moments</div>
-    </div>
+    <div><h1>My Memories</h1><div class="subtitle">Keep your moments</div></div>
 
     <button class="add-btn" onclick="triggerUpload()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-        Add Memory
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory
     </button>
     
     <input type="file" id="fileInput" accept="image/*" multiple>
@@ -125,16 +108,16 @@
         <img id="storyImageDisplay" class="story-image" src="" alt="Story">
         <div id="progressBarContainer" class="progress-container"></div>
         
-        <div class="delete-btn" onclick="deleteCurrentStory(event)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        </div>
-
         <div class="tap-area tap-left" onclick="prevStory(event)"></div>
         <div class="tap-area tap-right" onclick="nextStory(event)"></div>
+
+        <div class="delete-btn" onclick="deleteCurrentStory(event)" ontouchstart="event.stopPropagation()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </div>
     </div>
 
     <script>
-        // --- 1. IndexedDB 與 廣播設定 (保持不變) ---
+        // --- 1. IndexedDB 與 廣播設定 ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
@@ -184,7 +167,7 @@
             });
         }
 
-        // --- 2. 應用程式邏輯 ---
+        // --- 2. 邏輯初始化 ---
         let displayDate = new Date(); 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -197,18 +180,15 @@
             renderCalendar();
         });
 
-        // --- 3. 清除全部資料 ---
         async function clearAllData() {
-            if (confirm("Reset ALL memories? This cannot be undone.")) {
+            if (confirm("確定要清空所有照片嗎？")) {
                 savedMemories = {};
                 await saveAllMemories(savedMemories);
                 renderCalendar();
                 channel.postMessage('updated');
-                alert("All reset!");
             }
         }
 
-        // --- 4. 上傳邏輯 ---
         const fileInput = document.getElementById('fileInput');
         const addBtn = document.querySelector('.add-btn');
 
@@ -263,7 +243,7 @@
             };
         }
 
-        // --- 5. 渲染日曆 ---
+        // --- 渲染日曆 ---
         function renderCalendar() {
             const container = document.getElementById('calendarContainer');
             const label = document.getElementById('monthLabel');
@@ -326,21 +306,14 @@
             renderCalendar();
         }
 
-        // --- 6. Story Viewer 與 刪除邏輯 ---
-        let storyList = [];
-        let currentIndex = 0;
-        let storyTimer; 
-        const DURATION = 3000;
-        let startY = 0, currentY = 0, isDragging = false;
+        // --- Story Viewer & 刪除 ---
+        let storyList = [], currentIndex = 0, storyTimer, startY = 0, currentY = 0, isDragging = false;
         const overlay = document.getElementById('storyOverlay');
 
         function openStoryViewer(clickedDateKey) {
             storyList = [];
-            const sortedKeys = Object.keys(savedMemories)
-                .sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
-
-            let targetIndex = 0;
-            let foundTarget = false;
+            const sortedKeys = Object.keys(savedMemories).sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
+            let targetIndex = 0, foundTarget = false;
 
             sortedKeys.forEach(key => {
                 const photos = savedMemories[key];
@@ -357,15 +330,21 @@
             renderStory();
         }
 
+        // --- 核心修改：刪除功能 ---
         async function deleteCurrentStory(e) {
-            if(e) e.stopPropagation();
+            // 阻止冒泡，避免觸發背景點擊或滑動
+            if(e) {
+                e.stopPropagation();
+                e.preventDefault(); 
+            }
+
             if (confirm("Delete this photo?")) {
                 clearTimeout(storyTimer);
                 const currentItem = storyList[currentIndex];
                 const dateKey = currentItem.date;
                 const photoUrl = currentItem.url;
 
-                // 移除資料
+                // 移除邏輯
                 const photoIndex = savedMemories[dateKey].indexOf(photoUrl);
                 if (photoIndex > -1) {
                     savedMemories[dateKey].splice(photoIndex, 1);
@@ -377,7 +356,6 @@
                 await saveAllMemories(savedMemories);
                 channel.postMessage('updated');
                 
-                // 移除清單
                 storyList.splice(currentIndex, 1);
 
                 if (storyList.length === 0) {
@@ -388,6 +366,8 @@
                     renderStory();
                     renderCalendar();
                 }
+                // 提示刪除成功
+                // alert("Deleted!");
             }
         }
 
@@ -396,52 +376,52 @@
             const currentItem = storyList[currentIndex];
             document.getElementById('storyImageDisplay').src = currentItem.url;
 
-            const sameDayStories = storyList.filter(s => s.date === currentItem.date);
-            const indexInDay = sameDayStories.findIndex(s => s.url === currentItem.url);
-            
+            const sameDay = storyList.filter(s => s.date === currentItem.date);
+            const idxInDay = sameDay.findIndex(s => s.url === currentItem.url);
             const barContainer = document.getElementById('progressBarContainer');
             barContainer.innerHTML = '';
-            
-            sameDayStories.forEach((item, index) => {
+
+            sameDay.forEach((s, i) => {
                 const bar = document.createElement('div');
-                bar.className = 'bar ' + (index < indexInDay ? 'watched' : '');
+                bar.className = 'bar ' + (i < idxInDay ? 'watched' : '');
                 const fill = document.createElement('div');
                 fill.className = 'bar-fill';
                 bar.appendChild(fill);
                 barContainer.appendChild(bar);
-
-                if (index === indexInDay) {
+                if (i === idxInDay) {
                     setTimeout(() => { fill.style.width = '100%'; fill.style.transition = `width ${DURATION}ms linear`; }, 10);
-                } else if (index < indexInDay) {
-                    fill.style.width = '100%'; 
+                } else if (i < idxInDay) {
+                    fill.style.width = '100%';
                 }
             });
 
             clearTimeout(storyTimer);
-            storyTimer = setTimeout(() => nextStory(), DURATION);
+            storyTimer = setTimeout(() => nextStory(), 3000); // 3秒自動切換
         }
 
-        function nextStory(e) {
-            if (isDragging) return; if(e) e.stopPropagation();
-            if (currentIndex < storyList.length - 1) { currentIndex++; renderStory(); } else { closeStory(); }
-        }
+        function nextStory(e) { if(e) e.stopPropagation(); if (currentIndex < storyList.length - 1) { currentIndex++; renderStory(); } else { closeStory(); } }
+        function prevStory(e) { if(e) e.stopPropagation(); if (currentIndex > 0) { currentIndex--; renderStory(); } else { renderStory(); } }
+        function closeStory() { clearTimeout(storyTimer); overlay.classList.remove('active'); }
 
-        function prevStory(e) {
-            if (isDragging) return; if(e) e.stopPropagation();
-            if (currentIndex > 0) { currentIndex--; renderStory(); } else { renderStory(); }
-        }
+        overlay.addEventListener('touchstart', (e) => { 
+            // 如果點到的是刪除按鈕，不要觸發滑動邏輯
+            if(e.target.closest('.delete-btn')) return;
+            
+            startY = e.touches[0].clientY; isDragging = false; overlay.style.transition = 'none'; 
+        });
+        
+        overlay.addEventListener('touchmove', (e) => { 
+            if(e.target.closest('.delete-btn')) return;
 
-        function closeStory() {
-            clearTimeout(storyTimer);
-            overlay.style.transition = 'transform 0.3s ease-out, opacity 0.3s';
-            overlay.style.transform = 'translateY(100%)';
-            overlay.style.opacity = '0';
-            setTimeout(() => { overlay.classList.remove('active'); overlay.style.transition = ''; }, 300);
-        }
+            currentY = e.touches[0].clientY; const diff = currentY - startY; 
+            if (diff > 0) { isDragging = true; e.preventDefault(); overlay.style.transform = `translateY(${diff}px)`; overlay.style.opacity = 1 - (diff / 600); } 
+        });
+        
+        overlay.addEventListener('touchend', (e) => { 
+            if(e.target.closest('.delete-btn')) return;
 
-        overlay.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; isDragging = false; overlay.style.transition = 'none'; });
-        overlay.addEventListener('touchmove', (e) => { currentY = e.touches[0].clientY; const diff = currentY - startY; if (diff > 0) { isDragging = true; e.preventDefault(); overlay.style.transform = `translateY(${diff}px)`; overlay.style.opacity = 1 - (diff / 600); } });
-        overlay.addEventListener('touchend', () => { if (isDragging && currentY - startY > 100) closeStory(); else { overlay.style.transition = '0.2s'; overlay.style.transform = 'translateY(0)'; overlay.style.opacity = '1'; } isDragging = false; });
+            if (isDragging && currentY - startY > 100) closeStory(); else { overlay.style.transition = '0.2s'; overlay.style.transform = 'translateY(0)'; overlay.style.opacity = '1'; } isDragging = false; 
+        });
     </script>
 </body>
 </html>
