@@ -6,102 +6,46 @@
     <title>My Memories</title>
     <style>
         /* --- 全局基礎設定 --- */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        body {
-            background-color: #F3ECE5;
-            padding: 24px;
-            color: #8C7B6D;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overscroll-behavior-y: none; 
-        }
+        body { background-color: #F3ECE5; padding: 24px; color: #8C7B6D; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overscroll-behavior-y: none; }
 
         h1 { font-size: 32px; font-weight: 700; color: #8C735D; margin-bottom: 5px; text-align: center; }
         .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 20px; text-align: center; }
         
-        /* 上傳按鈕 */
-        .add-btn {
-            background-color: #8C735D;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 25px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(140, 115, 93, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.1s;
-        }
+        .add-btn { background-color: #8C735D; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 25px; cursor: pointer; box-shadow: 0 4px 10px rgba(140, 115, 93, 0.3); display: flex; align-items: center; gap: 8px; transition: transform 0.1s; }
         .add-btn:active { transform: scale(0.95); }
         
-        /* 日曆標頭 */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 350px; margin-bottom: 20px; }
         .month-label { font-size: 20px; font-weight: 600; color: #6D5D50; text-align: center; width: 180px; }
-        .nav-btn { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; }
-        .nav-btn:active { background-color: rgba(140, 123, 109, 0.1); }
+        .nav-btn { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .nav-btn svg { width: 24px; height: 24px; stroke: #8C7B6D; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 
-        /* 日曆格子 */
         .calendar-container { width: 100%; max-width: 350px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; text-align: center; }
         .weekday { font-size: 13px; font-weight: 600; margin-bottom: 15px; color: #B0A093; }
         .day-cell { aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 500; color: #A69688; position: relative; border-radius: 50%; }
         
-        /* 照片圓形縮圖 */
-        .memory-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 2; border: 2px solid #F3ECE5; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transition: transform 0.2s; cursor: pointer; }
-        .memory-photo:active { transform: scale(0.95); }
-
+        .memory-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 2; border: 2px solid #F3ECE5; box-shadow: 0 4px 8px rgba(0,0,0,0.15); cursor: pointer; }
+        
         /* 多張照片指示器 */
-        .multiple-indicator {
-            position: absolute; width: 100%; height: 100%; border-radius: 50%;
-            background-color: #8C735D; top: 3px; left: 3px; z-index: 1; opacity: 0.3;
-        }
+        .multiple-indicator { position: absolute; width: 100%; height: 100%; border-radius: 50%; background-color: #8C735D; top: 3px; left: 3px; z-index: 1; opacity: 0.3; }
         
         .date-overlay { position: absolute; z-index: 3; color: #fff; font-weight: 700; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none; }
         .today-circle { background-color: #8C735D; color: white; width: 100%; height: 100%; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Story Viewer (極簡化) --- */
-        .story-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: #000; /* 全黑背景 */
-            z-index: 9999;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s;
-            touch-action: none; 
-        }
-
+        /* Story Viewer */
+        .story-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s; touch-action: none; }
         .story-overlay.active { display: flex; opacity: 1; transform: translateY(0); }
         .story-image { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
-        .progress-container {
-            position: absolute; bottom: 30px; left: 10px; right: 10px; height: 3px;
-            display: flex; gap: 5px; z-index: 10000;
-        }
-
+        .progress-container { position: absolute; bottom: 30px; left: 10px; right: 10px; height: 3px; display: flex; gap: 5px; z-index: 10000; }
         .bar { flex: 1; height: 100%; background-color: rgba(255, 255, 255, 0.3); border-radius: 2px; overflow: hidden; position: relative; }
         .bar-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background-color: #ffffff; transition: width 0.1s linear; }
         .bar.watched .bar-fill { width: 100%; }
 
-        /* 隱形點擊區 */
         .tap-area { position: absolute; top: 0; height: 100%; width: 35%; z-index: 1001; }
         .tap-left { left: 0; }
         .tap-right { right: 0; }
@@ -124,13 +68,9 @@
     <input type="file" id="fileInput" accept="image/*" multiple>
 
     <div class="calendar-header">
-        <button class="nav-btn" onclick="changeMonth(-1)">
-            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
-        </button>
+        <button class="nav-btn" onclick="changeMonth(-1)"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
         <div class="month-label" id="monthLabel">December 2024</div>
-        <button class="nav-btn" onclick="changeMonth(1)">
-            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        </button>
+        <button class="nav-btn" onclick="changeMonth(1)"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
     </div>
 
     <div class="calendar-container" id="calendarContainer"></div>
@@ -143,39 +83,82 @@
     </div>
 
     <script>
-        // --- 初始化設定 ---
+        // --- 1. IndexedDB 資料庫封裝 (解決容量不足問題的核心) ---
+        const dbName = "MemoriesDB";
+        const storeName = "photos";
+        let db;
+
+        // 初始化資料庫
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, 1);
+                request.onupgradeneeded = function(event) {
+                    db = event.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.createObjectStore(storeName);
+                    }
+                };
+                request.onsuccess = function(event) {
+                    db = event.target.result;
+                    resolve(db);
+                };
+                request.onerror = function(event) {
+                    console.error("Database error: " + event.target.errorCode);
+                    reject(event.target.errorCode);
+                };
+            });
+        }
+
+        // 讀取所有資料
+        function getAllMemories() {
+            return new Promise((resolve, reject) => {
+                if (!db) return resolve({});
+                const transaction = db.transaction([storeName], "readonly");
+                const objectStore = transaction.objectStore(storeName);
+                const request = objectStore.get("all_photos"); // 我們把所有資料存在一個 Key 下管理
+                request.onsuccess = function(event) {
+                    resolve(event.target.result || {});
+                };
+                request.onerror = function() {
+                    resolve({});
+                };
+            });
+        }
+
+        // 儲存資料
+        function saveAllMemories(data) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], "readwrite");
+                const objectStore = transaction.objectStore(storeName);
+                const request = objectStore.put(data, "all_photos");
+                request.onsuccess = function() { resolve(); };
+                request.onerror = function() { reject(); };
+            });
+        }
+
+        // --- 2. 應用程式邏輯 ---
         let displayDate = new Date(); 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-        
-        let savedMemories = JSON.parse(localStorage.getItem('myMemories')) || {};
+        let savedMemories = {};
 
-        // 確保舊資料轉為陣列格式
-        for (let key in savedMemories) {
-            if (!Array.isArray(savedMemories[key])) {
-                savedMemories[key] = [savedMemories[key]];
+        // 啟動程式
+        initDB().then(async () => {
+            savedMemories = await getAllMemories();
+            // 確保格式正確
+            for (let key in savedMemories) {
+                if (!Array.isArray(savedMemories[key])) savedMemories[key] = [savedMemories[key]];
             }
-        }
-        localStorage.setItem('myMemories', JSON.stringify(savedMemories));
+            renderCalendar();
+        });
 
-        // 預設假資料
-        if (Object.keys(savedMemories).length === 0) {
-            savedMemories = {
-                "2024-11-20": ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&fit=crop"],
-            };
-        }
-
-        // --- 多張上傳邏輯 ---
+        // --- 3. 多張上傳邏輯 ---
         const fileInput = document.getElementById('fileInput');
         const addBtn = document.querySelector('.add-btn');
 
-        function triggerUpload() { 
-            // 觸發隱藏的 input
-            fileInput.click(); 
-        }
+        function triggerUpload() { fileInput.click(); }
 
         fileInput.addEventListener('change', function(event) {
-            // 取得選取的所有檔案
             const files = event.target.files;
             if (!files || files.length === 0) return;
 
@@ -186,21 +169,17 @@
             const today = new Date();
             const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
             
-            // 如果今天還沒有照片陣列，先初始化
             if (!savedMemories[dateKey]) savedMemories[dateKey] = [];
 
-            // 迴圈處理每一張選取的照片
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // 壓縮照片
-                    compressImage(e.target.result, 800, 0.7, function(compressedBase64) {
+                    // 這裡可以選擇不壓縮，因為 IndexedDB 很大，但我保留壓縮以優化效能
+                    compressImage(e.target.result, 1024, 0.8, function(compressedBase64) {
                         savedMemories[dateKey].push(compressedBase64);
                         processedCount++;
-                        
-                        // 當所有照片都壓縮完畢，才執行儲存
                         if (processedCount === files.length) {
-                            finalizeSave(dateKey);
+                            finalizeSave();
                         }
                     });
                 };
@@ -227,11 +206,10 @@
             };
         }
 
-        function finalizeSave(dateKey) {
+        async function finalizeSave() {
             try {
-                localStorage.setItem('myMemories', JSON.stringify(savedMemories));
+                await saveAllMemories(savedMemories); // 存入 IndexedDB
                 
-                // 檢查是否需要跳轉月份
                 const today = new Date();
                 if (displayDate.getFullYear() !== today.getFullYear() || displayDate.getMonth() !== today.getMonth()) {
                     displayDate = new Date();
@@ -241,12 +219,12 @@
                 addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
                 addBtn.style.opacity = "1";
             } catch (e) {
-                alert("儲存空間不足 (瀏覽器限制 5MB)，請清除一些舊資料。");
+                alert("儲存錯誤，請重試");
                 addBtn.textContent = "Error";
             }
         }
 
-        // --- 渲染日曆 ---
+        // --- 4. 渲染日曆 ---
         function renderCalendar() {
             const container = document.getElementById('calendarContainer');
             const label = document.getElementById('monthLabel');
@@ -280,9 +258,8 @@
                 
                 if (savedMemories[dateKey] && savedMemories[dateKey].length > 0) {
                     const photos = savedMemories[dateKey];
-                    const lastPhoto = photos[photos.length - 1]; // 顯示最新的一張
+                    const lastPhoto = photos[photos.length - 1];
                     
-                    // 多張照片指示器 (陰影)
                     if (photos.length > 1) {
                         const indicator = document.createElement('div');
                         indicator.className = 'multiple-indicator';
@@ -321,11 +298,11 @@
             renderCalendar();
         }
 
-        // --- Story Viewer (陣列播放) ---
+        // --- 5. Story Viewer (極簡化) ---
         let storyList = [];
         let currentIndex = 0;
         let storyTimer; 
-        const DURATION = 3000; // 每張播放 3 秒
+        const DURATION = 3000;
         
         let startY = 0;
         let currentY = 0;
@@ -334,7 +311,6 @@
 
         function openStoryViewer(clickedDateKey) {
             storyList = [];
-            // 將所有日期的照片展開成一條時間軸
             const sortedKeys = Object.keys(savedMemories)
                 .sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
 
@@ -345,7 +321,6 @@
                 const photos = savedMemories[key];
                 photos.forEach((photoUrl, pIndex) => {
                     storyList.push({ date: key, url: photoUrl });
-                    // 定位到使用者點擊的那一天
                     if (key === clickedDateKey && pIndex === 0 && !foundTarget) {
                         targetIndex = storyList.length - 1;
                         foundTarget = true;
@@ -354,11 +329,9 @@
             });
 
             currentIndex = targetIndex;
-
             overlay.classList.add('active');
             overlay.style.opacity = '1';
             overlay.style.transform = 'translateY(0)';
-            
             renderStory();
         }
 
@@ -369,9 +342,7 @@
             const barContainer = document.getElementById('progressBarContainer');
 
             img.src = currentItem.url;
-            // *這裡沒有設定任何日期文字，保持畫面乾淨*
 
-            // 取得「當天」的所有照片，計算進度條
             const sameDayStories = storyList.filter(s => s.date === currentItem.date);
             const indexInDay = sameDayStories.findIndex(s => s.url === currentItem.url);
             
@@ -409,7 +380,6 @@
         function nextStory(e) {
             if (isDragging) return;
             if(e) e.stopPropagation();
-            
             if (currentIndex < storyList.length - 1) {
                 currentIndex++;
                 renderStory();
@@ -421,7 +391,6 @@
         function prevStory(e) {
             if (isDragging) return;
             if(e) e.stopPropagation();
-            
             if (currentIndex > 0) {
                 currentIndex--;
                 renderStory();
@@ -441,7 +410,6 @@
             }, 300);
         }
 
-        // 下滑關閉手勢
         overlay.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
             isDragging = false;
@@ -473,7 +441,6 @@
             isDragging = false;
         });
 
-        renderCalendar();
     </script>
 </body>
 </html>
