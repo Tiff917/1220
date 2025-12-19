@@ -29,6 +29,7 @@
         h1 { font-size: 32px; font-weight: 700; color: #8C735D; margin-bottom: 5px; text-align: center; }
         .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 20px; text-align: center; }
         
+        /* 上傳按鈕 */
         .add-btn {
             background-color: #8C735D;
             color: white;
@@ -47,20 +48,24 @@
         }
         .add-btn:active { transform: scale(0.95); }
         
+        /* 日曆標頭 */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 350px; margin-bottom: 20px; }
         .month-label { font-size: 20px; font-weight: 600; color: #6D5D50; text-align: center; width: 180px; }
         .nav-btn { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; }
         .nav-btn:active { background-color: rgba(140, 123, 109, 0.1); }
         .nav-btn svg { width: 24px; height: 24px; stroke: #8C7B6D; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 
+        /* 日曆格子 */
         .calendar-container { width: 100%; max-width: 350px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; text-align: center; }
         .weekday { font-size: 13px; font-weight: 600; margin-bottom: 15px; color: #B0A093; }
         .day-cell { aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 500; color: #A69688; position: relative; border-radius: 50%; }
         
+        /* 照片圓形縮圖 */
         .memory-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 2; border: 2px solid #F3ECE5; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transition: transform 0.2s; cursor: pointer; }
         .memory-photo:active { transform: scale(0.95); }
 
+        /* 多張照片指示器 */
         .multiple-indicator {
             position: absolute; width: 100%; height: 100%; border-radius: 50%;
             background-color: #8C735D; top: 3px; left: 3px; z-index: 1; opacity: 0.3;
@@ -73,8 +78,13 @@
 
         /* --- Story Viewer (極簡化) --- */
         .story-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 9999;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #000; /* 全黑背景 */
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s;
             touch-action: none; 
         }
@@ -91,8 +101,7 @@
         .bar-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background-color: #ffffff; transition: width 0.1s linear; }
         .bar.watched .bar-fill { width: 100%; }
 
-        /* 隱藏其他所有文字 */
-        
+        /* 隱形點擊區 */
         .tap-area { position: absolute; top: 0; height: 100%; width: 35%; z-index: 1001; }
         .tap-left { left: 0; }
         .tap-right { right: 0; }
@@ -134,14 +143,14 @@
     </div>
 
     <script>
-        // --- 初始化 ---
+        // --- 初始化設定 ---
         let displayDate = new Date(); 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
         
         let savedMemories = JSON.parse(localStorage.getItem('myMemories')) || {};
 
-        // 資料結構遷移邏輯
+        // 確保舊資料轉為陣列格式
         for (let key in savedMemories) {
             if (!Array.isArray(savedMemories[key])) {
                 savedMemories[key] = [savedMemories[key]];
@@ -149,6 +158,7 @@
         }
         localStorage.setItem('myMemories', JSON.stringify(savedMemories));
 
+        // 預設假資料
         if (Object.keys(savedMemories).length === 0) {
             savedMemories = {
                 "2024-11-20": ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&fit=crop"],
@@ -159,27 +169,36 @@
         const fileInput = document.getElementById('fileInput');
         const addBtn = document.querySelector('.add-btn');
 
-        function triggerUpload() { fileInput.click(); }
+        function triggerUpload() { 
+            // 觸發隱藏的 input
+            fileInput.click(); 
+        }
 
         fileInput.addEventListener('change', function(event) {
+            // 取得選取的所有檔案
             const files = event.target.files;
             if (!files || files.length === 0) return;
 
-            addBtn.textContent = `Saving ${files.length}...`;
+            addBtn.textContent = `Processing ${files.length}...`;
             addBtn.style.opacity = "0.7";
 
             let processedCount = 0;
             const today = new Date();
             const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
             
+            // 如果今天還沒有照片陣列，先初始化
             if (!savedMemories[dateKey]) savedMemories[dateKey] = [];
 
+            // 迴圈處理每一張選取的照片
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    // 壓縮照片
                     compressImage(e.target.result, 800, 0.7, function(compressedBase64) {
                         savedMemories[dateKey].push(compressedBase64);
                         processedCount++;
+                        
+                        // 當所有照片都壓縮完畢，才執行儲存
                         if (processedCount === files.length) {
                             finalizeSave(dateKey);
                         }
@@ -211,15 +230,18 @@
         function finalizeSave(dateKey) {
             try {
                 localStorage.setItem('myMemories', JSON.stringify(savedMemories));
+                
+                // 檢查是否需要跳轉月份
                 const today = new Date();
                 if (displayDate.getFullYear() !== today.getFullYear() || displayDate.getMonth() !== today.getMonth()) {
                     displayDate = new Date();
                 }
                 renderCalendar();
+
                 addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
                 addBtn.style.opacity = "1";
             } catch (e) {
-                alert("Storage full (5MB limit). Please clear some data.");
+                alert("儲存空間不足 (瀏覽器限制 5MB)，請清除一些舊資料。");
                 addBtn.textContent = "Error";
             }
         }
@@ -258,8 +280,9 @@
                 
                 if (savedMemories[dateKey] && savedMemories[dateKey].length > 0) {
                     const photos = savedMemories[dateKey];
-                    const lastPhoto = photos[photos.length - 1];
+                    const lastPhoto = photos[photos.length - 1]; // 顯示最新的一張
                     
+                    // 多張照片指示器 (陰影)
                     if (photos.length > 1) {
                         const indicator = document.createElement('div');
                         indicator.className = 'multiple-indicator';
@@ -298,11 +321,11 @@
             renderCalendar();
         }
 
-        // --- Story Viewer ---
+        // --- Story Viewer (陣列播放) ---
         let storyList = [];
         let currentIndex = 0;
         let storyTimer; 
-        const DURATION = 3000;
+        const DURATION = 3000; // 每張播放 3 秒
         
         let startY = 0;
         let currentY = 0;
@@ -311,6 +334,7 @@
 
         function openStoryViewer(clickedDateKey) {
             storyList = [];
+            // 將所有日期的照片展開成一條時間軸
             const sortedKeys = Object.keys(savedMemories)
                 .sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
 
@@ -321,6 +345,7 @@
                 const photos = savedMemories[key];
                 photos.forEach((photoUrl, pIndex) => {
                     storyList.push({ date: key, url: photoUrl });
+                    // 定位到使用者點擊的那一天
                     if (key === clickedDateKey && pIndex === 0 && !foundTarget) {
                         targetIndex = storyList.length - 1;
                         foundTarget = true;
@@ -344,8 +369,9 @@
             const barContainer = document.getElementById('progressBarContainer');
 
             img.src = currentItem.url;
-            // 這裡不再設定 dateTag 的文字，因為已經被刪除了
+            // *這裡沒有設定任何日期文字，保持畫面乾淨*
 
+            // 取得「當天」的所有照片，計算進度條
             const sameDayStories = storyList.filter(s => s.date === currentItem.date);
             const indexInDay = sameDayStories.findIndex(s => s.url === currentItem.url);
             
@@ -415,6 +441,7 @@
             }, 300);
         }
 
+        // 下滑關閉手勢
         overlay.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
             isDragging = false;
