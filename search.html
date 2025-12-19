@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Discover</title>
+    <style>
+        /* --- 基礎設定 --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: #F3ECE5; /* 米色背景 */
+            color: #8C7B6D;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 頂部導航 --- */
+        .header {
+            padding: 15px 24px;
+            display: flex;
+            align-items: center;
+            background-color: #F3ECE5; 
+            z-index: 10;
+        }
+        
+        .back-btn {
+            width: 40px; height: 40px; border-radius: 50%;
+            background-color: rgba(255,255,255,0.6);
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; text-decoration: none; color: #5D4D40;
+        }
+
+        /* --- Loading --- */
+        .loading-container {
+            height: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: height 0.2s;
+        }
+        
+        .spinner {
+            width: 30px; height: 30px;
+            border: 3px solid #ddd; border-top-color: #8C7B6D;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- 列表容器 --- */
+        .list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 24px 40px 24px;
+            overscroll-behavior-y: contain;
+            position: relative;
+        }
+        .list-container::-webkit-scrollbar { display: none; }
+
+        /* --- 餐廳卡片 --- */
+        .card {
+            background-color: white;
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 20px rgba(140, 123, 109, 0.1);
+            position: relative;
+            height: 320px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .card:active { transform: scale(0.98); }
+
+        .card-img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+
+        /* 卡片資訊塊 */
+        .card-info-overlay {
+            position: absolute;
+            bottom: 10px; left: 0; width: calc(100% - 20px);
+            margin: 10px;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            border-radius: 16px;
+        }
+
+        .card-title { 
+            font-size: 20px; 
+            font-weight: 800; 
+            color: #333; /* 深色字 */
+            margin-bottom: 6px; 
+        }
+        
+        .card-subtitle { 
+            font-size: 15px; 
+            font-weight: 600;
+            color: #5D4D40; /* 深咖啡色 */
+        }
+
+        /* --- 詳情頁 (Modal) --- */
+        .detail-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #fff;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .detail-modal.active { display: flex; transform: translateY(0); }
+
+        .detail-img-header { width: 100%; height: 350px; position: relative; }
+        .detail-main-img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 修改：移除右邊的愛心，只留左邊返回 */
+        .detail-nav {
+            position: absolute; top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: flex-start; /* 靠左 */
+        }
+        .nav-circle {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            color: white; cursor: pointer;
+        }
+
+        .detail-content {
+            padding: 24px;
+            background-color: #fff;
+            border-radius: 30px 30px 0 0;
+            margin-top: -30px;
+            position: relative;
+            min-height: 500px;
+        }
+
+        .detail-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .detail-title { font-size: 28px; font-weight: 800; color: #000; margin-bottom: 5px; }
+        .detail-desc-short { color: #666; font-size: 14px; }
+        
+        /* 導航按鈕 (紙飛機) */
+        .navigate-btn {
+            width: 48px; height: 48px; border-radius: 50%;
+            background-color: #F3ECE5;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .navigate-btn svg { 
+            fill: #5D4D40; 
+            stroke: none;
+        }
+
+        .info-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: #666; font-size: 14px; }
+        .info-icon { width: 18px; text-align: center; font-weight: bold; color: #000; }
+
+        .review-section { margin-top: 30px; display: flex; gap: 15px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+        .review-text { font-size: 14px; line-height: 1.6; color: #555; }
+
+        .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 30px; }
+        .grid-p { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in-item { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="home.html" class="back-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </a>
+    </div>
+
+    <div class="loading-container" id="loadingContainer">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="list-container" id="listContainer"></div>
+
+    <div id="detailModal" class="detail-modal">
+        <div class="detail-img-header">
+            <img id="modal-img" src="" class="detail-main-img">
+            <div class="detail-nav">
+                <div class="nav-circle" onclick="closeDetail()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-content">
+            <div class="detail-header-row">
+                <div>
+                    <div id="modal-title" class="detail-title">Title</div>
+                    <div id="modal-subtitle" class="detail-desc-short">Subtitle</div>
+                </div>
+                <div class="navigate-btn" onclick="openGoogleMap()">
+                    <svg width="24" height="24" viewBox="0 0 24 24">
+                        <path d="M12 2L4.5 20.29C4.24 20.89 4.88 21.49 5.46 21.16L12 17.5L18.54 21.16C19.12 21.49 19.76 20.89 19.5 20.29L12 2Z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="info-row">
+                <div class="info-icon">🕒</div>
+                <div id="modal-hours">Opened</div>
+            </div>
+            <div class="info-row">
+                <div class="info-icon">💲</div>
+                <div id="modal-price">Price</div>
+            </div>
+            <div class="info-row">
+                <div class="info-icon">📍</div>
+                <div id="modal-address">Address</div>
+            </div>
+
+            <div class="review-section">
+                <div class="user-avatar" style="background-image: url('https://i.pravatar.cc/150?img=12'); background-size: cover;"></div>
+                <div class="review-text">
+                    <b>Mr. White</b><br>
+                    這家店位於高雄獅甲一個新的景點，原本是台塑的起家厝。裡面的擺設很像台灣早期的房子充滿古風，園區整理很乾淨。甜點非常好吃，一定要試試看他們的招牌！
+                </div>
+            </div>
+
+            <div class="photo-grid">
+                <img src="https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=300&fit=crop" class="grid-p">
+                <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&fit=crop" class="grid-p">
+                <img src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&fit=crop" class="grid-p">
+                <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=300&fit=crop" class="grid-p">
+            </div>
+            
+            <div style="height: 50px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 資料庫
+        const restaurants = [
+            { id: 1, title: "Sweet Life", subtitle: "Delicious sweet desserts", img: "https://images.unsplash.com/photo-1563729784474-d779b95f3ea6?w=800&fit=crop", hours: "10:00 - 22:00", price: "150 - 350", address: "806高雄市前鎮區中山三路39號" },
+            { id: 2, title: "Harbor Coffee", subtitle: "Best view in the city", img: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=800&fit=crop", hours: "08:00 - 18:00", price: "100 - 250", address: "803高雄市鹽埕區大義街2號" },
+            { id: 3, title: "Kingmauiii Toast", subtitle: "Crispy and soft", img: "https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=800&fit=crop", hours: "07:00 - 14:00", price: "50 - 150", address: "802高雄市苓雅區自強三路" },
+            { id: 4, title: "Noodle House", subtitle: "Traditional taste", img: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&fit=crop", hours: "11:00 - 20:30", price: "80 - 200", address: "813高雄市左營區裕誠路" },
+            { id: 5, title: "Night Bar", subtitle: "Relax and chill", img: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&fit=crop", hours: "19:00 - 02:00", price: "300 - 600", address: "800高雄市新興區中山一路" },
+            { id: 6, title: "Green Garden", subtitle: "Healthy salad bowl", img: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&fit=crop", hours: "10:30 - 20:00", price: "180 - 300", address: "804高雄市鼓山區美術館路" }
+        ];
+
+        let currentDetailAddress = "";
+
+        function getRandomRestaurants() {
+            const shuffled = [...restaurants].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, 3);
+        }
+
+        function renderList(data) {
+            const container = document.getElementById('listContainer');
+            container.innerHTML = '';
+            
+            data.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'card fade-in-item';
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.onclick = () => openDetail(item);
+
+                card.innerHTML = `
+                    <img src="${item.img}" class="card-img">
+                    <div class="card-info-overlay">
+                        <div class="card-title">${item.title}</div>
+                        <div class="card-subtitle">${item.subtitle}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        renderList(getRandomRestaurants());
+
+        const listContainer = document.getElementById('listContainer');
+        const loadingContainer = document.getElementById('loadingContainer');
+        let startY = 0;
+        let isPulling = false;
+
+        listContainer.addEventListener('touchstart', (e) => {
+            if (listContainer.scrollTop === 0) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
+            } else { isPulling = false; }
+        });
+
+        listContainer.addEventListener('touchmove', (e) => {
+            if (!isPulling) return;
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+            if (diff > 0 && diff < 150) { loadingContainer.style.height = `${diff / 2}px`; }
+        });
+
+        listContainer.addEventListener('touchend', (e) => {
+            if (!isPulling) return;
+            const currentY = e.changedTouches[0].clientY;
+            const diff = currentY - startY;
+            if (diff > 100) {
+                loadingContainer.style.height = '60px';
+                setTimeout(() => {
+                    renderList(getRandomRestaurants());
+                    loadingContainer.style.height = '0px';
+                }, 1500);
+            } else { loadingContainer.style.height = '0px'; }
+            isPulling = false;
+        });
+
+        const modal = document.getElementById('detailModal');
+
+        function openDetail(item) {
+            document.getElementById('modal-img').src = item.img;
+            document.getElementById('modal-title').innerText = item.title;
+            document.getElementById('modal-subtitle').innerText = item.subtitle;
+            document.getElementById('modal-hours').innerText = item.hours + " Opened";
+            document.getElementById('modal-price').innerText = item.price;
+            document.getElementById('modal-address').innerText = item.address;
+            currentDetailAddress = item.address;
+
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.classList.add('active'); }, 10);
+        }
+
+        function closeDetail() {
+            modal.classList.remove('active');
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+        }
+
+        function openGoogleMap() {
+            if (!currentDetailAddress) return;
+            const encodedAddress = encodeURIComponent(currentDetailAddress);
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
+        }
+
+    </script>
+</body>
+</html>
