@@ -26,7 +26,6 @@
             overscroll-behavior-y: none; 
         }
 
-        /* 標題與按鈕區 (只有在日曆模式顯示) */
         h1 { font-size: 32px; font-weight: 700; color: #8C735D; margin-bottom: 5px; text-align: center; }
         .subtitle { font-size: 14px; color: #B0A093; margin-bottom: 20px; text-align: center; }
         
@@ -59,90 +58,48 @@
         .weekday { font-size: 13px; font-weight: 600; margin-bottom: 15px; color: #B0A093; }
         .day-cell { aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 500; color: #A69688; position: relative; border-radius: 50%; }
         
+        /* 若有多張照片，這裡會顯示最新的一張當縮圖，並加上疊層效果 */
         .memory-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 2; border: 2px solid #F3ECE5; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transition: transform 0.2s; cursor: pointer; }
         .memory-photo:active { transform: scale(0.95); }
+
+        /* 多張照片的標記 (小紅點或數量標示，這裡用簡單的陰影層次) */
+        .multiple-indicator {
+            position: absolute; width: 100%; height: 100%; border-radius: 50%;
+            background-color: #8C735D; top: 3px; left: 3px; z-index: 1; opacity: 0.3;
+        }
         
         .date-overlay { position: absolute; z-index: 3; color: #fff; font-weight: 700; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none; }
         .today-circle { background-color: #8C735D; color: white; width: 100%; height: 100%; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-out; }
 
-        /* --- 核心修改：IG 風格極簡播放器 --- */
+        /* --- Story Viewer --- */
         .story-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #000; /* 全黑背景，沉浸式 */
-            z-index: 9999;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 9999;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
             transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s;
-            touch-action: none; /* 防止滑動穿透 */
+            touch-action: none; 
         }
 
-        .story-overlay.active {
-            display: flex;
-            opacity: 1;
-            transform: translateY(0);
-        }
+        .story-overlay.active { display: flex; opacity: 1; transform: translateY(0); }
+        .story-image { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
-        /* 照片顯示 */
-        .story-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* 確保照片完整顯示 */
-            pointer-events: none;
-        }
-
-        /* 底部進度條容器 */
         .progress-container {
-            position: absolute;
-            bottom: 30px; /* 依照指示放在底部 */
-            left: 10px;
-            right: 10px;
-            height: 3px;
-            display: flex;
-            gap: 5px;
-            z-index: 10000;
+            position: absolute; bottom: 30px; left: 10px; right: 10px; height: 3px;
+            display: flex; gap: 5px; z-index: 10000;
         }
 
-        /* 進度條單節 */
-        .bar {
-            flex: 1;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.3); /* 未播放：半透明白 */
-            border-radius: 2px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        /* 進度條填充動畫 */
-        .bar-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 0%;
-            background-color: #ffffff; /* 已播放：純白 */
-            transition: width 0.1s linear;
-        }
-        
-        /* 播放過的直接填滿 */
+        .bar { flex: 1; height: 100%; background-color: rgba(255, 255, 255, 0.3); border-radius: 2px; overflow: hidden; position: relative; }
+        .bar-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background-color: #ffffff; transition: width 0.1s linear; }
         .bar.watched .bar-fill { width: 100%; }
-        /* 正在播放的會有動畫 (由 JS 控制) */
 
-        /* 隱形觸控區域 */
-        .tap-area {
-            position: absolute;
-            top: 0;
-            height: 100%;
-            width: 35%; /* 左右各 35%，中間留一點空隙防止誤觸 */
-            z-index: 1001;
+        /* 當天日期提示 (Story模式) */
+        .story-date-tag {
+            position: absolute; top: 40px; left: 20px; color: white; font-weight: 600; 
+            font-size: 14px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); z-index: 10000;
         }
+
+        .tap-area { position: absolute; top: 0; height: 100%; width: 35%; z-index: 1001; }
         .tap-left { left: 0; }
         .tap-right { right: 0; }
 
@@ -161,7 +118,7 @@
         Add Memory
     </button>
     
-    <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="fileInput" accept="image/*" multiple>
 
     <div class="calendar-header">
         <button class="nav-btn" onclick="changeMonth(-1)">
@@ -176,48 +133,72 @@
     <div class="calendar-container" id="calendarContainer"></div>
 
     <div id="storyOverlay" class="story-overlay">
+        <div id="storyDateTag" class="story-date-tag"></div>
         <img id="storyImageDisplay" class="story-image" src="" alt="Story">
-        
         <div id="progressBarContainer" class="progress-container"></div>
-
         <div class="tap-area tap-left" onclick="prevStory(event)"></div>
         <div class="tap-area tap-right" onclick="nextStory(event)"></div>
     </div>
 
     <script>
-        // --- 初始化設定 ---
+        // --- 初始化 ---
         let displayDate = new Date(); 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
         
         let savedMemories = JSON.parse(localStorage.getItem('myMemories')) || {};
 
+        // 資料結構遷移邏輯 (如果舊資料是字串，轉成陣列)
+        for (let key in savedMemories) {
+            if (!Array.isArray(savedMemories[key])) {
+                savedMemories[key] = [savedMemories[key]];
+            }
+        }
+        localStorage.setItem('myMemories', JSON.stringify(savedMemories));
+
         if (Object.keys(savedMemories).length === 0) {
             savedMemories = {
-                "2024-11-20": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&fit=crop",
+                "2024-11-20": ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&fit=crop"],
             };
         }
 
-        // --- 壓縮與儲存 ---
+        // --- 多張上傳邏輯 ---
         const fileInput = document.getElementById('fileInput');
         const addBtn = document.querySelector('.add-btn');
 
         function triggerUpload() { fileInput.click(); }
 
         fileInput.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            addBtn.textContent = "Saving...";
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            addBtn.textContent = `Saving ${files.length}...`;
             addBtn.style.opacity = "0.7";
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                compressImage(e.target.result, 800, 0.7, function(compressedBase64) {
-                    savePhoto(compressedBase64);
-                    addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
-                    addBtn.style.opacity = "1";
-                });
-            };
-            reader.readAsDataURL(file);
+
+            let processedCount = 0;
+            const today = new Date();
+            const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+            
+            // 初始化今天的陣列
+            if (!savedMemories[dateKey]) savedMemories[dateKey] = [];
+
+            // 遍歷所有選取的檔案
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    compressImage(e.target.result, 800, 0.7, function(compressedBase64) {
+                        // 加入陣列
+                        savedMemories[dateKey].push(compressedBase64);
+                        processedCount++;
+
+                        // 全部處理完才儲存
+                        if (processedCount === files.length) {
+                            finalizeSave(dateKey);
+                        }
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
         });
 
         function compressImage(base64Str, maxWidth, quality, callback) {
@@ -239,21 +220,21 @@
             };
         }
 
-        function savePhoto(imageData) {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth() + 1;
-            const day = today.getDate();
-            const dateKey = `${year}-${month}-${day}`;
-            savedMemories[dateKey] = imageData;
+        function finalizeSave(dateKey) {
             try {
                 localStorage.setItem('myMemories', JSON.stringify(savedMemories));
-                if (displayDate.getFullYear() !== year || displayDate.getMonth() !== (month - 1)) {
+                
+                const today = new Date();
+                if (displayDate.getFullYear() !== today.getFullYear() || displayDate.getMonth() !== today.getMonth()) {
                     displayDate = new Date();
                 }
                 renderCalendar();
+
+                addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
+                addBtn.style.opacity = "1";
             } catch (e) {
-                alert("Storage full! Cannot save more photos.");
+                alert("儲存空間不足 (瀏覽器限制 5MB)，請刪除一些舊資料。");
+                addBtn.textContent = "Error";
             }
         }
 
@@ -289,12 +270,24 @@
                 cell.className = 'day-cell';
                 const dateKey = `${year}-${month + 1}-${d}`;
                 
-                if (savedMemories[dateKey]) {
+                if (savedMemories[dateKey] && savedMemories[dateKey].length > 0) {
+                    const photos = savedMemories[dateKey];
+                    // 顯示最新的一張當封面
+                    const lastPhoto = photos[photos.length - 1];
+                    
+                    // 如果有多張，顯示背後的陰影效果
+                    if (photos.length > 1) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'multiple-indicator';
+                        cell.appendChild(indicator);
+                    }
+
                     const img = document.createElement('img');
-                    img.src = savedMemories[dateKey];
+                    img.src = lastPhoto;
                     img.className = 'memory-photo';
                     img.onclick = function() { openStoryViewer(dateKey); };
                     cell.appendChild(img);
+                    
                     const dateNum = document.createElement('span');
                     dateNum.className = 'date-overlay';
                     dateNum.innerText = d;
@@ -321,33 +314,48 @@
             renderCalendar();
         }
 
-        // --- 核心修改：IG 風格 Story Viewer ---
+        // --- Story Viewer (支援陣列播放) ---
         let storyList = [];
         let currentIndex = 0;
-        let storyTimer; // 計時器
-        const DURATION = 3000; // 每張播放 3 秒
+        let storyTimer; 
+        const DURATION = 3000;
         
-        // 滑動手勢變數
         let startY = 0;
         let currentY = 0;
         let isDragging = false;
         const overlay = document.getElementById('storyOverlay');
+        const dateTag = document.getElementById('storyDateTag');
 
         function openStoryViewer(clickedDateKey) {
-            // 1. 將所有回憶按日期排序，形成時間軸
-            storyList = Object.keys(savedMemories)
-                .sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')))
-                .map(key => ({ date: key, url: savedMemories[key] }));
+            // 1. 將所有照片攤平 (Flatten) 變成一條長長的時間軸
+            // 原本是: [{date: "2024-12-1", url: [...]}, ...]
+            // 現在變成: [{date: "2024-12-1", url: "img1"}, {date: "2024-12-1", url: "img2"}, ...]
+            storyList = [];
+            
+            const sortedKeys = Object.keys(savedMemories)
+                .sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
 
-            // 2. 找到點擊的那張是第幾張
-            currentIndex = storyList.findIndex(item => item.date === clickedDateKey);
+            let targetIndex = 0;
+            let foundTarget = false;
 
-            // 3. 顯示介面
+            sortedKeys.forEach(key => {
+                const photos = savedMemories[key];
+                photos.forEach((photoUrl, pIndex) => {
+                    storyList.push({ date: key, url: photoUrl });
+                    // 如果是點擊日期的第一張照片，標記為起始點
+                    if (key === clickedDateKey && pIndex === 0 && !foundTarget) {
+                        targetIndex = storyList.length - 1;
+                        foundTarget = true;
+                    }
+                });
+            });
+
+            currentIndex = targetIndex;
+
             overlay.classList.add('active');
             overlay.style.opacity = '1';
             overlay.style.transform = 'translateY(0)';
             
-            // 4. 開始播放
             renderStory();
         }
 
@@ -357,14 +365,19 @@
             const img = document.getElementById('storyImageDisplay');
             const barContainer = document.getElementById('progressBarContainer');
 
-            // 切換圖片
             img.src = currentItem.url;
+            dateTag.innerText = currentItem.date.replace(/-/g, ' / ');
 
+            // 計算目前是「這一天」的第幾張，以及這一天總共有幾張
+            // 用來繪製進度條 (只顯示當天的進度條，像 IG 一樣)
+            const sameDayStories = storyList.filter(s => s.date === currentItem.date);
+            const indexInDay = sameDayStories.findIndex(s => s.url === currentItem.url); // 簡單比對 url
+            
             // 重繪進度條
             barContainer.innerHTML = '';
-            storyList.forEach((item, index) => {
+            sameDayStories.forEach((item, index) => {
                 const bar = document.createElement('div');
-                bar.className = 'bar ' + (index < currentIndex ? 'watched' : ''); // 之前的標記為已看
+                bar.className = 'bar ' + (index < indexInDay ? 'watched' : '');
                 
                 const fill = document.createElement('div');
                 fill.className = 'bar-fill';
@@ -372,23 +385,20 @@
                 
                 barContainer.appendChild(bar);
 
-                // 如果是當前這張，開始跑動畫
-                if (index === currentIndex) {
-                    // 強制重繪以觸發 CSS 動畫
+                if (index === indexInDay) {
                     setTimeout(() => {
                         fill.style.width = '100%';
                         fill.style.transition = `width ${DURATION}ms linear`;
                     }, 10);
-                } else if (index < currentIndex) {
-                    fill.style.width = '100%'; // 之前的填滿
+                } else if (index < indexInDay) {
+                    fill.style.width = '100%'; 
                     fill.style.transition = 'none';
                 } else {
-                    fill.style.width = '0%'; // 之後的歸零
+                    fill.style.width = '0%'; 
                     fill.style.transition = 'none';
                 }
             });
 
-            // 設定計時器自動跳下一張
             clearTimeout(storyTimer);
             storyTimer = setTimeout(() => {
                 nextStory();
@@ -403,7 +413,7 @@
                 currentIndex++;
                 renderStory();
             } else {
-                closeStory(); // 最後一張播完就關閉
+                closeStory();
             }
         }
 
@@ -415,13 +425,12 @@
                 currentIndex--;
                 renderStory();
             } else {
-                // 如果是第一張再按上一張，重播第一張
-                renderStory();
+                renderStory(); // 重播第一張
             }
         }
 
         function closeStory() {
-            clearTimeout(storyTimer); // 停止計時
+            clearTimeout(storyTimer);
             overlay.style.transition = 'transform 0.3s ease-out, opacity 0.3s';
             overlay.style.transform = 'translateY(100%)';
             overlay.style.opacity = '0';
@@ -431,7 +440,7 @@
             }, 300);
         }
 
-        // --- 下滑關閉手勢 (維持不變) ---
+        // 下滑關閉
         overlay.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
             isDragging = false;
