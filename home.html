@@ -5,20 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Home</title>
     <style>
+        /* Global Settings */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         html, body { width: 100%; height: 100%; overflow: hidden; background-color: #F3ECE5; }
         body { display: flex; flex-direction: column; justify-content: space-between; }
 
+        /* Header */
         .header { flex-shrink: 0; padding: 60px 24px 20px 24px; display: flex; justify-content: space-between; align-items: center; }
         .brown-btn { background-color: #9C7C66; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         .avatar-placeholder { width: 50px; height: 50px; border-radius: 50%; }
         .search-pill { height: 50px; width: 140px; border-radius: 25px; display: flex; justify-content: flex-start; align-items: center; padding-left: 15px; }
         .chat-btn { width: 50px; height: 50px; border-radius: 50%; }
 
+        /* Main Content */
         .content { flex: 1; width: 100%; padding: 20px 24px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .card { width: 100%; max-width: 500px; aspect-ratio: 1 / 1; max-height: 100%; border-radius: 35px; overflow: hidden; background-color: #ddd; position: relative; box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2); }
         .card img { width: 100%; height: 100%; object-fit: cover; }
 
+        /* Footer */
         .footer { flex-shrink: 0; padding: 20px 40px 100px 40px; display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; align-self: center; }
         .icon-brown { stroke: #9C7C66; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
         
@@ -53,7 +57,7 @@
 
     <div class="content">
         <div class="card">
-            <img src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=2070&auto=format&fit=crop" alt="Display">
+            <img id="displayImg" src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=2070&auto=format&fit=crop" alt="Display">
         </div>
     </div>
 
@@ -69,7 +73,7 @@
     <div id="action-sheet-overlay" class="modal-overlay">
         <div class="action-sheet">
             <div class="action-btn" id="btn_camera">立即拍照</div>
-            <div class="action-btn" id="btn_gallery">從相簿選擇 (可多選)</div>
+            <div class="action-btn" id="btn_gallery">從相簿選擇</div>
             <div class="action-btn cancel" id="btn_cancel">取消</div>
         </div>
     </div>
@@ -77,20 +81,19 @@
     <div id="loading-toast">Saving...</div>
 
     <script>
-        // --- 1. IndexedDB 與 廣播設定 ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
-        const channel = new BroadcastChannel('memory_update'); // 建立廣播頻道
+        const channel = new BroadcastChannel('memory_update'); 
         let db;
 
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 1);
-                request.onupgradeneeded = function(e) {
+                request.onupgradeneeded = (e) => {
                     db = e.target.result;
                     if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
                 };
-                request.onsuccess = function(e) {
+                request.onsuccess = (e) => {
                     db = e.target.result;
                     resolve(db);
                 };
@@ -119,32 +122,39 @@
             });
         }
 
-        // --- 2. 介面控制 ---
+        // --- 核心新增：自動載入最新照片 ---
+        async function loadLatestPhoto() {
+            if (!db) await initDB();
+            const memories = await getAllMemories();
+            
+            const now = new Date();
+            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+            
+            // 如果今天有照片，顯示最後一張
+            if (memories[dateKey] && memories[dateKey].length > 0) {
+                const photos = memories[dateKey];
+                const lastPhoto = photos[photos.length - 1];
+                document.getElementById('displayImg').src = lastPhoto;
+            }
+        }
+
+        // 頁面載入時執行
+        initDB().then(loadLatestPhoto);
+
+        // --- 介面互動 ---
         const shutterBtn = document.querySelector('.shutter-btn');
         const overlay = document.getElementById('action-sheet-overlay');
-        const mainImage = document.querySelector('.card img');
+        const mainImage = document.getElementById('displayImg');
         const toast = document.getElementById('loading-toast');
         
-        // 按鈕綁定
         shutterBtn.addEventListener('click', (e) => { e.preventDefault(); overlay.classList.add('show'); });
         document.getElementById('btn_cancel').addEventListener('click', () => overlay.classList.remove('show'));
         overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('show'); });
 
-        // 觸發相機
-        document.getElementById('btn_camera').addEventListener('click', () => {
-            document.getElementById('input_camera').click();
-            overlay.classList.remove('show');
-        });
+        document.getElementById('btn_camera').addEventListener('click', () => { document.getElementById('input_camera').click(); overlay.classList.remove('show'); });
+        document.getElementById('btn_gallery').addEventListener('click', () => { document.getElementById('input_gallery').click(); overlay.classList.remove('show'); });
 
-        // 觸發相簿
-        document.getElementById('btn_gallery').addEventListener('click', () => {
-            document.getElementById('input_gallery').click();
-            overlay.classList.remove('show');
-        });
-
-        // --- 3. 檔案處理 ---
-        initDB();
-
+        // --- 檔案處理 ---
         async function handleFileSelect(e) {
             const files = e.target.files;
             if (!files || files.length === 0) return;
@@ -153,7 +163,6 @@
             if (!db) await initDB();
             
             let memories = await getAllMemories();
-            
             const now = new Date();
             const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
             
@@ -166,23 +175,16 @@
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     compressImage(event.target.result, 1024, 0.8, async function(base64) {
-                        
                         memories[dateKey].push(base64);
-                        mainImage.src = base64; // 更新首頁圖片
+                        mainImage.src = base64; // 更新顯示
                         processedCount++;
                         
                         if (processedCount === files.length) {
                             try {
                                 await saveAllMemories(memories);
-                                
-                                // ★★★ 關鍵：通知 memories.html 更新 ★★★
-                                channel.postMessage('updated'); 
-                                
-                                toast.textContent = "Saved to Memories!";
-                                setTimeout(() => { 
-                                    toast.style.display = 'none'; 
-                                    toast.textContent = "Saving..."; 
-                                }, 1500);
+                                channel.postMessage('updated');
+                                toast.textContent = "Saved!";
+                                setTimeout(() => { toast.style.display = 'none'; toast.textContent = "Saving..."; }, 1500);
                             } catch (err) {
                                 alert("Save failed.");
                                 toast.style.display = 'none';
