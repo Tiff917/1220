@@ -181,6 +181,37 @@
         function compressImage(src, maxW, qual, cb) { const img = new Image(); img.src = src; img.onload = () => { const cvs = document.createElement('canvas'); let w = img.width, h = img.height; if (w > maxW) { h *= maxW / w; w = maxW; } cvs.width = w; cvs.height = h; const ctx = cvs.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); cb(cvs.toDataURL('image/jpeg', qual)); }; }
         document.getElementById('input_camera').addEventListener('change', handleFileSelect);
         document.getElementById('input_gallery').addEventListener('change', handleFileSelect);
+
+        // --- 滑動手勢：返回首頁邏輯 ---
+    let touchstartX = 0;
+    let touchstartY = 0;
+
+    document.addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+        touchstartY = e.changedTouches[0].screenY;
+    });
+
+    document.addEventListener('touchend', e => {
+        let touchendX = e.changedTouches[0].screenX;
+        let touchendY = e.changedTouches[0].screenY;
+        handleGesture(touchstartX, touchstartY, touchendX, touchendY);
+    });
+
+    function handleGesture(startX, startY, endX, endY) {
+        let xDiff = endX - startX;
+        let yDiff = endY - startY;
+
+        // 1. 防誤觸：垂直滑動幅度大於水平時，視為捲動，不觸發換頁
+        if (Math.abs(yDiff) > Math.abs(xDiff)) return;
+
+        // 2. 門檻：滑動超過 80px 才觸發
+        if (Math.abs(xDiff) < 80) return;
+
+        // 3. 判斷方向：我們在右邊，所以只能「向右滑 (xDiff > 0)」回左邊的 Home
+        if (xDiff > 0) {
+            window.location.href = 'home.html';
+        }
+    }
     </script>
 </body>
 </html>
