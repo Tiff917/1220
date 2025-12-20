@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Premium Subscription</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #F3ECE5; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; color: #6D5D50; }
+
+        .card-container {
+            background: linear-gradient(135deg, #9C7C66, #6D5D50);
+            width: 100%; max-width: 350px; height: 200px;
+            border-radius: 20px; padding: 25px; color: white;
+            box-shadow: 0 10px 30px rgba(109, 93, 80, 0.3);
+            margin-bottom: 30px; position: relative;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .chip { width: 40px; height: 30px; background: #e0d0c8; border-radius: 5px; opacity: 0.8; }
+        .card-number { font-size: 22px; letter-spacing: 2px; font-family: "Courier New", monospace; text-shadow: 0 2px 2px rgba(0,0,0,0.3); }
+        .card-details { display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; opacity: 0.9; }
+        .card-name { font-weight: 600; font-size: 14px; }
+
+        .form-container { width: 100%; max-width: 350px; }
+        .input-group { margin-bottom: 15px; }
+        .label { font-size: 12px; font-weight: 700; margin-bottom: 5px; display: block; color: #8C7B6D; }
+        
+        input {
+            width: 100%; padding: 15px; border-radius: 12px;
+            border: 1px solid #ddd; background: white;
+            font-size: 16px; color: #333; outline: none;
+            transition: border 0.3s;
+        }
+        input:focus { border-color: #9C7C66; }
+
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+
+        .pay-btn {
+            width: 100%; padding: 18px; border: none; border-radius: 30px;
+            background-color: #9C7C66; color: white;
+            font-size: 16px; font-weight: 700; cursor: pointer;
+            margin-top: 20px; box-shadow: 0 5px 15px rgba(156, 124, 102, 0.3);
+            transition: transform 0.1s;
+        }
+        .pay-btn:active { transform: scale(0.98); }
+        
+        .cancel-link {
+            margin-top: 20px; color: #999; font-size: 14px; text-decoration: none; font-weight: 500;
+        }
+
+        /* 模擬載入動畫 */
+        .spinner {
+            display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; margin-right: 10px; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="card-container">
+        <div class="chip"></div>
+        <div class="card-number">•••• •••• •••• ••••</div>
+        <div class="card-details">
+            <div>
+                <span>Card Holder</span>
+                <div class="card-name">YOUR NAME</div>
+            </div>
+            <div>
+                <span>Expires</span>
+                <div class="card-name">MM/YY</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="input-group">
+            <span class="label">CARD NUMBER</span>
+            <input type="tel" placeholder="0000 0000 0000 0000" maxlength="19" id="inputCard">
+        </div>
+        
+        <div class="input-group">
+            <span class="label">CARD HOLDER</span>
+            <input type="text" placeholder="Name on card">
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <span class="label">EXPIRY DATE</span>
+                <input type="tel" placeholder="MM/YY" maxlength="5">
+            </div>
+            <div class="col">
+                <span class="label">CVV</span>
+                <input type="tel" placeholder="123" maxlength="3">
+            </div>
+        </div>
+
+        <button class="pay-btn" id="payBtn">
+            <div class="spinner" id="spinner"></div>
+            <span id="btnText">Pay $9.99 / Month</span>
+        </button>
+    </div>
+
+    <a href="profile.html" class="cancel-link">Cancel</a>
+
+    <script>
+        const payBtn = document.getElementById('payBtn');
+        const spinner = document.getElementById('spinner');
+        const btnText = document.getElementById('btnText');
+        const inputCard = document.getElementById('inputCard');
+
+        // 簡單的輸入格式化 (4位一空)
+        inputCard.addEventListener('input', function (e) {
+            e.target.value = e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
+        });
+
+        payBtn.addEventListener('click', function() {
+            // 開始模擬付款
+            payBtn.style.opacity = "0.8";
+            payBtn.disabled = true;
+            spinner.style.display = "inline-block";
+            btnText.textContent = "Processing...";
+
+            setTimeout(() => {
+                // 付款成功！
+                // 1. 設定 localStorage 狀態
+                localStorage.setItem('isPremium', 'true');
+                
+                // 2. 提示並跳轉
+                alert("Payment Successful! You are now a Premium Member.");
+                window.location.href = "profile.html";
+                
+            }, 2000); // 假裝跑 2 秒
+        });
+    </script>
+</body>
+</html>
