@@ -57,49 +57,74 @@
 
         .left-actions { display: flex; gap: 8px; align-items: center; }
 
-        /* 按鈕樣式 */
+        /* 按鈕基礎樣式 */
         .overlay-btn {
             background: rgba(0, 0, 0, 0.6);
             color: white;
             border-radius: 20px;
             height: 32px;
-            padding: 0 12px;
+            padding: 0 8px; /* 基礎 padding */
             border: none;
-            display: flex; align-items: center; gap: 6px;
+            display: flex; align-items: center; justify-content: center; /* 預設置中 */
+            gap: 6px;
             font-size: 12px; font-weight: 600;
             backdrop-filter: blur(4px);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); /* 平滑彈性動畫 */
             overflow: hidden;
             white-space: nowrap;
         }
         
         .circle-icon-btn {
-            width: 32px; padding: 0; justify-content: center; border-radius: 50%;
+            width: 32px; padding: 0; border-radius: 50%;
         }
 
-        /* 啟用狀態 */
-        .overlay-btn.active {
+        /* --- 關鍵修改：地點按鈕動畫 --- */
+        #btnLocation {
+            width: 32px; /* 初始狀態：圓形 */
+            max-width: 32px;
+            padding: 0;
+            border-radius: 50%;
+        }
+
+        /* 啟用狀態：變成膠囊並展開 */
+        #btnLocation.active {
+            width: auto;
+            max-width: 120px; /* 展開後的寬度 */
+            padding: 0 12px;
+            border-radius: 20px;
+            background: #9C7C66; 
+            justify-content: flex-start; /* 內容靠左 */
+        }
+
+        .location-text {
+            opacity: 0; 
+            display: none;
+            transform: translateX(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* 當按鈕變 active 時，顯示文字 */
+        #btnLocation.active .location-text {
+            display: inline-block;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* 一般按鈕啟用狀態 */
+        .overlay-btn.active:not(#btnLocation) {
             background: #9C7C66; 
             color: white;
         }
         
         .overlay-btn svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
 
-        /* 地點文字樣式 */
-        .location-text {
-            opacity: 0; max-width: 0; transition: all 0.3s ease;
-        }
-        #btnLocation.active .location-text {
-            opacity: 1; max-width: 100px; margin-left: 4px;
-        }
-
-        /* 載入動畫 */
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        .overlay-btn.loading svg { animation: pulse 1s infinite ease-in-out; }
+        /* 載入動畫 (閃爍) */
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        .overlay-btn.loading { animation: pulse 1s infinite ease-in-out; }
 
 
-        /* --- 下方相簿網格 (修改重點 4) --- */
+        /* --- 下方相簿網格 --- */
         .gallery-scroll {
             flex: 1; overflow-y: auto; background: #F3ECE5;
         }
@@ -125,7 +150,7 @@
             display: block; transition: opacity 0.2s;
         }
 
-        /* 修正：上傳按鈕方塊樣式 */
+        /* 上傳按鈕方塊 */
         .upload-tile {
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             background-color: #EBE1D7; 
@@ -173,7 +198,7 @@
                 <button id="btnTagPeople" class="overlay-btn circle-icon-btn">
                     <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
                 </button>
-                <button id="btnLocation" class="overlay-btn circle-icon-btn" style="width: auto;">
+                <button id="btnLocation" class="overlay-btn">
                     <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
                     <span class="location-text">Kaohsiung</span>
                 </button>
@@ -188,7 +213,11 @@
 
     <div class="gallery-scroll">
         <div class="gallery-grid" id="galleryGrid">
+            <div class="gallery-item upload-tile" onclick="document.getElementById('hiddenFileInput').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg>
+                <span>Gallery</span>
             </div>
+        </div>
     </div>
 
     <input type="file" id="hiddenFileInput" accept="image/*" multiple>
@@ -233,25 +262,29 @@
             });
         }
 
-        // --- 2. UI 互動邏輯 (Icon 反應) ---
+        // --- 2. UI 互動邏輯 ---
 
-        // 標記人名
+        // 人名 Tag
         const btnTagPeople = document.getElementById('btnTagPeople');
         btnTagPeople.addEventListener('click', function() {
             this.classList.toggle('active');
         });
 
-        // 標記地點 (仿真載入)
+        // 地點 Tag (動畫邏輯)
         const btnLocation = document.getElementById('btnLocation');
         btnLocation.addEventListener('click', function() {
             if (this.classList.contains('active')) {
+                // 取消時：變回圓形
                 this.classList.remove('active');
             } else {
+                // 開始載入 (保持圓形，開始閃爍)
                 this.classList.add('loading'); 
+                
+                // 1.5秒後變身
                 setTimeout(() => {
                     this.classList.remove('loading'); 
-                    this.classList.add('active'); 
-                }, 1200);
+                    this.classList.add('active'); // CSS 會處理寬度展開和文字顯示
+                }, 1500);
             }
         });
 
@@ -267,10 +300,7 @@
         const fileInput = document.getElementById('hiddenFileInput');
         const nextBtn = document.getElementById('nextBtn');
 
-        // 初始化：渲染一次空的（只包含上傳按鈕）
-        renderGalleryPhotos();
-
-        // 檔案上傳
+        // 上傳監聽
         fileInput.addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
             if(files.length === 0) return;
@@ -281,7 +311,6 @@
 
             renderGalleryPhotos();
             
-            // 預設選中最新的一張
             if (galleryImages.length > 0 && !isMultiSelect) {
                 selectedIndices.clear();
                 mainPreview.src = galleryImages[0];
@@ -289,18 +318,11 @@
             }
         });
 
-        // 渲染相簿 (修改重點：第一格永遠是上傳按鈕)
         function renderGalleryPhotos() {
-            galleryGrid.innerHTML = "";
-
-            // 1. 建立第一個「上傳方塊」
-            const uploadTile = document.createElement('div');
-            uploadTile.className = 'gallery-item upload-tile';
-            uploadTile.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg><span>Gallery</span>`;
-            uploadTile.onclick = () => document.getElementById('hiddenFileInput').click();
-            galleryGrid.appendChild(uploadTile);
-
-            // 2. 建立照片方塊
+            // 清除現有照片 (保留第一格)
+            const existingPhotos = galleryGrid.querySelectorAll('.gallery-item:not(.upload-tile)');
+            existingPhotos.forEach(el => el.remove());
+            
             const selectedArray = Array.from(selectedIndices);
 
             galleryImages.forEach((url, index) => {
@@ -364,7 +386,7 @@
             renderGalleryPhotos();
         }
 
-        // --- 4. Share 存檔邏輯 (不跳選項) ---
+        // --- 4. Share 邏輯 (修正：不跳選單) ---
         nextBtn.addEventListener('click', async () => {
             let imagesToSave = [];
 
@@ -376,6 +398,7 @@
 
             if(imagesToSave.length === 0) {
                 alert("Please select a photo first!");
+                // 這裡拿掉了自動觸發 click，避免用戶困擾
                 return;
             }
 
@@ -428,6 +451,10 @@
             });
         }
 
+        initDB();
+    </script>
+</body>
+</html>
         initDB();
     </script>
 </body>
