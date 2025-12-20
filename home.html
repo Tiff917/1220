@@ -50,8 +50,10 @@
         <div class="brown-btn search-pill">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         </div>
-        <a href="message.html" class="brown-btn chat-btn" style="text-decoration: none;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <a href="javascript:void(0)" class="brown-btn chat-btn" style="text-decoration: none;" onclick="checkPremiumAccess()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
         </a>
     </div>
 
@@ -212,6 +214,20 @@
 
         document.getElementById('input_camera').addEventListener('change', handleFileSelect);
         document.getElementById('input_gallery').addEventListener('change', handleFileSelect);
+
+        function checkPremiumAccess() {
+        const isPremium = localStorage.getItem('isPremium');
+        
+        if (isPremium === 'true') {
+            // 有付錢 -> 通行
+            window.location.href = "message.html";
+        } else {
+            // 沒付錢 -> 擋住，並提示去個人頁面
+            if(confirm("Community is for Premium Members only.\nGo to Profile to subscribe?")) {
+                window.location.href = "profile.html";
+            }
+        }
+    }
     </script>
 </body>
 </html>
