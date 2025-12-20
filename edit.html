@@ -79,19 +79,27 @@
             width: 32px; padding: 0; border-radius: 50%;
         }
 
-        /* --- 關鍵修改：地點按鈕動畫 --- */
+  /* --- 修正後的：地點按鈕樣式 --- */
         #btnLocation {
-            width: 32px; /* 初始狀態：圓形 */
-            max-width: 32px;
-            padding: 0;
+            /* 1. 強制設定為正圓形 */
+            width: 32px;       
+            height: 32px;
+            padding: 0;        /* 關鍵：預設沒有內距，不然會變橢圓 */
             border-radius: 50%;
+            
+            /* 2. 讓 Icon 絕對置中 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            /* 3. 過渡動畫設定 */
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         /* 啟用狀態：變成膠囊並展開 */
         #btnLocation.active {
-            width: auto;
-            max-width: 120px; /* 展開後的寬度 */
-            padding: 0 12px;
+            width: auto;       /* 寬度自動適應文字 */
+            padding: 0 12px;   /* 展開後才補回內距 */
             border-radius: 20px;
             background: #9C7C66; 
             justify-content: flex-start; /* 內容靠左 */
@@ -99,8 +107,9 @@
 
         .location-text {
             opacity: 0; 
-            display: none;
+            display: none;     /* 預設完全隱藏，不佔空間 */
             transform: translateX(10px);
+            margin-left: 0;    /* 預設沒有間距 */
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
@@ -109,8 +118,8 @@
             display: inline-block;
             opacity: 1;
             transform: translateX(0);
+            margin-left: 6px;  /* 展開後才給文字左邊一點空隙 */
         }
-
         /* 一般按鈕啟用狀態 */
         .overlay-btn.active:not(#btnLocation) {
             background: #9C7C66; 
