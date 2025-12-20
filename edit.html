@@ -9,7 +9,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         
         body { 
-            background-color: #F3ECE5; /* 米膚色背景 */
+            background-color: #F3ECE5;
             height: 100vh; 
             display: flex; 
             flex-direction: column; 
@@ -18,27 +18,22 @@
 
         /* --- 頂部導航 --- */
         .header {
-            flex-shrink: 0; height: 50px; padding: 0 16px; margin-top: 40px; /* 避開瀏海 */
+            flex-shrink: 0; height: 50px; padding: 0 16px; margin-top: 40px;
             display: flex; justify-content: space-between; align-items: center;
             background-color: #F3ECE5; 
             z-index: 10;
         }
 
         .header-btn { font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; background: none; }
-        
-        .cancel-btn { color: #6D5D55; /* 深棕色 */ }
+        .cancel-btn { color: #6D5D55; }
         .title { font-size: 18px; font-weight: 700; color: #6D5D50; }
-        
-        .next-btn { 
-            color: #9C7C66; /* 暖棕色 (取代 IG 藍) */
-            font-weight: 700;
-        }
+        .next-btn { color: #9C7C66; font-weight: 700; }
         .next-btn:disabled { color: #D6CCC2; }
 
-        /* --- 預覽區域 (上半部 1:1) --- */
+        /* --- 預覽區域 --- */
         .preview-container {
             width: 100%;
-            aspect-ratio: 1 / 1; /* 強制正方形 */
+            aspect-ratio: 1 / 1;
             background-color: #E3D5CA;
             position: relative;
             overflow: hidden;
@@ -48,19 +43,21 @@
         #mainPreview {
             width: 100%; height: 100%; object-fit: cover;
             transition: opacity 0.2s;
-            display: block;
+            display: none; 
         }
 
-        /* --- 浮動功能列 (Overlay) --- */
+        /* --- 浮動功能列 --- */
         .overlay-bar {
             position: absolute; bottom: 12px; left: 12px; right: 12px;
             display: flex; justify-content: space-between; align-items: center;
             z-index: 5;
+            pointer-events: none; /* 讓點擊穿透到按鈕 */
         }
+        .overlay-bar > * { pointer-events: auto; } /* 按鈕恢復感應 */
 
-        .left-actions { display: flex; gap: 8px; }
+        .left-actions { display: flex; gap: 8px; align-items: center; }
 
-        /* 半透明膠囊按鈕 */
+        /* 共用按鈕樣式 */
         .overlay-btn {
             background: rgba(0, 0, 0, 0.6);
             color: white;
@@ -72,45 +69,55 @@
             font-size: 12px; font-weight: 600;
             backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.3s ease; /* 平滑過渡 */
+            overflow: hidden;
+            white-space: nowrap;
         }
         
         .circle-icon-btn {
-            width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 50%;
+            width: 32px; padding: 0; justify-content: center; border-radius: 50%;
         }
 
-        /* 啟用狀態 (Active) - 暖棕色 */
+        /* 啟用狀態 (Active) - 變深色 */
         .overlay-btn.active {
-            background: #9C7C66; 
+            background: #9C7C66; /* 暖棕色 */
             color: white;
         }
         
-        .overlay-btn svg { width: 14px; height: 14px; fill: currentColor; }
+        .overlay-btn svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
 
-        /* --- 下方相簿網格 (Gallery) --- */
+        /* 地點文字樣式 */
+        .location-text {
+            opacity: 0; /* 預設隱藏 */
+            max-width: 0;
+            transition: all 0.3s ease;
+        }
+        /* 地點啟用時顯示文字 */
+        #btnLocation.active .location-text {
+            opacity: 1;
+            max-width: 100px; /* 展開寬度 */
+            margin-left: 4px;
+        }
+
+        /* 地點載入中動畫 */
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .overlay-btn.loading svg { animation: pulse 1s infinite ease-in-out; }
+
+
+        /* --- 下方相簿網格 (修改重點 1 & 2) --- */
         .gallery-scroll {
             flex: 1; overflow-y: auto; background: #F3ECE5;
+            /* 確保底部沒有多餘空間 */
+            padding-bottom: 0; margin-bottom: 0;
         }
 
-        /* 模擬打開相簿按鈕 */
-        .open-gallery-btn {
-            background: #E3D5CA;
-            color: #6D5D55;
-            padding: 15px;
-            text-align: center;
-            font-weight: 600;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            display: flex; justify-content: center; align-items: center; gap: 8px;
-        }
-        .open-gallery-btn:active { background: #d0c0b4; }
-
-        /* 4欄緊密網格 */
+        /* 3欄網格，間距加大 */
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 2px;
-            padding: 2px 0;
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 4px; /* 加大間距顯示格子感 */
+            padding: 4px;
+            background-color: #E3D5CA; /* 網格底色，讓間距有顏色 */
         }
 
         .gallery-item {
@@ -118,38 +125,38 @@
             position: relative;
             cursor: pointer;
             overflow: hidden;
-            background-color: #E3D5CA;
+            background-color: #F3ECE5;
         }
 
         .gallery-item img {
             width: 100%; height: 100%; object-fit: cover;
-            display: block;
-            transition: opacity 0.2s;
+            display: block; transition: opacity 0.2s;
         }
 
-        /* 選取時變暗 */
-        .gallery-item.selected img {
-            opacity: 0.5; 
+        /* 第一格：上傳按鈕樣式 */
+        .upload-tile {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background-color: #EBE1D7; color: #9C7C66;
+            font-size: 12px; font-weight: 600; gap: 8px;
+            text-align: center; padding: 10px;
         }
+        .upload-tile svg { width: 24px; height: 24px; stroke-width: 1.5; }
+        .upload-tile:active { background-color: #dccbc0; }
+
+        /* 選取樣式 */
+        .gallery-item.selected img { opacity: 0.5; }
         
-        /* 編號圈圈 */
         .selection-badge {
-            position: absolute; top: 6px; right: 6px;
-            width: 20px; height: 20px;
-            border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.8);
-            background: rgba(0,0,0,0.2);
+            position: absolute; top: 6px; right: 6px; width: 22px; height: 22px;
+            border-radius: 50%; border: 2px solid #F3ECE5;
+            background: rgba(0,0,0,0.3);
             display: flex; justify-content: center; align-items: center;
-            font-size: 11px; font-weight: 700; color: white;
-            z-index: 2;
+            font-size: 12px; font-weight: 700; color: white; z-index: 2;
             transition: transform 0.1s;
         }
 
-        /* 選中時的圈圈顏色 - 暖棕色 */
         .gallery-item.selected .selection-badge {
-            background: #9C7C66;
-            border-color: #9C7C66;
-            transform: scale(1.1);
+            background: #9C7C66; border-color: #F3ECE5; transform: scale(1.1);
         }
         
         #hiddenFileInput { display: none; }
@@ -169,11 +176,12 @@
 
         <div class="overlay-bar">
             <div class="left-actions">
-                <button class="overlay-btn circle-icon-btn">
+                <button id="btnTagPeople" class="overlay-btn circle-icon-btn">
                     <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
                 </button>
-                <button class="overlay-btn circle-icon-btn">
-                    <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
+                <button id="btnLocation" class="overlay-btn circle-icon-btn" style="width: auto; /* 允許寬度變化 */">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5-2.5 2.5z"></path></svg>
+                    <span class="location-text">Kaohsiung</span>
                 </button>
             </div>
 
@@ -185,19 +193,18 @@
     </div>
 
     <div class="gallery-scroll">
-        <div class="open-gallery-btn" onclick="document.getElementById('hiddenFileInput').click()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
-            Open Phone Gallery
-        </div>
-
         <div class="gallery-grid" id="galleryGrid">
+            <div class="gallery-item upload-tile" onclick="document.getElementById('hiddenFileInput').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg>
+                <span>Open Gallery</span>
+            </div>
             </div>
     </div>
 
     <input type="file" id="hiddenFileInput" accept="image/*" multiple>
 
     <script>
-        // --- 1. IndexedDB 設定 ---
+        // --- 1. IndexedDB 設定 (不變) ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
@@ -236,10 +243,36 @@
             });
         }
 
-        // --- 2. 邏輯處理 ---
+        // --- 2. 介面互動邏輯 ---
+
+        // 修改重點 3: 標記人名 (Tag People) 點擊變色
+        const btnTagPeople = document.getElementById('btnTagPeople');
+        btnTagPeople.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+        // 修改重點 4: 標記地點 (Location) 仿真載入效果
+        const btnLocation = document.getElementById('btnLocation');
+        btnLocation.addEventListener('click', function() {
+            if (this.classList.contains('active')) {
+                // 如果已經啟用，點擊則取消
+                this.classList.remove('active');
+            } else {
+                // 開始模擬載入
+                this.classList.add('loading'); // 加入閃爍動畫
+                
+                // 模擬 1.5 秒的搜尋時間
+                setTimeout(() => {
+                    this.classList.remove('loading'); // 停止閃爍
+                    this.classList.add('active'); // 變深色並展開文字
+                }, 1500);
+            }
+        });
+
+        // --- 3. 相簿邏輯 (適配新的網格結構) ---
         
-        let galleryImages = []; // 存所有載入的圖片
-        let selectedIndices = new Set(); // 存被選中的 index
+        let galleryImages = []; 
+        let selectedIndices = new Set();
         let isMultiSelect = false;
 
         const mainPreview = document.getElementById('mainPreview');
@@ -248,30 +281,32 @@
         const fileInput = document.getElementById('hiddenFileInput');
         const nextBtn = document.getElementById('nextBtn');
 
-        // --- 檔案上傳 ---
+        // 監聽檔案上傳
         fileInput.addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
             if(files.length === 0) return;
 
+            // 將新檔案加入陣列最前面
             files.reverse().forEach(file => {
-                const blobUrl = URL.createObjectURL(file);
-                galleryImages.unshift(blobUrl);
+                galleryImages.unshift(URL.createObjectURL(file));
             });
 
-            renderGallery();
+            renderGalleryPhotos();
             
-            // 預設選中最新的一張 (如果是剛進來或單選模式)
+            // 預設選中最新的一張
             if (galleryImages.length > 0 && !isMultiSelect) {
                 selectedIndices.clear();
                 mainPreview.src = galleryImages[0];
+                mainPreview.style.display = 'block';
             }
         });
 
-        // --- 渲染相簿網格 ---
-        function renderGallery() {
-            galleryGrid.innerHTML = "";
+        // 渲染相簿照片 (保留第一個上傳按鈕不被清掉)
+        function renderGalleryPhotos() {
+            // 清除現有的照片格子 (保留第一個 .upload-tile)
+            const existingPhotos = galleryGrid.querySelectorAll('.gallery-item:not(.upload-tile)');
+            existingPhotos.forEach(el => el.remove());
             
-            // 將 Set 轉為 Array 以便查找 index (1, 2, 3...)
             const selectedArray = Array.from(selectedIndices);
 
             galleryImages.forEach((url, index) => {
@@ -282,35 +317,30 @@
                 const img = document.createElement('img');
                 img.src = url;
                 
-                // 編號 Badge
                 const badge = document.createElement('div');
                 badge.className = 'selection-badge';
                 
-                // 如果是多選模式，且被選中，顯示數字
                 if (isMultiSelect && isSelected) {
-                    const order = selectedArray.indexOf(index) + 1;
-                    badge.textContent = order;
+                    badge.textContent = selectedArray.indexOf(index) + 1;
                     badge.style.display = 'flex';
                 } else {
                     badge.style.display = 'none';
                 }
                 
                 item.onclick = () => handleItemClick(index);
-
                 item.appendChild(img);
                 item.appendChild(badge);
+                // 加在上傳按鈕後面
                 galleryGrid.appendChild(item);
             });
         }
 
-        // --- 切換多選模式 ---
         function toggleMultiSelect() {
             isMultiSelect = !isMultiSelect;
             
             if (isMultiSelect) {
                 multiSelectBtn.classList.add('active');
-                // 進入多選時，如果沒選任何東西，把當前預覽的選起來
-                if (selectedIndices.size === 0 && galleryImages.length > 0) {
+                if (selectedIndices.size === 0 && galleryImages.length > 0 && mainPreview.src) {
                     const currentSrc = mainPreview.src;
                     const idx = galleryImages.indexOf(currentSrc);
                     if(idx !== -1) selectedIndices.add(idx);
@@ -319,46 +349,42 @@
                 multiSelectBtn.classList.remove('active');
                 selectedIndices.clear();
             }
-            renderGallery();
+            renderGalleryPhotos();
         }
 
-        // --- 點擊格子邏輯 ---
         function handleItemClick(index) {
             const url = galleryImages[index];
 
             if (isMultiSelect) {
-                // 多選模式：切換勾選狀態
                 if (selectedIndices.has(index)) {
                     selectedIndices.delete(index);
                 } else {
                     selectedIndices.add(index);
-                    mainPreview.src = url; // 點擊的同時也預覽它
+                    mainPreview.src = url;
+                    mainPreview.style.display = 'block';
                 }
             } else {
-                // 單選模式：只換預覽圖
                 mainPreview.src = url;
+                mainPreview.style.display = 'block';
                 selectedIndices.clear(); 
             }
-            renderGallery();
+            renderGalleryPhotos();
         }
 
-        // --- 3. Share 存檔邏輯 (不跳出選項，直接存) ---
+        // --- 4. Share 存檔邏輯 (多選功能確認點 5) ---
         nextBtn.addEventListener('click', async () => {
             let imagesToSave = [];
 
             if (selectedIndices.size > 0) {
-                // 有多選：依序存入
                 selectedIndices.forEach(idx => imagesToSave.push(galleryImages[idx]));
-            } else if (mainPreview.src && mainPreview.src !== window.location.href) {
-                // 沒多選：存當前預覽的那張
+            } else if (mainPreview.src && mainPreview.style.display !== 'none') {
                 imagesToSave.push(mainPreview.src);
             }
 
             if(imagesToSave.length === 0) {
-                // 如果真的完全沒照片，就提示一下
                 alert("Please select a photo first!");
-                // 自動觸發選圖
-                document.getElementById('hiddenFileInput').click();
+                // 如果沒照片，自動觸發選圖
+                if(galleryImages.length === 0) document.getElementById('hiddenFileInput').click();
                 return;
             }
 
@@ -374,21 +400,16 @@
             if (!memories[dateKey]) memories[dateKey] = [];
             if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
 
-            // 批次轉換 Blob URL -> Base64
             for (let url of imagesToSave) {
                 try {
                     const base64 = await urlToBase64(url);
                     memories[dateKey].push(base64);
-                } catch (e) {
-                    console.error("Image error:", e);
-                }
+                } catch (e) { console.error(e); }
             }
 
             try {
                 await saveAllMemories(memories);
                 channel.postMessage('updated');
-                
-                // ★★★ 關鍵：直接跳轉回首頁，不廢話 ★★★
                 window.location.href = "home.html"; 
             } catch (err) {
                 alert("Storage full.");
@@ -397,15 +418,13 @@
             }
         });
 
-        // 輔助函式：轉 Base64 + 壓縮 (避免 IndexedDB 爆掉)
         function urlToBase64(url) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.crossOrigin = 'Anonymous';
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    let w = img.width;
-                    let h = img.height;
+                    let w = img.width, h = img.height;
                     const max = 1024;
                     if(w > max) { h*=max/w; w=max; }
                     canvas.width = w; canvas.height = h;
