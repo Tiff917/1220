@@ -5,107 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Profile</title>
     <style>
-        /* --- 全局設定 --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            background-color: #F3ECE5; 
-            height: 100vh; 
-            display: flex; flex-direction: column;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #F3ECE5; height: 100vh; display: flex; flex-direction: column; }
 
-        /* --- Header --- */
-        .header {
-            flex-shrink: 0; height: 50px; padding: 0 20px; margin-top: 40px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        /* Header */
+        .header { flex-shrink: 0; height: 50px; padding: 0 20px; margin-top: 40px; display: flex; justify-content: space-between; align-items: center; }
         .back-btn { text-decoration: none; color: #6D5D50; font-weight: 600; font-size: 16px; }
         .header-title { font-weight: 700; color: #6D5D50; font-size: 18px; }
-        .dummy-btn { width: 30px; } /* 佔位用 */
+        .dummy { width: 30px; }
 
-        /* --- 個人資訊區 --- */
-        .profile-section {
-            display: flex; flex-direction: column; align-items: center;
-            padding: 30px 20px;
-        }
-
-        .avatar {
-            width: 90px; height: 90px; border-radius: 50%;
-            background-color: #9C7C66; /* 預設大頭貼顏色 */
-            margin-bottom: 15px;
-            border: 4px solid #fff;
-            box-shadow: 0 5px 15px rgba(156, 124, 102, 0.2);
-        }
-
+        /* Info */
+        .profile-section { display: flex; flex-direction: column; align-items: center; padding: 30px 20px; }
+        .avatar { width: 90px; height: 90px; border-radius: 50%; background-color: #9C7C66; margin-bottom: 15px; border: 4px solid #fff; box-shadow: 0 5px 15px rgba(156, 124, 102, 0.2); }
         .username { font-size: 20px; font-weight: 700; color: #6D5D50; margin-bottom: 5px; }
         .bio { font-size: 14px; color: #998A7D; text-align: center; max-width: 250px; line-height: 1.4; }
 
-        /* --- 數據列 (裝飾用) --- */
-        .stats-row {
-            display: flex; justify-content: center; gap: 40px; margin: 20px 0 30px 0; width: 100%;
-        }
+        /* Stats */
+        .stats-row { display: flex; justify-content: center; gap: 40px; margin: 20px 0 30px 0; width: 100%; }
         .stat-item { text-align: center; }
         .stat-num { font-weight: 700; font-size: 18px; color: #6D5D50; display: block; }
         .stat-label { font-size: 12px; color: #998A7D; }
 
-        /* --- 選項清單 (核心修改) --- */
-        .menu-list {
-            width: 100%; padding: 0 20px;
-            display: flex; flex-direction: column; gap: 12px;
-        }
-
+        /* Menu List (清單) */
+        .menu-list { width: 100%; padding: 0 20px; display: flex; flex-direction: column; gap: 12px; }
+        
         .menu-item {
-            background-color: #fff;
-            padding: 16px 20px;
-            border-radius: 16px;
+            background-color: #fff; padding: 16px 20px; border-radius: 16px;
             display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-            transition: transform 0.1s, box-shadow 0.1s;
-            text-decoration: none; color: inherit; /* 給 a 標籤用 */
+            cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: transform 0.1s;
         }
-
         .menu-item:active { transform: scale(0.98); }
 
         .item-left { display: flex; align-items: center; gap: 12px; }
         .item-icon { width: 20px; height: 20px; stroke: #9C7C66; }
         .item-text { font-size: 15px; font-weight: 600; color: #6D5D50; }
-
-        /* --- 訂閱按鈕專屬樣式 --- */
-        #subscriptionRow {
-            border: 1px solid transparent;
-        }
-        
-        /* 鈴鐺圖示 */
-        .bell-icon {
-            width: 24px; height: 24px;
-            fill: #e0e0e0; /* 未訂閱：灰色 */
-            stroke: none;
-            transition: fill 0.3s ease;
-        }
-
-        /* 訂閱後的狀態 */
-        .menu-item.is-premium {
-            border: 1px solid rgba(211, 47, 47, 0.1);
-            background-color: #fff5f5; /* 淡淡的粉紅底 */
-        }
-        
-        .menu-item.is-premium .bell-icon {
-            fill: #d32f2f; /* 已訂閱：紅色 */
-            animation: ding 0.5s ease;
-        }
-        
-        .menu-item.is-premium .item-text {
-            color: #d32f2f;
-        }
-
         .arrow-icon { width: 16px; height: 16px; stroke: #ccc; }
 
+        /* 訂閱欄位樣式 */
+        #subscriptionRow { border: 1px solid transparent; }
+        
+        .bell-icon { width: 24px; height: 24px; fill: #e0e0e0; transition: fill 0.3s ease; }
+
+        /* 付費後的樣式 */
+        .menu-item.is-premium { border: 1px solid rgba(211, 47, 47, 0.1); background-color: #fff5f5; }
+        .menu-item.is-premium .bell-icon { fill: #d32f2f; animation: ding 0.5s ease; }
+        .menu-item.is-premium .item-text { color: #d32f2f; }
+
         @keyframes ding { 0%{transform:rotate(0)} 20%{transform:rotate(15deg)} 40%{transform:rotate(-10deg)} 60%{transform:rotate(5deg)} 80%{transform:rotate(-5deg)} 100%{transform:rotate(0)} }
-
-        /* 測試按鈕 */
-        .debug-btn { margin-top: 40px; align-self: center; border: none; background: none; color: #ccc; font-size: 12px; }
-
+        
+        .debug-btn { margin-top: 30px; align-self: center; border: none; background: none; color: #ccc; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -113,7 +62,7 @@
     <div class="header">
         <a href="home.html" class="back-btn">Back</a>
         <div class="header-title">Profile</div>
-        <div class="dummy-btn"></div>
+        <div class="dummy"></div>
     </div>
 
     <div class="profile-section">
@@ -142,7 +91,6 @@
                 <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                 <span class="item-text" id="subText">Premium Subscription</span>
             </div>
-            
             <svg class="bell-icon" id="bellIcon" viewBox="0 0 24 24">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
@@ -158,47 +106,35 @@
         </div>
     </div>
 
-    <button class="debug-btn" onclick="resetMember()">[Debug: Reset Membership]</button>
+    <button class="debug-btn" onclick="resetMember()">[Reset Membership]</button>
 
     <script>
         const row = document.getElementById('subscriptionRow');
         const text = document.getElementById('subText');
 
-        // 1. 檢查狀態
         function checkStatus() {
             const isPremium = localStorage.getItem('isPremium');
-            
             if (isPremium === 'true') {
-                // 已付費：套用紅色樣式
                 row.classList.add('is-premium');
                 text.textContent = "Premium Active";
             } else {
-                // 未付費：保持原樣
                 row.classList.remove('is-premium');
                 text.textContent = "Subscribe Premium";
             }
         }
 
-        // 2. 點擊邏輯
         function handleSubscription() {
             const isPremium = localStorage.getItem('isPremium');
-            
-            if (isPremium === 'true') {
-                // 如果已經是會員，可能顯示管理訂閱，或什麼都不做
-                // alert("You are already a VIP!");
-            } else {
-                // 還不是會員 -> 去付款
+            if (isPremium !== 'true') {
                 window.location.href = "payment.html";
             }
         }
 
-        // 測試用：重置
         function resetMember() {
             localStorage.removeItem('isPremium');
             location.reload();
         }
 
-        // 初始化
         checkStatus();
     </script>
 </body>
