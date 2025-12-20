@@ -3,64 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Edit Photo</title>
+    <title>New Post</title>
     <style>
+        /* --- 全局設定 (莫蘭迪色系) --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #F3ECE5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-        .header { flex-shrink: 0; padding: 50px 20px 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #F3ECE5; z-index: 10; }
-        .cancel-btn { font-size: 16px; color: #8C7B6D; text-decoration: none; font-weight: 500; }
-        .title { font-size: 18px; font-weight: 700; color: #6D5D50; }
-        .share-btn { font-size: 16px; font-weight: 700; color: #fff; background-color: #9C7C66; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
-        .share-btn:active { opacity: 0.8; transform: scale(0.95); }
-
-        .editor-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; overflow: hidden; position: relative; background-color: #F3ECE5; }
-        canvas { max-width: 100%; max-height: 100%; box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2); border-radius: 8px; display: none; }
-
-        .upload-placeholder { text-align: center; color: #8C7B6D; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .upload-icon { font-size: 48px; opacity: 0.5; }
-        .upload-btn { padding: 12px 24px; background: #9C7C66; color: white; border-radius: 25px; font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(156, 124, 102, 0.3); transition: transform 0.1s; }
-        .upload-btn:active { transform: scale(0.95); }
-
-        /* 新增：重選按鈕 (Re-select) */
-        .reselect-btn {
-            position: absolute; bottom: 20px; right: 20px;
-            width: 44px; height: 44px; border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            display: none; /* 預設隱藏 */
-            justify-content: center; align-items: center;
-            cursor: pointer; z-index: 20; color: #666;
+        
+        body { 
+            background-color: #F3ECE5; /* 米膚色背景 */
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
         }
-        .reselect-btn:active { background-color: #ddd; }
+
+        /* --- 頂部導航 --- */
+        .header {
+            flex-shrink: 0; height: 50px; padding: 0 16px; margin-top: 40px; /* 避開瀏海 */
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: #F3ECE5; 
+            z-index: 10;
+        }
+
+        .header-btn { font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; background: none; }
+        
+        .cancel-btn { color: #6D5D55; /* 深棕色 */ }
+        .title { font-size: 18px; font-weight: 700; color: #6D5D50; }
+        
+        .next-btn { 
+            color: #9C7C66; /* 暖棕色 (取代 IG 藍) */
+            font-weight: 700;
+        }
+        .next-btn:disabled { color: #D6CCC2; }
+
+        /* --- 預覽區域 (上半部) --- */
+        .preview-container {
+            width: 100%;
+            aspect-ratio: 1 / 1; /* 正方形 */
+            background-color: #E3D5CA; /* 稍微深一點的底色 */
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        #mainPreview {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: opacity 0.2s;
+            display: none; /* 預設隱藏，有圖才顯示 */
+        }
+
+        /* --- 浮動功能列 --- */
+        .overlay-bar {
+            position: absolute; bottom: 12px; left: 12px; right: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 5;
+        }
+
+        .left-actions { display: flex; gap: 8px; }
+
+        /* 半透明膠囊按鈕 */
+        .overlay-btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border-radius: 20px;
+            height: 32px;
+            padding: 0 12px;
+            border: none;
+            display: flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 600;
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .circle-icon-btn {
+            width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 50%;
+        }
+
+        /* 啟用狀態 (Active) - 改用暖棕色呼應主題 */
+        .overlay-btn.active {
+            background: #9C7C66; 
+            color: white;
+        }
+        
+        .overlay-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+        /* --- 下方相簿網格 (Gallery) --- */
+        .gallery-scroll {
+            flex: 1; overflow-y: auto; background: #F3ECE5;
+        }
+
+        /* 模擬打開相簿按鈕 */
+        .open-gallery-btn {
+            background: #E3D5CA;
+            color: #6D5D55;
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .open-gallery-btn:active { background: #d0c0b4; }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4欄 */
+            gap: 2px;
+            padding: 2px 0;
+        }
+
+        .gallery-item {
+            aspect-ratio: 1 / 1;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            background-color: #E3D5CA;
+        }
+
+        .gallery-item img {
+            width: 100%; height: 100%; object-fit: cover;
+            display: block;
+            transition: opacity 0.2s;
+        }
+
+        /* 選取時的遮罩 */
+        .gallery-item.selected img {
+            opacity: 0.5; 
+        }
+        
+        /* 編號圈圈 */
+        .selection-badge {
+            position: absolute; top: 6px; right: 6px;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.8);
+            background: rgba(0,0,0,0.2);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 11px; font-weight: 700; color: white;
+            z-index: 2;
+            transition: transform 0.1s;
+        }
+
+        /* 選中時的圈圈顏色 - 暖棕色 */
+        .gallery-item.selected .selection-badge {
+            background: #9C7C66;
+            border-color: #9C7C66;
+            transform: scale(1.1);
+        }
+        
+        #hiddenFileInput { display: none; }
+        
     </style>
 </head>
 <body>
 
     <div class="header">
-        <a href="home.html" class="cancel-btn">Cancel</a>
+        <a href="home.html" class="header-btn cancel-btn">Cancel</a>
         <div class="title">New Post</div>
-        <button class="share-btn" id="shareBtn">Share</button>
+        <button class="header-btn next-btn" id="nextBtn">Share</button>
     </div>
 
-    <div class="editor-container">
-        <div class="upload-placeholder" id="placeholder">
-            <div class="upload-icon">📷</div>
-            <p>Select a photo</p>
-            <label class="upload-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> Open Gallery
-                <input type="file" id="imageLoader" accept="image/*" style="display: none;">
-            </label>
-        </div>
-        
-        <canvas id="imageCanvas"></canvas>
+    <div class="preview-container">
+        <img id="mainPreview" src="" alt="">
 
-        <div class="reselect-btn" id="reselectBtn" onclick="resetSelection()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        <div class="overlay-bar">
+            <div class="left-actions">
+                <button class="overlay-btn circle-icon-btn">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
+                </button>
+            </div>
+
+            <button class="overlay-btn" id="multiSelectBtn" onclick="toggleMultiSelect()">
+                <svg style="margin-right:4px;" viewBox="0 0 24 24"><path d="M21 17h-2v2h-2v-2h-2v-2h2v-2h2v2h2v2zm-4-6V7H5v10h12v-2h2v4H3V5h16v6h-2z"></path></svg>
+                SELECT MULTIPLE
+            </button>
         </div>
     </div>
+
+    <div class="gallery-scroll">
+        <div class="open-gallery-btn" onclick="document.getElementById('hiddenFileInput').click()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
+            Open Phone Gallery
+        </div>
+
+        <div class="gallery-grid" id="galleryGrid">
+            </div>
+    </div>
+
+    <input type="file" id="hiddenFileInput" accept="image/*" multiple>
 
     <script>
+        // --- 1. IndexedDB 設定 ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
@@ -99,69 +232,144 @@
             });
         }
 
-        // --- 介面邏輯 ---
-        const imageLoader = document.getElementById('imageLoader');
-        const canvas = document.getElementById('imageCanvas');
-        const ctx = canvas.getContext('2d');
-        const placeholder = document.getElementById('placeholder');
-        const reselectBtn = document.getElementById('reselectBtn');
-        let currentImgObj = null; 
+        // --- 2. 邏輯處理 ---
+        
+        let galleryImages = []; // 存所有載入的圖片 (Blob URL)
+        let selectedIndices = new Set(); // 存被選中的 index (為了保持順序，我們用 Set，轉 Array 時順序會保留)
+        let isMultiSelect = false;
 
-        // 載入圖片
-        imageLoader.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if(!file) return;
+        const mainPreview = document.getElementById('mainPreview');
+        const galleryGrid = document.getElementById('galleryGrid');
+        const multiSelectBtn = document.getElementById('multiSelectBtn');
+        const fileInput = document.getElementById('hiddenFileInput');
+        const nextBtn = document.getElementById('nextBtn');
 
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const img = new Image();
-                img.onload = function() {
-                    currentImgObj = img;
-                    let maxWidth = 1024; 
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
+        // --- 檔案上傳 ---
+        fileInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            if(files.length === 0) return;
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    // UI 切換
-                    placeholder.style.display = 'none';
-                    canvas.style.display = 'block';
-                    reselectBtn.style.display = 'flex'; // 顯示重選按鈕
+            // 將新檔案加入 galleryImages 最前面
+            files.reverse().forEach(file => {
+                const blobUrl = URL.createObjectURL(file);
+                galleryImages.unshift(blobUrl);
+            });
 
-                    ctx.drawImage(currentImgObj, 0, 0, canvas.width, canvas.height);
+            // 重新渲染 Grid
+            renderGallery();
+            
+            // 預設選中最新的一張
+            if (galleryImages.length > 0) {
+                // 如果之前沒選或是單選模式，切換到最新的
+                if (!isMultiSelect) {
+                    selectedIndices.clear();
+                    mainPreview.src = galleryImages[0];
+                    mainPreview.style.display = 'block';
                 }
-                img.src = event.target.result;
             }
-            reader.readAsDataURL(file);
         });
 
-        // 重選邏輯
-        function resetSelection() {
-            currentImgObj = null;
-            imageLoader.value = ""; // 清空 input 才能重複選同一張
-            canvas.style.display = 'none';
-            reselectBtn.style.display = 'none';
-            placeholder.style.display = 'flex';
+        // --- 渲染相簿網格 ---
+        function renderGallery() {
+            galleryGrid.innerHTML = "";
+            
+            // 將 Set 轉為 Array 以便查找 index (1, 2, 3...)
+            const selectedArray = Array.from(selectedIndices);
+
+            galleryImages.forEach((url, index) => {
+                const item = document.createElement('div');
+                const isSelected = selectedIndices.has(index);
+                item.className = `gallery-item ${isSelected ? 'selected' : ''}`;
+                
+                const img = document.createElement('img');
+                img.src = url;
+                
+                // 編號 Badge
+                const badge = document.createElement('div');
+                badge.className = 'selection-badge';
+                
+                // 如果是多選模式，且被選中，顯示數字
+                if (isMultiSelect && isSelected) {
+                    const order = selectedArray.indexOf(index) + 1;
+                    badge.textContent = order;
+                    badge.style.display = 'flex';
+                } else {
+                    // 非多選模式，或沒選中，隱藏數字
+                    badge.style.display = 'none';
+                }
+                
+                item.onclick = () => handleItemClick(index);
+
+                item.appendChild(img);
+                item.appendChild(badge);
+                galleryGrid.appendChild(item);
+            });
         }
 
-        // Share 邏輯
-        const shareBtn = document.getElementById('shareBtn');
-        shareBtn.addEventListener('click', async () => {
-            if (!currentImgObj) {
-                document.querySelector('.upload-btn').click();
+        // --- 切換多選模式 ---
+        function toggleMultiSelect() {
+            isMultiSelect = !isMultiSelect;
+            
+            if (isMultiSelect) {
+                multiSelectBtn.classList.add('active');
+                // 進入多選時，如果目前沒選任何東西，把當前預覽的那張選起來
+                if (selectedIndices.size === 0 && galleryImages.length > 0) {
+                    const currentSrc = mainPreview.src;
+                    const idx = galleryImages.indexOf(currentSrc);
+                    if(idx !== -1) selectedIndices.add(idx);
+                }
+            } else {
+                multiSelectBtn.classList.remove('active');
+                // 離開多選時，清空選取，只留最後一張在預覽
+                selectedIndices.clear();
+            }
+            renderGallery();
+        }
+
+        // --- 點擊格子邏輯 ---
+        function handleItemClick(index) {
+            const url = galleryImages[index];
+
+            if (isMultiSelect) {
+                // 多選模式：切換勾選狀態
+                if (selectedIndices.has(index)) {
+                    selectedIndices.delete(index);
+                } else {
+                    selectedIndices.add(index);
+                    mainPreview.src = url; // 點擊的同時也預覽它
+                }
+            } else {
+                // 單選模式：只換預覽圖，不記錄 selection (視覺上)
+                mainPreview.src = url;
+                // 但為了 Share 邏輯方便，我們還是要在背景記錄這是「唯一」選中的
+                selectedIndices.clear();
+                selectedIndices.add(index); // 雖然不顯示圈圈，但邏輯上選中了它
+            }
+            renderGallery();
+        }
+
+        // --- 3. Share 存檔邏輯 (支援壓縮) ---
+        nextBtn.addEventListener('click', async () => {
+            // 找出要存的圖
+            let imagesToSave = [];
+
+            if (selectedIndices.size > 0) {
+                // 有選取：依照選取順序存
+                selectedIndices.forEach(idx => {
+                    imagesToSave.push(galleryImages[idx]);
+                });
+            } else if (mainPreview.src && mainPreview.src !== window.location.href) {
+                // 沒開多選，但有預覽圖：存這一張
+                imagesToSave.push(mainPreview.src);
+            }
+
+            if(imagesToSave.length === 0) {
+                alert("Please select a photo first!");
                 return;
             }
 
-            shareBtn.textContent = "Saving...";
-            shareBtn.style.opacity = "0.7";
-            
-            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            nextBtn.textContent = "Sharing...";
+            nextBtn.style.opacity = "0.5";
 
             if (!db) await initDB();
             let memories = await getAllMemories();
@@ -172,21 +380,58 @@
             if (!memories[dateKey]) memories[dateKey] = [];
             if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
 
-            memories[dateKey].push(imageData);
+            // 批次處理轉換與儲存
+            for (let url of imagesToSave) {
+                try {
+                    const base64 = await urlToBase64(url);
+                    memories[dateKey].push(base64);
+                } catch (e) {
+                    console.error("Conversion error", e);
+                }
+            }
 
             try {
                 await saveAllMemories(memories);
                 channel.postMessage('updated');
-                alert("Shared to Memories!");
                 window.location.href = "home.html";
             } catch (err) {
                 console.error(err);
-                alert("Save failed.");
-                shareBtn.textContent = "Share";
-                shareBtn.style.opacity = "1";
+                alert("Storage full.");
+                nextBtn.textContent = "Share";
+                nextBtn.style.opacity = "1";
             }
         });
 
+        // 輔助：轉 Base64 + 壓縮
+        function urlToBase64(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width;
+                    let h = img.height;
+                    // 壓縮尺寸
+                    const max = 1024;
+                    if(w > max) { h*=max/w; w=max; }
+                    
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    // 壓縮品質 0.8
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                };
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
+        initDB();
+
+    </script>
+</body>
+</html>
         initDB();
     </script>
 </body>
