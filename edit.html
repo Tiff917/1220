@@ -5,29 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>New Post</title>
     <style>
-        /* --- 全局設定 --- */
+        /* --- 全局設定 (莫蘭迪色系) --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        body { 
+            background-color: #F3ECE5; /* 米膚色背景 */
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
 
         /* --- 頂部導航 --- */
         .header {
             flex-shrink: 0; height: 50px; padding: 0 16px; margin-top: 40px; /* 避開瀏海 */
             display: flex; justify-content: space-between; align-items: center;
-            background-color: #fff; 
+            background-color: #F3ECE5; 
             z-index: 10;
         }
 
-        .header-btn { font-size: 17px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; background: none; }
-        .cancel-btn { color: #000; }
-        .title { font-size: 17px; font-weight: 700; color: #000; }
-        .next-btn { color: #0095f6; } /* IG 藍 */
-        .next-btn:disabled { color: #b3dbff; }
+        .header-btn { font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; background: none; }
+        
+        .cancel-btn { color: #6D5D55; /* 深棕色 */ }
+        .title { font-size: 18px; font-weight: 700; color: #6D5D50; }
+        
+        .next-btn { 
+            color: #9C7C66; /* 暖棕色 (取代 IG 藍) */
+            font-weight: 700;
+        }
+        .next-btn:disabled { color: #D6CCC2; }
 
-        /* --- 預覽區域 (上半部) --- */
+        /* --- 預覽區域 (上半部 1:1) --- */
         .preview-container {
             width: 100%;
-            aspect-ratio: 1 / 1; /* 正方形預覽 */
-            background-color: #f0f0f0;
+            aspect-ratio: 1 / 1; /* 強制正方形 */
+            background-color: #E3D5CA;
             position: relative;
             overflow: hidden;
             flex-shrink: 0;
@@ -36,17 +48,19 @@
         #mainPreview {
             width: 100%; height: 100%; object-fit: cover;
             transition: opacity 0.2s;
+            display: block;
         }
 
-        /* --- 浮動功能列 (Tag, Location, Multiple) --- */
+        /* --- 浮動功能列 (Overlay) --- */
         .overlay-bar {
             position: absolute; bottom: 12px; left: 12px; right: 12px;
             display: flex; justify-content: space-between; align-items: center;
+            z-index: 5;
         }
 
         .left-actions { display: flex; gap: 8px; }
 
-        /* 圓形按鈕樣式 */
+        /* 半透明膠囊按鈕 */
         .overlay-btn {
             background: rgba(0, 0, 0, 0.6);
             color: white;
@@ -55,32 +69,48 @@
             padding: 0 12px;
             border: none;
             display: flex; align-items: center; gap: 6px;
-            font-size: 13px; font-weight: 600;
-            backdrop-filter: blur(4px);
+            font-size: 12px; font-weight: 600;
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
             cursor: pointer;
+            transition: background 0.2s;
         }
         
         .circle-icon-btn {
             width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 50%;
         }
 
+        /* 啟用狀態 (Active) - 暖棕色 */
         .overlay-btn.active {
-            background: #0095f6; /* 啟用時變藍色 */
+            background: #9C7C66; 
             color: white;
         }
         
-        .overlay-btn svg { width: 16px; height: 16px; fill: currentColor; }
+        .overlay-btn svg { width: 14px; height: 14px; fill: currentColor; }
 
         /* --- 下方相簿網格 (Gallery) --- */
         .gallery-scroll {
-            flex: 1; overflow-y: auto; background: #fff;
+            flex: 1; overflow-y: auto; background: #F3ECE5;
         }
 
+        /* 模擬打開相簿按鈕 */
+        .open-gallery-btn {
+            background: #E3D5CA;
+            color: #6D5D55;
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .open-gallery-btn:active { background: #d0c0b4; }
+
+        /* 4欄緊密網格 */
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4欄 */
+            grid-template-columns: repeat(4, 1fr); 
             gap: 2px;
-            padding-top: 2px;
+            padding: 2px 0;
         }
 
         .gallery-item {
@@ -88,6 +118,7 @@
             position: relative;
             cursor: pointer;
             overflow: hidden;
+            background-color: #E3D5CA;
         }
 
         .gallery-item img {
@@ -96,43 +127,39 @@
             transition: opacity 0.2s;
         }
 
-        /* 選取時的遮罩與樣式 */
+        /* 選取時變暗 */
         .gallery-item.selected img {
-            opacity: 0.4; /* 被選中時變暗 */
+            opacity: 0.5; 
         }
         
-        /* 選取時的編號圈圈 */
+        /* 編號圈圈 */
         .selection-badge {
-            position: absolute; top: 8px; right: 8px;
-            width: 22px; height: 22px;
+            position: absolute; top: 6px; right: 6px;
+            width: 20px; height: 20px;
             border-radius: 50%;
             border: 1px solid rgba(255,255,255,0.8);
-            background: rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.2);
             display: flex; justify-content: center; align-items: center;
-            font-size: 12px; font-weight: 600; color: white;
+            font-size: 11px; font-weight: 700; color: white;
             z-index: 2;
+            transition: transform 0.1s;
         }
 
+        /* 選中時的圈圈顏色 - 暖棕色 */
         .gallery-item.selected .selection-badge {
-            background: #0095f6;
-            border-color: #0095f6;
+            background: #9C7C66;
+            border-color: #9C7C66;
+            transform: scale(1.1);
         }
         
-        /* 隱藏原生檔案輸入 */
         #hiddenFileInput { display: none; }
         
-        /* 載入更多按鈕 (模擬相簿) */
-        .load-more-placeholder {
-            grid-column: 1 / -1;
-            padding: 20px; text-align: center; color: #999; font-size: 14px;
-        }
-
     </style>
 </head>
 <body>
 
     <div class="header">
-        <a href="home.html" class="header-btn cancel-btn">Back</a>
+        <a href="home.html" class="header-btn cancel-btn">Cancel</a>
         <div class="title">New Post</div>
         <button class="header-btn next-btn" id="nextBtn">Share</button>
     </div>
@@ -158,17 +185,16 @@
     </div>
 
     <div class="gallery-scroll">
-        <input type="file" id="hiddenFileInput" accept="image/*" multiple>
-        
-        <div style="padding: 2px;">
-            <div onclick="document.getElementById('hiddenFileInput').click()" style="background:#efefef; padding:10px; text-align:center; font-weight:600; color:#666; cursor:pointer;">
-                + Open Phone Gallery
-            </div>
+        <div class="open-gallery-btn" onclick="document.getElementById('hiddenFileInput').click()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
+            Open Phone Gallery
         </div>
 
         <div class="gallery-grid" id="galleryGrid">
             </div>
     </div>
+
+    <input type="file" id="hiddenFileInput" accept="image/*" multiple>
 
     <script>
         // --- 1. IndexedDB 設定 ---
@@ -210,19 +236,10 @@
             });
         }
 
-        // --- 2. 應用程式邏輯 ---
+        // --- 2. 邏輯處理 ---
         
-        // 模擬一些預設照片 (為了讓介面看起來像相簿，你可以刪除這些 URL)
-        let galleryImages = [
-            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
-            "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300",
-            "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=300",
-            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=300",
-            "https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=300",
-        ];
-
-        let selectedIndices = new Set(); // 存被選中的照片索引 (針對 galleryImages)
-        let uploadedFiles = []; // 存使用者真正上傳的 File 物件
+        let galleryImages = []; // 存所有載入的圖片
+        let selectedIndices = new Set(); // 存被選中的 index
         let isMultiSelect = false;
 
         const mainPreview = document.getElementById('mainPreview');
@@ -231,54 +248,53 @@
         const fileInput = document.getElementById('hiddenFileInput');
         const nextBtn = document.getElementById('nextBtn');
 
-        // 初始化：預設顯示第一張
-        mainPreview.src = galleryImages[0];
-        renderGallery();
-
-        // --- 處理真實檔案上傳 (合併到相簿清單) ---
+        // --- 檔案上傳 ---
         fileInput.addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
             if(files.length === 0) return;
 
-            // 將新上傳的檔案轉為 Blob URL 並加入 galleryImages 最前面
             files.reverse().forEach(file => {
                 const blobUrl = URL.createObjectURL(file);
-                // 加到陣列最前面
                 galleryImages.unshift(blobUrl);
-                // 也要儲存原始 File 物件以便後續壓縮處理 (這裡為了簡化，我們用 URL 處理)
             });
 
-            // 重新渲染並選中第一張
             renderGallery();
-            selectImage(0); 
+            
+            // 預設選中最新的一張 (如果是剛進來或單選模式)
+            if (galleryImages.length > 0 && !isMultiSelect) {
+                selectedIndices.clear();
+                mainPreview.src = galleryImages[0];
+            }
         });
 
         // --- 渲染相簿網格 ---
         function renderGallery() {
             galleryGrid.innerHTML = "";
             
+            // 將 Set 轉為 Array 以便查找 index (1, 2, 3...)
+            const selectedArray = Array.from(selectedIndices);
+
             galleryImages.forEach((url, index) => {
                 const item = document.createElement('div');
-                item.className = `gallery-item ${selectedIndices.has(index) ? 'selected' : ''}`;
+                const isSelected = selectedIndices.has(index);
+                item.className = `gallery-item ${isSelected ? 'selected' : ''}`;
                 
-                // 圖片
                 const img = document.createElement('img');
                 img.src = url;
                 
-                // 選取狀態 (如果多選模式，顯示數字；單選模式不顯示)
+                // 編號 Badge
                 const badge = document.createElement('div');
                 badge.className = 'selection-badge';
                 
-                // 計算這是第幾個被選中的
-                if (selectedIndices.has(index)) {
-                    const order = Array.from(selectedIndices).indexOf(index) + 1;
+                // 如果是多選模式，且被選中，顯示數字
+                if (isMultiSelect && isSelected) {
+                    const order = selectedArray.indexOf(index) + 1;
                     badge.textContent = order;
                     badge.style.display = 'flex';
                 } else {
                     badge.style.display = 'none';
                 }
                 
-                // 點擊事件
                 item.onclick = () => handleItemClick(index);
 
                 item.appendChild(img);
@@ -293,83 +309,62 @@
             
             if (isMultiSelect) {
                 multiSelectBtn.classList.add('active');
-                // 進入多選時，預設選中當前預覽的那張
-                // 找出當前預覽圖在陣列中的 index
-                const currentSrc = mainPreview.src;
-                const idx = galleryImages.indexOf(currentSrc);
-                if(idx !== -1 && selectedIndices.size === 0) {
-                    selectedIndices.add(idx);
+                // 進入多選時，如果沒選任何東西，把當前預覽的選起來
+                if (selectedIndices.size === 0 && galleryImages.length > 0) {
+                    const currentSrc = mainPreview.src;
+                    const idx = galleryImages.indexOf(currentSrc);
+                    if(idx !== -1) selectedIndices.add(idx);
                 }
             } else {
                 multiSelectBtn.classList.remove('active');
-                // 離開多選時，保留最後一張作為單選，清空 Set
-                const lastSelected = Array.from(selectedIndices).pop();
                 selectedIndices.clear();
-                if (lastSelected !== undefined) {
-                    // 保持預覽圖不變
-                }
             }
             renderGallery();
         }
 
-        // --- 點擊照片邏輯 ---
+        // --- 點擊格子邏輯 ---
         function handleItemClick(index) {
             const url = galleryImages[index];
 
             if (isMultiSelect) {
-                // 多選模式
+                // 多選模式：切換勾選狀態
                 if (selectedIndices.has(index)) {
                     selectedIndices.delete(index);
-                    // 如果取消選取的是當前預覽圖，則預覽圖切換到上一張選取的，或維持不變
                 } else {
                     selectedIndices.add(index);
-                    mainPreview.src = url; // 點擊的變成預覽圖
+                    mainPreview.src = url; // 點擊的同時也預覽它
                 }
-                renderGallery();
             } else {
-                // 單選模式
+                // 單選模式：只換預覽圖
                 mainPreview.src = url;
-                // 視覺上不做 selected class，因為單選模式通常只是換預覽
-                // 但為了邏輯一致，我們可以清空 Set 並加入這張
-                selectedIndices.clear();
-                selectedIndices.add(index);
-                // 重新渲染以移除其他人的勾勾
-                renderGallery(); 
-            }
-        }
-
-        function selectImage(index) {
-            mainPreview.src = galleryImages[index];
-            if(isMultiSelect) {
-                selectedIndices.add(index);
-            } else {
-                selectedIndices.clear();
-                selectedIndices.add(index);
+                selectedIndices.clear(); 
             }
             renderGallery();
         }
 
-        // --- 3. Share 存檔邏輯 (支援多張) ---
+        // --- 3. Share 存檔邏輯 (不跳出選項，直接存) ---
         nextBtn.addEventListener('click', async () => {
-            // 決定要存哪些圖
-            let finalImagesToSave = [];
+            let imagesToSave = [];
 
             if (selectedIndices.size > 0) {
-                // 如果有選取，依照選取順序存
-                selectedIndices.forEach(idx => {
-                    finalImagesToSave.push(galleryImages[idx]);
-                });
-            } else {
-                // 如果沒特別選 (且不在多選模式)，就存當前預覽的那張
-                finalImagesToSave.push(mainPreview.src);
+                // 有多選：依序存入
+                selectedIndices.forEach(idx => imagesToSave.push(galleryImages[idx]));
+            } else if (mainPreview.src && mainPreview.src !== window.location.href) {
+                // 沒多選：存當前預覽的那張
+                imagesToSave.push(mainPreview.src);
             }
 
-            if(finalImagesToSave.length === 0) return;
+            if(imagesToSave.length === 0) {
+                // 如果真的完全沒照片，就提示一下
+                alert("Please select a photo first!");
+                // 自動觸發選圖
+                document.getElementById('hiddenFileInput').click();
+                return;
+            }
 
-            nextBtn.textContent = "Sharing...";
+            nextBtn.textContent = "Posting...";
             nextBtn.style.opacity = "0.5";
 
-            // 初始化 DB
             if (!db) await initDB();
             let memories = await getAllMemories();
 
@@ -379,46 +374,41 @@
             if (!memories[dateKey]) memories[dateKey] = [];
             if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
 
-            // 處理圖片轉換 (URL -> Base64) 並儲存
-            // 注意：因為 galleryImages 可能是 blob URL 或外部 URL，我們需要轉成 base64 存 DB 比較保險
-            let processedCount = 0;
-            
-            for (let url of finalImagesToSave) {
+            // 批次轉換 Blob URL -> Base64
+            for (let url of imagesToSave) {
                 try {
                     const base64 = await urlToBase64(url);
                     memories[dateKey].push(base64);
                 } catch (e) {
-                    console.error("Image conversion failed", e);
+                    console.error("Image error:", e);
                 }
             }
 
             try {
                 await saveAllMemories(memories);
                 channel.postMessage('updated');
-                window.location.href = "home.html";
+                
+                // ★★★ 關鍵：直接跳轉回首頁，不廢話 ★★★
+                window.location.href = "home.html"; 
             } catch (err) {
-                console.error(err);
-                alert("Storage full or error.");
+                alert("Storage full.");
                 nextBtn.textContent = "Share";
                 nextBtn.style.opacity = "1";
             }
         });
 
-        // 輔助函式：將圖片 URL 轉 Base64 (以便存入 IndexedDB)
+        // 輔助函式：轉 Base64 + 壓縮 (避免 IndexedDB 爆掉)
         function urlToBase64(url) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.crossOrigin = 'Anonymous';
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    // 簡單壓縮
                     let w = img.width;
                     let h = img.height;
                     const max = 1024;
                     if(w > max) { h*=max/w; w=max; }
-                    
-                    canvas.width = w;
-                    canvas.height = h;
+                    canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, w, h);
                     resolve(canvas.toDataURL('image/jpeg', 0.8));
@@ -429,7 +419,6 @@
         }
 
         initDB();
-
     </script>
 </body>
 </html>
