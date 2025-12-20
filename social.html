@@ -336,6 +336,12 @@
 
 
     <script>
+        // 檢查是否為付費會員
+        if (localStorage.getItem('isPremium') !== 'true') {
+            alert("此功能僅限訂閱會員使用，將跳轉至個人頁面進行訂閱。");
+            window.location.href = "profile.html"; // 踢回個人頁面
+        }
+        
         // 1. 愛心點擊切換
         function toggleHeart(el) {
             el.classList.toggle('heart-filled');
