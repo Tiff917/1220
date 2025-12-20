@@ -21,6 +21,7 @@
             color: #8C7B6D; /* 統一的深褐字體色 */
         }
 
+        
         /* ----- 頂部區域 (Top Bar) ----- */
         .header {
             padding: 40px 24px 10px 24px;
@@ -120,6 +121,37 @@
             border: none;
         }
 
+        /* --- 訂閱鈴鐺樣式 --- */
+        .subscribe-box {
+            display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 40px;
+        }
+        
+        .bell-btn {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background-color: #E0D5CC; /* 預設灰色 */
+            border: none;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .bell-btn svg { width: 30px; height: 30px; fill: #fff; stroke: #fff; }
+
+        /* 啟用狀態 (紅色) */
+        .bell-btn.active {
+            background-color: #d32f2f; /* 紅色 */
+            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
+            animation: ring 0.5s ease;
+        }
+
+        .status-text { font-size: 12px; color: #998A7D; font-weight: 600; }
+
+        /* 回首頁按鈕 */
+        .home-link { position: absolute; top: 20px; left: 20px; text-decoration: none; color: #6D5D50; font-weight: 600; }
+
+        @keyframes ring { 0%{transform:rotate(0)} 25%{transform:rotate(15deg)} 50%{transform:rotate(-15deg)} 75%{transform:rotate(5deg)} 100%{transform:rotate(0)} }
     </style>
 </head>
 <body>
@@ -142,10 +174,14 @@
             <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             My Profile
         </div>
-        <div class="menu-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            Subscription
+        <div class="subscribe-box">
+            <button class="bell-btn" id="bellBtn" onclick="handleSubscription()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </button>
+            <span class="status-text" id="statusText">Tap to Subscribe</span>
         </div>
+    
+        <button onclick="localStorage.removeItem('isPremium'); location.reload();" style="margin-top:50px; padding:10px; background:none; border:1px solid #ccc; color:#999; border-radius:5px;">Reset Membership (Debug)</button>
         <div class="menu-item">
             <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             Address
@@ -175,6 +211,42 @@
             // 使用 window.top 才能跳脫 iframe 的框架
             window.top.location.href = 'login.html'; 
         }
+
+        const bellBtn = document.getElementById('bellBtn');
+        const statusText = document.getElementById('statusText');
+
+        // 1. 頁面載入時檢查狀態
+        function checkStatus() {
+            const isPremium = localStorage.getItem('isPremium');
+            
+            if (isPremium === 'true') {
+                // 已付款：變紅
+                bellBtn.classList.add('active');
+                statusText.textContent = "Premium Member";
+                statusText.style.color = "#d32f2f";
+            } else {
+                // 未付款：預設
+                bellBtn.classList.remove('active');
+                statusText.textContent = "Tap to Subscribe";
+                statusText.style.color = "#998A7D";
+            }
+        }
+
+        // 2. 點擊鈴鐺邏輯
+        function handleSubscription() {
+            const isPremium = localStorage.getItem('isPremium');
+            
+            if (isPremium === 'true') {
+                // 已經是會員了，什麼都不做，或者跳提示
+                // alert("You are already a premium member!");
+            } else {
+                // 還不是會員，跳轉去付款頁面
+                window.location.href = "payment.html";
+            }
+        }
+
+        // 初始化
+        checkStatus();
     </script>
 </body>
 </html>
