@@ -47,6 +47,7 @@
 
     <div class="header">
         <a href="profile.html" style="text-decoration: none;"><div class="brown-btn avatar-placeholder"></div></a>
+        
         <div class="brown-btn search-pill">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         </div>
@@ -82,171 +83,102 @@
     <div id="loading-toast">Saving...</div>
 
     <script>
-        // --- 1. IndexedDB 與 廣播 ---
+        // --- DB & Image Loading ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
         let db;
 
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 1);
-                request.onupgradeneeded = (e) => {
-                    db = e.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
-                };
-                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-                request.onerror = (e) => reject(e);
-            });
-        }
+        function initDB() { return new Promise((resolve) => { const req = indexedDB.open(dbName, 1); req.onupgradeneeded = e => { db = e.target.result; if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName); }; req.onsuccess = e => { db = e.target.result; resolve(db); }; }); }
+        function getAllMemories() { return new Promise((resolve) => { if (!db) return resolve({}); const tx = db.transaction([storeName], "readonly"); const req = tx.objectStore(storeName).get("all_photos"); req.onsuccess = e => resolve(e.target.result || {}); req.onerror = () => resolve({}); }); }
+        function saveAllMemories(data) { return new Promise((resolve, reject) => { const tx = db.transaction([storeName], "readwrite"); const req = tx.objectStore(storeName).put(data, "all_photos"); req.onsuccess = resolve; req.onerror = reject; }); }
 
-        function getAllMemories() {
-            return new Promise((resolve) => {
-                if (!db) return resolve({});
-                const tx = db.transaction([storeName], "readonly");
-                const store = tx.objectStore(storeName);
-                const req = store.get("all_photos");
-                req.onsuccess = (e) => resolve(e.target.result || {});
-                req.onerror = () => resolve({});
-            });
-        }
-
-        function saveAllMemories(data) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([storeName], "readwrite");
-                const store = tx.objectStore(storeName);
-                const req = store.put(data, "all_photos");
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject();
-            });
-        }
-
-        async function loadLatestPhoto() {
-            if (!db) await initDB();
-            const memories = await getAllMemories();
-            const now = new Date();
-            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-            if (memories[dateKey] && memories[dateKey].length > 0) {
-                const photos = memories[dateKey];
-                document.getElementById('displayImg').src = photos[photos.length - 1];
-            }
-        }
+        async function loadLatestPhoto() { if (!db) await initDB(); const m = await getAllMemories(); const now = new Date(); const k = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`; if (m[k] && m[k].length > 0) document.getElementById('displayImg').src = m[k][m[k].length - 1]; }
         initDB().then(loadLatestPhoto);
 
-        // --- 2. 介面互動 ---
+        // --- UI Interactions ---
         const shutterBtn = document.querySelector('.shutter-btn');
         const overlay = document.getElementById('action-sheet-overlay');
         const mainImage = document.getElementById('displayImg');
         const toast = document.getElementById('loading-toast');
-        
         shutterBtn.addEventListener('click', (e) => { e.preventDefault(); overlay.classList.add('show'); });
         document.getElementById('btn_cancel').addEventListener('click', () => overlay.classList.remove('show'));
         overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('show'); });
-
         document.getElementById('btn_camera').addEventListener('click', () => { document.getElementById('input_camera').click(); overlay.classList.remove('show'); });
         document.getElementById('btn_gallery').addEventListener('click', () => { document.getElementById('input_gallery').click(); overlay.classList.remove('show'); });
 
-        // --- 3. 會員檢查邏輯 (核心) ---
+        // --- 會員檢查 (守門員) ---
         function checkPremiumAccess() {
             const isPremium = localStorage.getItem('isPremium');
-            
-            // 檢查是否為付費會員
             if (isPremium === 'true') {
-                // 是會員 -> 放行進入 Social
                 window.location.href = "social.html"; 
             } else {
-                // 不是會員 -> 擋住並詢問
                 if(confirm("Community is for Premium Members only.\nGo to Profile to subscribe?")) {
-                    window.location.href = "profile.html"; // 導引去訂閱
+                    window.location.href = "profile.html";
                 }
-                // 如果按取消，什麼事都不發生，留在原地
             }
         }
 
-        // --- 4. 滑動手勢 (Swipe) 邏輯 ---
+        // --- ★★★ 穩定版滑動手勢偵測 (修正失控) ★★★ ---
         let touchstartX = 0;
-        let touchendX = 0;
-        
+        let touchstartY = 0; // 增加 Y 軸偵測，防止上下滑動時誤觸
+
         document.addEventListener('touchstart', e => {
             touchstartX = e.changedTouches[0].screenX;
+            touchstartY = e.changedTouches[0].screenY;
         });
 
         document.addEventListener('touchend', e => {
-            touchendX = e.changedTouches[0].screenX;
-            handleGesture();
+            let touchendX = e.changedTouches[0].screenX;
+            let touchendY = e.changedTouches[0].screenY;
+            handleGesture(touchstartX, touchstartY, touchendX, touchendY);
         });
 
-        function handleGesture() {
-            const threshold = 50; // 滑動靈敏度
-            
-            // 手指由右向左滑 (Swipe Left) -> 意圖去右邊的頁面 (Social)
-            if (touchstartX - touchendX > threshold) {
-                // ★★★ 這裡加入檢查，不是會員就擋住 ★★★
+        function handleGesture(startX, startY, endX, endY) {
+            let xDiff = endX - startX;
+            let yDiff = endY - startY;
+
+            // 1. 防止失控：如果「垂直移動」大於「水平移動」，代表你在捲動，不要觸發換頁
+            if (Math.abs(yDiff) > Math.abs(xDiff)) {
+                return; 
+            }
+
+            // 2. 設定門檻：必須滑動超過 80px 才算數，輕觸不算
+            if (Math.abs(xDiff) < 80) {
+                return;
+            }
+
+            // 3. 判斷方向
+            if (xDiff > 0) {
+                // xDiff 為正 -> 手指由左往右滑 (→) -> 去左側的 Memories
+                window.location.href = 'memories.html';
+            } else {
+                // xDiff 為負 -> 手指由右往左滑 (←) -> 去右側的 Social (需檢查付費)
                 checkPremiumAccess();
             }
-            
-            // 手指由左向右滑 (Swipe Right) -> 意圖去左邊的頁面 (Memories)
-            if (touchendX - touchstartX > threshold) {
-                // 回憶頁面不需要付費，直接放行
-                window.location.href = 'memories.html';
-            }
         }
 
-        // --- 5. 檔案處理 ---
+        // --- File Handling ---
         async function handleFileSelect(e) {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-
-            toast.style.display = 'block';
-            if (!db) await initDB();
-            
-            let memories = await getAllMemories();
-            const now = new Date();
-            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-            
-            if (!memories[dateKey]) memories[dateKey] = [];
-            if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
-
-            let processedCount = 0;
-
+            const files = e.target.files; if (!files || files.length === 0) return;
+            toast.style.display = 'block'; if (!db) await initDB();
+            let m = await getAllMemories(); const now = new Date(); const k = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+            if (!m[k]) m[k] = []; if (!Array.isArray(m[k])) m[k] = [m[k]];
+            let count = 0;
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    compressImage(event.target.result, 1024, 0.8, async function(base64) {
-                        memories[dateKey].push(base64);
-                        mainImage.src = base64; 
-                        processedCount++;
-                        if (processedCount === files.length) {
-                            try {
-                                await saveAllMemories(memories);
-                                channel.postMessage('updated');
-                                toast.textContent = "Saved!";
-                                setTimeout(() => { toast.style.display = 'none'; toast.textContent = "Saving..."; }, 1500);
-                            } catch (err) {
-                                alert("Save failed.");
-                                toast.style.display = 'none';
-                            }
+                reader.onload = function(evt) {
+                    compressImage(evt.target.result, 1024, 0.8, async function(base64) {
+                        m[k].push(base64); mainImage.src = base64; count++;
+                        if (count === files.length) {
+                            try { await saveAllMemories(m); channel.postMessage('updated'); toast.textContent = "Saved!"; setTimeout(() => { toast.style.display = 'none'; toast.textContent = "Saving..."; }, 1500); } 
+                            catch (err) { alert("Save failed."); toast.style.display = 'none'; }
                         }
                     });
-                };
-                reader.readAsDataURL(file);
+                }; reader.readAsDataURL(file);
             });
         }
-
-        function compressImage(base64Str, maxWidth, quality, callback) {
-            const img = new Image();
-            img.src = base64Str;
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                let w = img.width, h = img.height;
-                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
-                canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                callback(canvas.toDataURL('image/jpeg', quality));
-            };
-        }
-
+        function compressImage(src, maxW, qual, cb) { const img = new Image(); img.src = src; img.onload = () => { const cvs = document.createElement('canvas'); let w = img.width, h = img.height; if (w > maxW) { h *= maxW / w; w = maxW; } cvs.width = w; cvs.height = h; const ctx = cvs.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); cb(cvs.toDataURL('image/jpeg', qual)); }; }
         document.getElementById('input_camera').addEventListener('change', handleFileSelect);
         document.getElementById('input_gallery').addEventListener('change', handleFileSelect);
     </script>
