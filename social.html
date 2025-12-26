@@ -347,8 +347,35 @@
                 }
             }
         }
-
+        // 修改後的壓縮函式：更積極地壓縮以提升速度
+        function compressImage(base64Str, maxWidth, quality, callback) {
+            const img = new Image();
+            img.src = base64Str;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                
+                // 把原本的 1024 改成 800 (縮小尺寸)
+                // 或者是 600 會更快
+                const targetWidth = 800; 
+        
+                if (w > targetWidth) { 
+                    h *= targetWidth / w; 
+                    w = targetWidth; 
+                }
+                
+                canvas.width = w; 
+                canvas.height = h;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                
+                // 把原本的 quality (通常是0.8) 改成 0.6 (降低檔案大小)
+                callback(canvas.toDataURL('image/jpeg', 0.6)); 
+            };
+        }
         renderFeed();
+        
     </script>
 </body>
 </html>
