@@ -5,110 +5,207 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Profile</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #F3ECE5; height: 100vh; display: flex; flex-direction: column; }
+        /* --- 全局設定 --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background-color: #F0EAE4; /* 調整為更接近圖片的米色 */
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative;
+        }
 
-        /* Header */
-        .header { flex-shrink: 0; height: 50px; padding: 0 20px; margin-top: 40px; display: flex; justify-content: space-between; align-items: center; }
-        .back-btn { text-decoration: none; color: #6D5D50; font-weight: 600; font-size: 16px; }
-        .header-title { font-weight: 700; color: #6D5D50; font-size: 18px; }
-        .dummy { width: 30px; }
+        /* --- Header (返回按鈕) --- */
+        .header { 
+            flex-shrink: 0; 
+            height: 60px; 
+            padding: 0 24px; 
+            display: flex; 
+            align-items: center; 
+            margin-top: 40px; /* 避開瀏海 */
+        }
+        
+        /* 圓形返回按鈕 */
+        .back-btn { 
+            width: 40px; 
+            height: 40px; 
+            background-color: #DZCFC2; /* 稍微深一點的米色 */
+            background-color: rgba(0,0,0,0.05);
+            border-radius: 50%;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            text-decoration: none; 
+            color: #8C7B6D; 
+            transition: background 0.2s;
+        }
+        .back-btn:active { background-color: rgba(0,0,0,0.1); }
+        .back-btn svg { width: 20px; height: 20px; stroke-width: 2.5; }
 
-        /* Info */
-        .profile-section { display: flex; flex-direction: column; align-items: center; padding: 30px 20px; }
-        .avatar { width: 90px; height: 90px; border-radius: 50%; background-color: #9C7C66; margin-bottom: 15px; border: 4px solid #fff; box-shadow: 0 5px 15px rgba(156, 124, 102, 0.2); }
-        .username { font-size: 20px; font-weight: 700; color: #6D5D50; margin-bottom: 5px; }
-        .bio { font-size: 14px; color: #998A7D; text-align: center; max-width: 250px; line-height: 1.4; }
+        /* --- 個人資料區塊 (置中) --- */
+        .profile-section { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .avatar { 
+            width: 100px; 
+            height: 100px; 
+            border-radius: 50%; 
+            background-color: #F5F5F5; /* 預設灰白底 */
+            margin-bottom: 16px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        /* 如果有真實圖片 */
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Stats */
-        .stats-row { display: flex; justify-content: center; gap: 40px; margin: 20px 0 30px 0; width: 100%; }
-        .stat-item { text-align: center; }
-        .stat-num { font-weight: 700; font-size: 18px; color: #6D5D50; display: block; }
-        .stat-label { font-size: 12px; color: #998A7D; }
+        .username { 
+            font-size: 20px; 
+            font-weight: 600; 
+            color: #5D4D40; 
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        
+        .email { 
+            font-size: 13px; 
+            color: #998A7D; 
+        }
 
-        /* Menu List (清單) */
-        .menu-list { width: 100%; padding: 0 20px; display: flex; flex-direction: column; gap: 12px; }
+        /* --- 選單列表 (仿照圖片樣式) --- */
+        .menu-list { 
+            width: 100%; 
+            padding: 0 40px; /* 左右留白多一點 */
+            display: flex; 
+            flex-direction: column; 
+            gap: 25px; /* 選單間距 */
+        }
         
         .menu-item {
-            background-color: #fff; padding: 16px 20px; border-radius: 16px;
-            display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            display: flex; 
+            align-items: center;
+            gap: 16px;
+            cursor: pointer; 
+            background: transparent; /* 去除背景色 */
+            padding: 5px 0; /* 增加點擊範圍 */
+            transition: opacity 0.2s;
+        }
+        .menu-item:active { opacity: 0.6; }
+
+        .item-icon { 
+            width: 24px; 
+            height: 24px; 
+            stroke: #8C7B6D; 
+            stroke-width: 1.8;
+        }
+        
+        .item-text { 
+            font-size: 16px; 
+            font-weight: 500; 
+            color: #6D5D50; 
+        }
+
+        /* --- 底部登出按鈕 --- */
+        .logout-container {
+            margin-top: auto; /* 推到最底部 */
+            margin-bottom: 50px;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .logout-btn {
+            background-color: #C8B6A6; /* 藕色/淺棕色 */
+            color: white;
+            border: none;
+            width: 200px;
+            padding: 14px 0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(140, 115, 93, 0.2);
             transition: transform 0.1s;
         }
-        .menu-item:active { transform: scale(0.98); }
+        .logout-btn:active { transform: scale(0.96); }
 
-        .item-left { display: flex; align-items: center; gap: 12px; }
-        .item-icon { width: 20px; height: 20px; stroke: #9C7C66; }
-        .item-text { font-size: 15px; font-weight: 600; color: #6D5D50; }
-        .arrow-icon { width: 16px; height: 16px; stroke: #ccc; }
-
-        /* 訂閱欄位樣式 */
-        #subscriptionRow { border: 1px solid transparent; }
-        
-        .bell-icon { width: 24px; height: 24px; fill: #e0e0e0; transition: fill 0.3s ease; }
-
-        /* 付費後的樣式 */
-        .menu-item.is-premium { border: 1px solid rgba(211, 47, 47, 0.1); background-color: #fff5f5; }
+        /* --- 鈴鐺動畫 (保留你的邏輯) --- */
+        .bell-icon { width: 22px; height: 22px; fill: #e0e0e0; margin-left: auto; /* 推到最右邊 */ }
         .menu-item.is-premium .bell-icon { fill: #d32f2f; animation: ding 0.5s ease; }
-        .menu-item.is-premium .item-text { color: #d32f2f; }
-
+        .menu-item.is-premium .item-text { color: #d32f2f; font-weight: 700; }
         @keyframes ding { 0%{transform:rotate(0)} 20%{transform:rotate(15deg)} 40%{transform:rotate(-10deg)} 60%{transform:rotate(5deg)} 80%{transform:rotate(-5deg)} 100%{transform:rotate(0)} }
         
-        .debug-btn { margin-top: 30px; align-self: center; border: none; background: none; color: #ccc; font-size: 12px; }
+        .debug-btn { position: absolute; bottom: 10px; right: 10px; border: none; background: none; color: #ccc; font-size: 10px; opacity: 0.5; }
+
+        /* --- 修正：隱藏原本的箭頭 --- */
+        .arrow-icon { display: none; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <a href="home.html" class="back-btn">Back</a>
-        <div class="header-title">Profile</div>
-        <div class="dummy"></div>
+        <a href="home.html" class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </a>
     </div>
 
     <div class="profile-section">
-        <div class="avatar"></div>
-        <div class="username">User Name</div>
-        <div class="bio">Photography / Travel / Food<br>Capturing moments 📸</div>
-    </div>
-
-    <div class="stats-row">
-        <div class="stat-item"><span class="stat-num">128</span><span class="stat-label">Posts</span></div>
-        <div class="stat-item"><span class="stat-num">3.5k</span><span class="stat-label">Followers</span></div>
-        <div class="stat-item"><span class="stat-num">482</span><span class="stat-label">Following</span></div>
+        <div class="avatar">
+            </div>
+        <div class="username">TTTTT</div>
+        <div class="email">YYYT.gmail.com</div>
     </div>
 
     <div class="menu-list">
+        
         <div class="menu-item">
-            <div class="item-left">
-                <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                <span class="item-text">Edit Profile</span>
-            </div>
-            <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span class="item-text">My Profile</span>
         </div>
 
         <div class="menu-item" id="subscriptionRow" onclick="handleSubscription()">
-            <div class="item-left">
-                <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                <span class="item-text" id="subText">Premium Subscription</span>
-            </div>
-            <svg class="bell-icon" id="bellIcon" viewBox="0 0 24 24">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
+            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span class="item-text" id="subText">Subscription</span>
+            <svg class="bell-icon" id="bellIcon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
         </div>
 
         <div class="menu-item">
-            <div class="item-left">
-                <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                <span class="item-text">Settings</span>
-            </div>
-            <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span class="item-text">Address</span>
         </div>
+
+        <div class="menu-item">
+            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span class="item-text">Contact Us</span>
+        </div>
+
+        <div class="menu-item">
+            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span class="item-text">Setting</span>
+        </div>
+
+        <div class="menu-item">
+            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <span class="item-text">Help & QA</span>
+        </div>
+
     </div>
 
-    <button class="debug-btn" onclick="resetMember()">[Reset Membership]</button>
+    <div class="logout-container">
+        <button class="logout-btn" onclick="logout()">Log Out</button>
+    </div>
+
+    <button class="debug-btn" onclick="resetMember()">[Reset]</button>
 
     <script>
+        // --- 保留你原本的 JS 邏輯 ---
         const row = document.getElementById('subscriptionRow');
         const text = document.getElementById('subText');
 
@@ -116,16 +213,18 @@
             const isPremium = localStorage.getItem('isPremium');
             if (isPremium === 'true') {
                 row.classList.add('is-premium');
-                text.textContent = "Premium Active";
+                // 為了保持樣式，文字可以稍微改短
+                text.textContent = "Subscription (Active)";
             } else {
                 row.classList.remove('is-premium');
-                text.textContent = "Subscribe Premium";
+                text.textContent = "Subscription";
             }
         }
 
         function handleSubscription() {
             const isPremium = localStorage.getItem('isPremium');
             if (isPremium !== 'true') {
+                // 跳轉到你的付款頁面
                 window.location.href = "payment.html";
             }
         }
@@ -135,6 +234,15 @@
             location.reload();
         }
 
+        function logout() {
+            // 這裡可以加入清除登入狀態的邏輯
+            // 目前先導回登入頁面或首頁
+            if(confirm('Are you sure you want to log out?')) {
+                window.location.href = "login.html"; // 假設你的登入頁是 login.html
+            }
+        }
+
+        // 初始化檢查
         checkStatus();
     </script>
 </body>
