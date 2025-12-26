@@ -81,25 +81,25 @@
     <div id="loading-toast">Saving...</div>
 
     <script>
-        // --- 1. 新增功能：載入使用者頭像 ---
         function loadUserProfile() {
-            // 找到 header 左上角的圓形 div
             const avatarDiv = document.querySelector('.avatar-placeholder');
-            
-            // 從瀏覽器記憶體 (localStorage) 拿出你在 Profile 頁存的照片
             const savedAvatar = localStorage.getItem('myProfileAvatar');
             
-            // 如果有照片，就把它設為背景圖
             if (savedAvatar && avatarDiv) {
                 avatarDiv.style.backgroundImage = `url('${savedAvatar}')`;
-                avatarDiv.style.backgroundSize = 'cover';      // 讓圖片充滿圓圈
-                avatarDiv.style.backgroundPosition = 'center'; // 圖片置中
-                avatarDiv.style.backgroundColor = 'transparent'; // 移除原本的咖啡色背景
+                avatarDiv.style.backgroundSize = 'cover';
+                avatarDiv.style.backgroundPosition = 'center';
+                avatarDiv.style.backgroundColor = 'transparent';
             }
         }
 
-        // 頁面一打開就執行這個功能
-        loadUserProfile();
+        // ★★★ 關鍵修改：使用 pageshow 確保從別頁跳回來時也會更新 ★★★
+        window.addEventListener('pageshow', function(event) {
+            loadUserProfile();
+        });
+        
+        // 保險起見，原本的 load 也留著
+        window.addEventListener('load', loadUserProfile);
 
 
         // --- 以下是你原本的資料庫與相機功能 (保持不變) ---
