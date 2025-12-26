@@ -324,11 +324,7 @@
                         // 3. 成功提示 (測試成功後可以註解掉這行)
                         // console.log("儲存成功！");
 
-                    } catch(err) {
-                        // 4. 如果還是太大，跳出警告
-                        alert("儲存失敗！這張照片即使壓縮後還是太大，請換一張截圖試試看。");
-                        avatarDisplay.style.opacity = '1';
-                    }
+                    } 
                 });
             };
             reader.readAsDataURL(file);
