@@ -309,9 +309,9 @@
 
             const reader = new FileReader();
             reader.onload = function(event) {
-                // ★★★ 關鍵修改：尺寸縮到 100px，品質降到 0.6 ★★★
+                
                 // 這樣幾乎所有照片都能存進去
-                compressAvatar(event.target.result, 100, 0.6, function(compressedBase64){
+                compressAvatar(event.target.result, 300, 0.8, function(compressedBase64){
                     
                     try { 
                         // 1. 嘗試儲存
