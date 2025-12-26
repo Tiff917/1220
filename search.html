@@ -242,23 +242,122 @@
     </div>
 
     <script>
-        // 資料庫
+        // 1. 修改資料庫：在每個餐廳物中加入 'mapLink' 欄位
+    
         const restaurants = [
-            { id: 1, title: "Sweet Life", subtitle: "Delicious sweet desserts", img: "https://images.unsplash.com/photo-1563729784474-d779b95f3ea6?w=800&fit=crop", hours: "10:00 - 22:00", price: "150 - 350", address: "806高雄市前鎮區中山三路39號" },
-            { id: 2, title: "Harbor Coffee", subtitle: "Best view in the city", img: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=800&fit=crop", hours: "08:00 - 18:00", price: "100 - 250", address: "803高雄市鹽埕區大義街2號" },
-            { id: 3, title: "Kingmauiii Toast", subtitle: "Crispy and soft", img: "https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=800&fit=crop", hours: "07:00 - 14:00", price: "50 - 150", address: "802高雄市苓雅區自強三路" },
-            { id: 4, title: "Noodle House", subtitle: "Traditional taste", img: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&fit=crop", hours: "11:00 - 20:30", price: "80 - 200", address: "813高雄市左營區裕誠路" },
-            { id: 5, title: "Night Bar", subtitle: "Relax and chill", img: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&fit=crop", hours: "19:00 - 02:00", price: "300 - 600", address: "800高雄市新興區中山一路" },
-            { id: 6, title: "Green Garden", subtitle: "Healthy salad bowl", img: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&fit=crop", hours: "10:30 - 20:00", price: "180 - 300", address: "804高雄市鼓山區美術館路" }
+            { 
+                id: 1, 
+                title: "甜上壹生", 
+                subtitle: "咖啡甜點", 
+                img: "./IMG_3535.jpg", 
+                hours: "13:00–19:00", 
+                price: "150 - 350", 
+                address: "806高雄市前鎮區中山三路39號四巷28號",
+                mapLink: "https://www.google.com/maps/place/%E7%94%9C%E4%B8%8A%E5%A3%B9%E7%94%9F/@22.603733,120.3089927,17z/data=!3m1!4b1!4m6!3m5!1s0x346e03002b735c37:0xd6719b213eca4e2a!8m2!3d22.603733!4d120.3089927!16s%2Fg%2F11m65hjygh?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 2, 
+                title: "Cheerful Crew 吃否吃否", 
+                subtitle: "澳式早午餐", 
+                img: "./IMG_1940.jpg", 
+                hours: "09:00–16:00", 
+                price: "100 - 250", 
+                address: "830高雄市鳳山區鳳甲一街129號1樓",
+                mapLink: "google.com/maps/place/Cheerful+Crew+吃否吃否｜高雄鳳山酪梨澳式早午餐/@22.5965531,120.3473093,18.94z/data=!4m6!3m5!1s0x346e1d7d5f889305:0x3b119b347a808710!8m2!3d22.5964661!4d120.3467689!16s%2Fg%2F11r6x7x6gw?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 3, 
+                title: "誰不愛咖啡", 
+                subtitle: "自烘咖啡", 
+                img: "./IMG_3604.jpg", 
+                hours: "10:05–18:50", 
+                price: "50 - 150", 
+                address: "830高雄市鳳山區海涵路563號",
+                mapLink: "https://www.google.com/maps/place/%E8%AA%B0%E4%B8%8D%E6%84%9B%E5%92%96%E5%95%A1+%E5%A4%96%E5%B8%B6%E5%92%96%E5%95%A1%E7%B6%93%E7%87%9F%EF%BC%88%E6%9C%80%E5%BE%8C%E9%BB%9E%E9%A4%90%E7%82%BA%E9%96%89%E5%BA%97%E5%89%8D%E4%B8%80%E5%B0%8F%E6%99%82%EF%BC%89%EF%BC%88%E7%84%A1%E6%8F%90%E4%BE%9B%E8%A8%82%E4%BD%8D%E3%80%81%E4%B8%8D%E6%8E%A55%E4%BA%BA%E4%BB%A5%E4%B8%8A%E5%9C%98%E9%AB%94%EF%BC%89%E7%84%A1%E6%8F%90%E4%BE%9BWi-Fi%E3%80%81%E6%8F%92%E5%BA%A7%EF%BC%8C%E6%9C%AC%E5%BA%97%E6%98%AF%E8%87%AA%E7%83%98%E5%92%96%E5%95%A1%C2%B7%E8%B1%86%E5%BA%97/@22.5918435,120.3442123,17z/data=!3m1!4b1!4m6!3m5!1s0x346e1daea57dce3b:0x51a47811fdfe5184!8m2!3d22.5918435!4d120.3442123!16s%2Fg%2F11hp1ns5y9?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 4, 
+                title: "Kingmauii 金茂宜咖啡", 
+                subtitle: " 美術店", 
+                img: "./IMG_3698.jpg", 
+                hours: "10:00–19:00", 
+                price: "200 - 400", 
+                address: "804高雄市鼓山區美術東五路75號",
+                mapLink: "https://www.google.com/maps/place/Kingmauii+%E9%87%91%E8%8C%82%E5%AE%9C%E5%92%96%E5%95%A1+%E7%BE%8E%E8%A1%93%E5%BA%97/@22.6587402,120.2932287,17z/data=!3m1!4b1!4m6!3m5!1s0x346e050e257507b1:0xce3b1b39bba8d4c1!8m2!3d22.6587402!4d120.2932287!16s%2Fg%2F11gjx0q8wc?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 5, 
+                title: "點今咖啡", 
+                subtitle: "Relax and chill", 
+                img: "./IMG_6207.jpg", 
+                hours: "9:00 - 18:00", 
+                price: "200 - 400", 
+                address: "830高雄市鳳山區海涵路360號",
+                mapLink: "google.com/maps/place/Kaohsiung+City,+Fengshan+District,+Haihan+Road,+點今咖啡/@22.6587402,120.2932287,17z/data=!4m5!3m4!1s0x346e1da36509ebd7:0xefbc954fa95b887d!8m2!3d22.5910968!4d120.345923?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 6, 
+                title: "初夏食堂", 
+                subtitle: "楠梓店", 
+                img: "./IMG_6398.jpg", 
+                hours: "11:30–14:00 17:00–20:00", 
+                price: "1 - 200", 
+                address: "811高雄市楠梓區德賢路592巷30弄1號",
+                mapLink: "https://www.google.com/maps/place/%E5%88%9D%E5%A4%8F%E9%A3%9F%E5%A0%82-%E6%A5%A0%E6%A2%93%E5%BA%97/@22.7266154,120.3001766,17z/data=!3m1!4b1!4m6!3m5!1s0x346e0f37b39a2a49:0x8181df3310783996!8m2!3d22.7266154!4d120.3001766!16s%2Fg%2F11n8xqb62x?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 7, 
+                title: "好想燒肉", 
+                subtitle: "楠梓店", 
+                img: "./IMG_6433.jpg", 
+                hours: "11:30 - 00:00", 
+                price: "200 - 400", 
+                address: "811高雄市楠梓區大學二十六街105號",
+                mapLink: "https://www.google.com/maps/place/%E5%A5%BD%E6%83%B3%E7%87%92%E8%82%89%EF%BC%88%E6%A5%A0%E6%A2%93%E5%BA%97%EF%BC%89/@22.7289247,120.2889644,19.99z/data=!4m14!1m7!3m6!1s0x346e0f37b39a2a49:0x8181df3310783996!2z5Yid5aSP6aOf5aCCLealoOaik-W6lw!8m2!3d22.7266154!4d120.3001766!16s%2Fg%2F11n8xqb62x!3m5!1s0x346e0f214c83fb57:0x9fda842f4fb52f5d!8m2!3d22.7290998!4d120.2891781!16s%2Fg%2F11y5nh2qcx?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 8, 
+                title: "成真咖啡Come True Coffee", 
+                subtitle: "高雄義享店", 
+                img: "./IMG_6481.jpg", 
+                hours: "10:30 - 22:00", 
+                price: "200 - 400", 
+                address: "804高雄市鼓山區大順一路115號4樓",
+                mapLink: "https://www.google.com/maps/place/%E6%88%90%E7%9C%9F%E5%92%96%E5%95%A1Come+True+Coffee%E9%AB%98%E9%9B%84%E7%BE%A9%E4%BA%AB%E5%BA%97/@22.6558616,120.3063979,17z/data=!3m2!4b1!5s0x346e04fd749a351b:0xbf5efc801b177c41!4m6!3m5!1s0x346e050a2887015b:0xa14598a4d603ba9f!8m2!3d22.6558616!4d120.3063979!16s%2Fg%2F11r9pyh39f?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 9, 
+                title: "一拾三鯛魚燒菓子店 ", 
+                subtitle: "生甜甜圈", 
+                img: "./IMG_6654.jpg", 
+                hours: "13:30 - 19:00", 
+                price: "180 - 300", 
+                address: "813高雄市左營區文自路357號",
+                // ↓↓↓ 在這裡貼上第 6 間餐廳的 Google Maps 連結 ↓↓↓
+                mapLink: "https://www.google.com/maps/place/%E4%B8%80%E6%8B%BE%E4%B8%89%E9%AF%9B%E9%AD%9A%E7%87%92%E8%8F%93%E5%AD%90%E5%BA%97+%23%E7%94%9F%E7%94%9C%E7%94%9C%E5%9C%88%EF%BC%88%E6%9C%80%E5%BE%8C%E9%BB%9E%E9%A4%90%E8%87%B318:00%EF%BC%89/@22.675696,120.308547,21z/data=!4m6!3m5!1s0x346e050d870b0667:0x6a7cf459a273e862!8m2!3d22.6758035!4d120.3086852!16s%2Fg%2F11c1pf_nb8?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            },
+            { 
+                id: 10, 
+                title: "晴。晨Morning Sun", 
+                subtitle: "只有外帶，沒有內用", 
+                img: "./IMG_6677.jpg", 
+                hours: "12:30 - 20:00", 
+                price: "180 - 300", 
+                address: "801高雄市前金區文武三街190號",
+                // ↓↓↓ 在這裡貼上第 6 間餐廳的 Google Maps 連結 ↓↓↓
+                mapLink: "https://www.google.com/maps/place/%E6%99%B4%E3%80%82%E6%99%A8Morning+Sun%EF%BD%9C%E5%8F%AA%E6%9C%89%E5%A4%96%E5%B8%B6%EF%BC%8C%E6%B2%92%E6%9C%89%E5%85%A7%E7%94%A8%EF%BD%9C/@22.6208826,120.2981848,20.07z/data=!4m14!1m7!3m6!1s0x346e0480a9ebd505:0x6e4dc1a7cdf0ac43!2z5aSn56uLQemkqA!8m2!3d22.6217077!4d120.2982807!16s%2Fg%2F1td1gr0r!3m5!1s0x346e048617120ad5:0x71ab7a32ca6b997f!8m2!3d22.6208976!4d120.298339!16s%2Fg%2F11gdsf72v1?authuser=0&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2N0gBUAM%3D" 
+            }
         ];
 
-        let currentDetailAddress = "";
+        let currentDetailMapLink = ""; 
 
+        // 隨機選取 3 間餐廳
         function getRandomRestaurants() {
             const shuffled = [...restaurants].sort(() => 0.5 - Math.random());
             return shuffled.slice(0, 3);
         }
 
+        // 渲染列表
         function renderList(data) {
             const container = document.getElementById('listContainer');
             container.innerHTML = '';
@@ -270,7 +369,7 @@
                 card.onclick = () => openDetail(item);
 
                 card.innerHTML = `
-                    <img src="${item.img}" class="card-img">
+                    <img src="${item.img}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=800&fit=crop'">
                     <div class="card-info-overlay">
                         <div class="card-title">${item.title}</div>
                         <div class="card-subtitle">${item.subtitle}</div>
@@ -280,51 +379,104 @@
             });
         }
 
+        // 初始化渲染
         renderList(getRandomRestaurants());
 
+        // --- 2. 下拉重新整理 (支援 手機觸控 + 電腦滑鼠) ---
         const listContainer = document.getElementById('listContainer');
         const loadingContainer = document.getElementById('loadingContainer');
         let startY = 0;
         let isPulling = false;
 
-        listContainer.addEventListener('touchstart', (e) => {
-            if (listContainer.scrollTop === 0) {
-                startY = e.touches[0].clientY;
+        // 統一取得 Y 座標 (相容滑鼠與手指)
+        function getY(e) {
+            return e.touches ? e.touches[0].clientY : e.clientY;
+        }
+
+        // 開始拖曳
+        function startDrag(e) {
+            // 只有當捲軸在最頂端時，才允許下拉
+            if (listContainer.scrollTop <= 0) {
+                startY = getY(e);
                 isPulling = true;
-            } else { isPulling = false; }
-        });
+            } else {
+                isPulling = false;
+            }
+        }
 
-        listContainer.addEventListener('touchmove', (e) => {
+        // 拖曳中
+        function moveDrag(e) {
             if (!isPulling) return;
-            const currentY = e.touches[0].clientY;
+            const currentY = getY(e);
             const diff = currentY - startY;
-            if (diff > 0 && diff < 150) { loadingContainer.style.height = `${diff / 2}px`; }
-        });
 
-        listContainer.addEventListener('touchend', (e) => {
+            // 如果向下拉 (diff > 0)
+            if (diff > 0) {
+                // 如果是手機觸控，防止原生捲動干擾
+                if (e.cancelable && e.type === 'touchmove') {
+                    e.preventDefault(); 
+                }
+                
+                // 限制最大拉動距離 (視覺效果)
+                if (diff < 200) {
+                    loadingContainer.style.height = `${diff / 2.5}px`; 
+                }
+            } else {
+                // 如果往上推，就取消下拉狀態
+                isPulling = false;
+            }
+        }
+
+        // 結束拖曳
+        function endDrag(e) {
             if (!isPulling) return;
-            const currentY = e.changedTouches[0].clientY;
-            const diff = currentY - startY;
-            if (diff > 100) {
-                loadingContainer.style.height = '60px';
-                setTimeout(() => {
-                    renderList(getRandomRestaurants());
-                    loadingContainer.style.height = '0px';
-                }, 1500);
-            } else { loadingContainer.style.height = '0px'; }
             isPulling = false;
-        });
 
+            // 檢查 loading 區塊的高度，如果拉得夠長 (大於 40px)
+            const currentHeight = parseInt(loadingContainer.style.height || 0);
+            
+            if (currentHeight > 40) {
+                // 固定高度，開始轉圈
+                loadingContainer.style.height = '60px'; 
+                
+                // 模擬網路讀取 1 秒
+                setTimeout(() => {
+                    renderList(getRandomRestaurants()); // 重新隨機抓取
+                    loadingContainer.style.height = '0px'; // 收起
+                }, 1000); 
+            } else { 
+                // 拉不夠長，直接彈回去
+                loadingContainer.style.height = '0px'; 
+            }
+        }
+
+        // 綁定觸控事件 (手機)
+        listContainer.addEventListener('touchstart', startDrag, { passive: true });
+        listContainer.addEventListener('touchmove', moveDrag, { passive: false }); // 關鍵：passive: false 才能 preventDefault
+        listContainer.addEventListener('touchend', endDrag);
+
+        // 綁定滑鼠事件 (電腦)
+        listContainer.addEventListener('mousedown', startDrag);
+        listContainer.addEventListener('mousemove', moveDrag);
+        listContainer.addEventListener('mouseup', endDrag);
+        listContainer.addEventListener('mouseleave', endDrag); // 滑鼠移出範圍也要結束
+
+        // --- 3. 詳情頁 (Modal) 邏輯 ---
         const modal = document.getElementById('detailModal');
 
         function openDetail(item) {
             document.getElementById('modal-img').src = item.img;
+            document.getElementById('modal-img').onerror = function() {
+                this.src = 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=800&fit=crop';
+            };
+            
             document.getElementById('modal-title').innerText = item.title;
             document.getElementById('modal-subtitle').innerText = item.subtitle;
             document.getElementById('modal-hours').innerText = item.hours + " Opened";
             document.getElementById('modal-price').innerText = item.price;
             document.getElementById('modal-address').innerText = item.address;
-            currentDetailAddress = item.address;
+            
+            currentDetailMapLink = item.mapLink; 
 
             modal.style.display = 'flex';
             setTimeout(() => { modal.classList.add('active'); }, 10);
@@ -336,11 +488,13 @@
         }
 
         function openGoogleMap() {
-            if (!currentDetailAddress) return;
-            const encodedAddress = encodeURIComponent(currentDetailAddress);
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
+            if (currentDetailMapLink) {
+                window.open(currentDetailMapLink, '_blank');
+            } else {
+                alert("此餐廳尚未設定地圖連結");
+            }
         }
-
+        
     </script>
 </body>
 </html>
