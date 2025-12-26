@@ -324,7 +324,12 @@
                         // 3. 成功提示 (測試成功後可以註解掉這行)
                         // console.log("儲存成功！");
 
-                    } 
+                    }catch (error) {
+                        // ★★★ 補上這裡！這就是缺少的 catch 區塊 ★★★
+                        console.error(error); // 在控制台顯示錯誤
+                        alert("儲存失敗！可能是瀏覽器空間已滿，請嘗試清除資料後重試。");
+                        avatarDisplay.style.opacity = '1';
+                    }
                 });
             };
             reader.readAsDataURL(file);
