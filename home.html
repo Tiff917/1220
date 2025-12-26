@@ -252,6 +252,14 @@
 
         document.getElementById('input_camera').addEventListener('change', handleFileSelect);
         document.getElementById('input_gallery').addEventListener('change', handleFileSelect);
+        
+        // 在 profile.html 裡
+        try { 
+            localStorage.setItem('myProfileAvatar', compressedBase64); 
+        } catch(err) {
+            // 如果跳出這個警告，代表你的圖片真的太大，或者空間已滿
+            alert("儲存失敗：圖片過大或空間不足！請換一張小一點的照片試試。");
+        }
     </script>
 </body>
 </html>
