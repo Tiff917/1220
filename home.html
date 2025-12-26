@@ -28,34 +28,42 @@
             overflow: hidden; 
         }
 
-        /* ★★★ 修改重點區塊：卡片樣式 ★★★ */
         .card { 
             width: 100%; 
             max-width: 500px; 
+            
+            /* 強制正方形 */
             aspect-ratio: 1 / 1; 
             
-            /* 讓高度自動適應 */
-            height: auto;
-            max-height:200vh; /* 限制最大高度，避免長圖把按鈕擠出畫面 */
+            border-radius: 60px; 
+            overflow: hidden; 
             
-            border-radius: 80px; 
-            overflow: hidden;    /* 必須保留，才能把超出圓角的圖片切掉 */
-            -webkit-mask-image: -webkit-radial-gradient(white, black);
-            /* 2. 背景色改成透明，解決「看起來被分隔」的問題 */
+            /* --- ★★★ 關鍵修正 1：強制開啟 GPU 加速與遮罩修復 ★★★ --- */
+            transform: translateZ(0); 
+            -webkit-transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-mask-image: -webkit-radial-gradient(white, black); /* 上次那招留著，當雙重保險 */
+            
             background-color: transparent; 
-            
             position: relative; 
+           
             
+            transition: transform 0.2s ease; 
+            cursor: grab;
         }
 
         .card img { 
             width: 100%; 
-            /* 3. 圖片高度設為 auto，維持原圖比例 */
             height: 100%; 
             object-fit: cover; 
-            display: block; /* 消除圖片底部的微小縫隙 */
+            display: block; 
+            pointer-events: none; 
+            user-select: none;
+            
+            /* --- ★★★ 關鍵修正 2：圖片自己也設圓角 ★★★ --- */
+            /* 這樣就算溢出容器，圖片本身也是圓的，就不會看到尖角 */
+            border-radius: 60px; 
         }
-
         /* Footer */
         .footer { flex-shrink: 0; padding: 20px 40px 100px 40px; display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; align-self: center; }
         .icon-brown { stroke: #9C7C66; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
