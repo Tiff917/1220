@@ -81,6 +81,28 @@
     <div id="loading-toast">Saving...</div>
 
     <script>
+        // --- 1. 新增功能：載入使用者頭像 ---
+        function loadUserProfile() {
+            // 找到 header 左上角的圓形 div
+            const avatarDiv = document.querySelector('.avatar-placeholder');
+            
+            // 從瀏覽器記憶體 (localStorage) 拿出你在 Profile 頁存的照片
+            const savedAvatar = localStorage.getItem('myProfileAvatar');
+            
+            // 如果有照片，就把它設為背景圖
+            if (savedAvatar && avatarDiv) {
+                avatarDiv.style.backgroundImage = `url('${savedAvatar}')`;
+                avatarDiv.style.backgroundSize = 'cover';      // 讓圖片充滿圓圈
+                avatarDiv.style.backgroundPosition = 'center'; // 圖片置中
+                avatarDiv.style.backgroundColor = 'transparent'; // 移除原本的咖啡色背景
+            }
+        }
+
+        // 頁面一打開就執行這個功能
+        loadUserProfile();
+
+
+        // --- 以下是你原本的資料庫與相機功能 (保持不變) ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
@@ -122,7 +144,7 @@
             });
         }
 
-        // --- 核心新增：自動載入最新照片 ---
+        // --- 自動載入當天最新照片 ---
         async function loadLatestPhoto() {
             if (!db) await initDB();
             const memories = await getAllMemories();
@@ -130,7 +152,6 @@
             const now = new Date();
             const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
             
-            // 如果今天有照片，顯示最後一張
             if (memories[dateKey] && memories[dateKey].length > 0) {
                 const photos = memories[dateKey];
                 const lastPhoto = photos[photos.length - 1];
@@ -138,7 +159,6 @@
             }
         }
 
-        // 頁面載入時執行
         initDB().then(loadLatestPhoto);
 
         // --- 介面互動 ---
@@ -176,7 +196,7 @@
                 reader.onload = function(event) {
                     compressImage(event.target.result, 1024, 0.8, async function(base64) {
                         memories[dateKey].push(base64);
-                        mainImage.src = base64; // 更新顯示
+                        mainImage.src = base64; 
                         processedCount++;
                         
                         if (processedCount === files.length) {
@@ -202,12 +222,11 @@
             img.onload = function() {
                 const canvas = document.createElement('canvas');
                 let w = img.width, h = img.height;
-                const targetWidth = 800;
                 if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
                 canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, w, h);
-                callback(canvas.toDataURL('image/jpeg', 0.6));
+                callback(canvas.toDataURL('image/jpeg', quality));
             };
         }
 
