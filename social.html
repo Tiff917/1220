@@ -6,421 +6,371 @@
     <title>Social Feed</title>
     <style>
         /* --- 1. 基礎設定 --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #F3ECE5; color: #000; padding-bottom: 80px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            background-color: #F3ECE5; /* 米色背景 */
+            color: #000;
+            padding-bottom: 80px; /* 預留底部空間 */
+        }
+
+        /* 隱藏捲軸但允許捲動 */
         body::-webkit-scrollbar { display: none; }
 
-        /* --- Reset 按鈕樣式 (暫時用來修復問題) --- */
-        .reset-btn {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 9999;
-            background: #d32f2f;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
+        /* --- 2. 貼文卡片 (Post) --- */
+        .post {
+            background-color: #F3ECE5; /* 與背景融合 */
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0,0,0,0.05); /* 淡淡的分隔線 */
         }
 
-        /* --- 2. 貼文卡片 --- */
-        .post { background-color: #F3ECE5; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); }
-
-        /* --- Header --- */
-        .post-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; }
-        .user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-        
-        /* 確保頭像不會變形 */
-        .avatar { 
-            width: 36px; 
-            height: 36px; 
-            border-radius: 50%; 
-            object-fit: cover; 
-            border: 1px solid rgba(0,0,0,0.1); 
-            background-color: #ddd; 
-            flex-shrink: 0; 
-        }
-        
-        .user-text { display: flex; flex-direction: column; }
-        .username-row { display: flex; align-items: center; gap: 3px; }
-        .username { font-weight: 700; font-size: 14px; color: #000; }
-        .location { font-size: 11px; color: #555; }
-        .more-btn { color: #000; cursor: pointer; }
-
-        /* --- Slider --- */
-        .image-container { position: relative; width: 100%; aspect-ratio: 4/5; overflow: hidden; background-color: #e0d5cc; }
-        .slider { display: flex; width: 100%; height: 100%; overflow-x: scroll; scroll-snap-type: x mandatory; scrollbar-width: none; }
-        .slider::-webkit-scrollbar { display: none; }
-        .slide-img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: center; }
-        .page-counter { position: absolute; top: 15px; right: 15px; background-color: rgba(0, 0, 0, 0.6); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; pointer-events: none; }
-
-        /* --- Actions --- */
-        .action-bar { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .left-actions { display: flex; gap: 16px; }
-        .action-icon { width: 24px; height: 24px; stroke: #000; fill: none; stroke-width: 2; cursor: pointer; transition: transform 0.1s; }
-        .action-icon:active { transform: scale(0.9); }
-        .heart-filled { fill: #ED4956; stroke: #ED4956; animation: pop 0.3s ease-out; }
-        @keyframes pop { 0%{transform:scale(1);} 50%{transform:scale(1.2);} 100%{transform:scale(1);} }
-        .dots { display: flex; gap: 4px; position: absolute; left: 50%; transform: translateX(-50%); }
-        .dot { width: 6px; height: 6px; border-radius: 50%; background-color: rgba(0,0,0,0.2); transition: background-color 0.2s; }
-        .dot.active { background-color: #0089FF; }
-
-        /* --- Likes & Comments --- */
-        .likes-section { padding: 0 15px; font-size: 13px; display: flex; align-items: center; gap: 5px; margin-bottom: 8px; }
-        .like-avatar { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-        
-        .comments-section { padding: 0 15px; display: flex; flex-direction: column; gap: 4px; }
-        .comment-row { font-size: 14px; line-height: 1.4; display: flex; gap: 6px; margin-bottom: 2px; }
-        .comment-user { font-weight: 700; white-space: nowrap; color: #000; }
-        .comment-text { color: #111; word-break: break-word; }
-        .timestamp { font-size: 10px; color: #888; margin-top: 6px; padding: 0 15px; text-transform: uppercase; display: block; }
-        
-        #status-msg { text-align: center; margin-top: 50px; color: #888; font-size: 14px; }
-
-        /* --- 留言輸入框 (修正版) --- */
-        .add-comment-section {
-            display: none; /* 預設隱藏 */
+        /* --- Header: 頭像、名字、地點 --- */
+        .post-header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 10px 15px 0 15px;
-            margin-top: 10px;
-            border-top: 1px solid rgba(0,0,0,0.05);
-            width: 100%;
+            padding: 10px 15px;
         }
 
-        .my-avatar-small {
-            width: 30px; 
-            height: 30px; 
-            border-radius: 50%; 
-            margin-right: 10px; 
-            object-fit: cover; 
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
             border: 1px solid rgba(0,0,0,0.1);
-            flex-shrink: 0; 
         }
 
-        .comment-input {
-            flex: 1;
-            border: none;
-            background: transparent;
+        .user-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .username-row {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .username {
+            font-weight: 700;
             font-size: 14px;
-            padding: 10px 0;
-            outline: none;
             color: #000;
         }
-        
-        .post-btn {
-            color: #0095F6;
-            font-weight: 600;
-            font-size: 14px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            opacity: 0.5;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            margin-left: 10px;
-            white-space: nowrap;
+
+        .bell-icon {
+            color: #E03E3E; /* 紅色鈴鐺 */
         }
 
-        .comment-input:not(:placeholder-shown) + .post-btn {
-            opacity: 1;
-            pointer-events: auto;
+        .location {
+            font-size: 11px;
+            color: #555;
+        }
+
+        .more-btn {
+            color: #000;
+            cursor: pointer;
+        }
+
+        /* --- Image Slider: 多圖輪播 --- */
+        .image-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/5; /* IG 常用的長方形比例 */
+            overflow: hidden;
+        }
+
+        .slider {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow-x: scroll;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none; /* Firefox */
+        }
+        .slider::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+        .slide-img {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            scroll-snap-align: center;
+        }
+
+        /* 右上角張數計數器 (1/3) */
+        .page-counter {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        /* --- Actions: 愛心、留言、小圓點 --- */
+        .action-bar {
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .left-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .action-icon {
+            width: 24px;
+            height: 24px;
+            stroke: #000;
+            fill: none;
+            stroke-width: 2;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .action-icon:active { transform: scale(0.9); }
+
+        /* 愛心被點擊後的樣式 */
+        .heart-filled {
+            fill: #ED4956;
+            stroke: #ED4956;
+            animation: pop 0.3s ease-out;
+        }
+        @keyframes pop { 0%{transform:scale(1);} 50%{transform:scale(1.2);} 100%{transform:scale(1);} }
+
+        /* 中間的小圓點 (Pagination Dots) */
+        .dots {
+            display: flex;
+            gap: 4px;
+            position: absolute; /* 絕對定位讓它置中 */
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: rgba(0,0,0,0.2);
+            transition: background-color 0.2s;
+        }
+        .dot.active { background-color: #0089FF; /* IG 的藍色，或改用你的 #8C7B6D */ }
+
+
+        /* --- Likes & Comments --- */
+        .likes-section {
+            padding: 0 15px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+
+        .like-avatar {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        /* --- 留言區 (包含作者發文) --- */
+        .comments-section {
+            padding: 0 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .comment-row {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .comment-user {
+            font-weight: 700;
+            margin-right: 5px;
+        }
+
+        .comment-text {
+            color: #111;
+        }
+        
+        .timestamp {
+            font-size: 10px;
+            color: #888;
+            margin-top: 4px;
+            padding: 0 15px;
+            text-transform: uppercase;
         }
 
     </style>
 </head>
 <body>
 
-    <button class="reset-btn" onclick="hardReset()">⚠️ Fix Layout (Reset Data)</button>
+    <div class="post">
+        <div class="post-header">
+            <div class="user-info">
+                <img src="https://i.pravatar.cc/150?img=11" class="avatar">
+                <div class="user-text">
+                    <div class="username-row">
+                        <span class="username">abx</span>
+                        <svg class="bell-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    </div>
+                    <span class="location">Tokyo, Japan</span>
+                </div>
+            </div>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="more-btn"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+        </div>
 
-    <div id="dynamic-feed"></div>
-    <div id="status-msg">Loading...</div>
+        <div class="image-container">
+            <div class="page-counter" id="counter-1">1/3</div>
+            <div class="slider" id="slider-1" onscroll="updateDots(1)">
+                <img src="https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=600&fit=crop" class="slide-img">
+                <img src="https://images.unsplash.com/photo-1549388604-817d15aa0110?w=600&fit=crop" class="slide-img">
+                <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&fit=crop" class="slide-img">
+            </div>
+        </div>
 
-    <input type="file" id="profile-upload" accept="image/*" style="display: none;">
+        <div class="action-bar">
+            <div class="left-actions">
+                <svg class="action-icon" onclick="toggleHeart(this)" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                <svg class="action-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            </div>
+            
+            <div class="dots" id="dots-1">
+                <div class="dot active"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+
+            <div style="width:24px;"></div> 
+        </div>
+
+        <div class="likes-section">
+            <img src="https://i.pravatar.cc/150?img=60" class="like-avatar">
+            <span>Liked by <b>craig_love</b> and <b>44,686 others</b></span>
+        </div>
+
+        <div class="comments-section">
+            <div class="comment-row">
+                <span class="comment-user">abx</span>
+                <span class="comment-text">Tried this amazing souffle today! 🥞 So fluffy and delicious. #tokyoeats #foodie</span>
+            </div>
+            <div class="comment-row">
+                <span class="comment-user">craig_love</span>
+                <span class="comment-text">Looks incredible! 🔥</span>
+            </div>
+        </div>
+        <div class="timestamp">2 HOURS AGO</div>
+    </div>
+
+
+    <div class="post">
+        <div class="post-header">
+            <div class="user-info">
+                <img src="https://i.pravatar.cc/150?img=11" class="avatar">
+                <div class="user-text">
+                    <div class="username-row">
+                        <span class="username">abx</span>
+                        <svg class="bell-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    </div>
+                    <span class="location">Tokyo, Japan</span>
+                </div>
+            </div>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="more-btn"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+        </div>
+
+        <div class="image-container">
+            <div class="page-counter" id="counter-2">1/2</div>
+            <div class="slider" id="slider-2" onscroll="updateDots(2)">
+                <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&fit=crop" class="slide-img">
+                <img src="https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=600&fit=crop" class="slide-img">
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <div class="left-actions">
+                <svg class="action-icon" onclick="toggleHeart(this)" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                <svg class="action-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            </div>
+            
+            <div class="dots" id="dots-2">
+                <div class="dot active"></div>
+                <div class="dot"></div>
+            </div>
+            <div style="width:24px;"></div>
+        </div>
+
+        <div class="likes-section">
+            <img src="https://i.pravatar.cc/150?img=60" class="like-avatar">
+            <span>Liked by <b>craig_love</b> and <b>12,403 others</b></span>
+        </div>
+
+        <div class="comments-section">
+            <div class="comment-row">
+                <span class="comment-user">abx</span>
+                <span class="comment-text">Lunch time! The soup was super rich. 🍜</span>
+            </div>
+        </div>
+        <div class="timestamp">5 HOURS AGO</div>
+    </div>
+
 
     <script>
-        const dbName = "MemoriesDB";
-        const storeName = "photos";      
-        const commentStore = "comments";  
-        const profileStore = "profile";   
-        let db;
-
-        let currentUser = {
-            name: "My Memory",
-            avatar: "https://i.pravatar.cc/150?img=12"
-        };
-
-        // --- 救援功能：強制清空資料庫 ---
-        function hardReset() {
-            if(confirm("這會清空所有照片和留言以修復版面問題，確定嗎？")) {
-                const req = indexedDB.deleteDatabase(dbName);
-                req.onsuccess = () => {
-                    alert("修復完成！頁面將重新整理。");
-                    location.reload();
-                };
-                req.onerror = () => {
-                    alert("無法自動修復，請嘗試手動清除瀏覽器快取。");
-                };
-            }
+        // 1. 愛心點擊切換
+        function toggleHeart(el) {
+            el.classList.toggle('heart-filled');
+            // 如果你想要切換空心/實心 SVG，可以在這裡改 innerHTML
+            // 但目前的 CSS fill/stroke 切換是最順暢的
         }
 
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 2); 
-                request.onupgradeneeded = (e) => {
-                    db = e.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
-                    if (!db.objectStoreNames.contains(commentStore)) db.createObjectStore(commentStore);
-                    if (!db.objectStoreNames.contains(profileStore)) db.createObjectStore(profileStore);
-                };
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve(db);
-                };
-                request.onerror = (e) => reject(e);
-            });
-        }
-
-        function getData(store, key) {
-            return new Promise((resolve) => {
-                // 加強錯誤保護：如果資料庫連線失敗，回傳 null 而不是卡住
-                if(!db) return resolve(null);
-                try {
-                    const tx = db.transaction([store], "readonly");
-                    const s = tx.objectStore(store);
-                    const req = s.get(key);
-                    req.onsuccess = (e) => resolve(e.target.result);
-                    req.onerror = () => resolve(null);
-                } catch(e) {
-                    console.log("DB Error:", e);
-                    resolve(null);
-                }
-            });
-        }
-
-        function saveData(store, key, data) {
-            return new Promise((resolve) => {
-                if(!db) return resolve();
-                const tx = db.transaction([store], "readwrite");
-                const s = tx.objectStore(store);
-                s.put(data, key);
-                tx.oncomplete = () => resolve();
-            });
-        }
-
-        async function loadProfile() {
-            const profile = await getData(profileStore, "user_info");
-            if (profile) currentUser = profile;
-        }
-
-        function editProfile() {
-            const newName = prompt("Enter your username:", currentUser.name);
-            if (newName) {
-                currentUser.name = newName;
-                document.getElementById('profile-upload').click();
-            }
-        }
-
-        document.getElementById('profile-upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = async function(evt) {
-                    compressImage(evt.target.result, 150, 0.8, async (base64) => {
-                        currentUser.avatar = base64;
-                        await saveData(profileStore, "user_info", currentUser);
-                        renderFeed(); 
-                    });
-                };
-                reader.readAsDataURL(file);
-            } else {
-                saveData(profileStore, "user_info", currentUser).then(renderFeed);
-            }
-        });
-
-        function compressImage(base64Str, maxWidth, quality, callback) {
-            const img = new Image();
-            img.src = base64Str;
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                let w = img.width, h = img.height;
-                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
-                canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                callback(canvas.toDataURL('image/jpeg', quality));
-            };
-        }
-
-        function toggleCommentBox(postId) {
-            const box = document.getElementById(`comment-box-${postId}`);
-            const input = document.getElementById(`input-${postId}`);
-            
-            if (box.style.display === 'flex') {
-                box.style.display = 'none';
-            } else {
-                box.style.display = 'flex';
-                setTimeout(() => input.focus(), 50); 
-            }
-        }
-
-        async function postComment(postId, inputId) {
-            const input = document.getElementById(inputId);
-            const text = input.value.trim();
-            if (!text) return;
-
-            let comments = await getData(commentStore, postId) || [];
-            comments.push({
-                user: currentUser.name,
-                text: text,
-                time: new Date().getTime()
-            });
-
-            await saveData(commentStore, postId, comments);
-            input.value = '';
-            renderCommentsList(postId, comments);
-        }
-
-        function renderCommentsList(postId, comments) {
-            const container = document.getElementById(`comments-list-${postId}`);
-            let html = '';
-            // 加強版面保護：確保名字和內容正確換行
-            comments.forEach(c => {
-                html += `
-                <div class="comment-row">
-                    <span class="comment-user">${c.user}</span>
-                    <span class="comment-text">${c.text}</span>
-                </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        async function renderFeed() {
-            try {
-                await initDB();
-                await loadProfile();
-
-                const memories = await getData(storeName, "all_photos") || {};
-                const feedContainer = document.getElementById('dynamic-feed');
-                const statusMsg = document.getElementById('status-msg');
-
-                feedContainer.innerHTML = '';
-
-                const sortedDates = Object.keys(memories).sort((a, b) => {
-                    return new Date(b.replace(/-/g, '/')) - new Date(a.replace(/-/g, '/'));
-                });
-
-                if (sortedDates.length === 0) {
-                    statusMsg.innerHTML = "No photos found.<br>Go to Calendar to add memories.";
-                    return;
-                } else {
-                    statusMsg.style.display = 'none';
-                }
-
-                for (const dateKey of sortedDates) {
-                    const photos = memories[dateKey];
-                    // 加強：過濾掉空資料，避免版面錯誤
-                    if (!photos || photos.length === 0) continue;
-
-                    const postId = dateKey.replace(/-/g, '');
-                    const postComments = await getData(commentStore, postId) || [];
-                    const dateObj = new Date(dateKey.replace(/-/g, '/'));
-                    const dateString = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-                    let slidesHtml = '';
-                    let dotsHtml = '';
-                    photos.forEach((photoBase64, index) => {
-                        slidesHtml += `<img src="${photoBase64}" class="slide-img">`;
-                        if (photos.length > 1) {
-                            dotsHtml += `<div class="dot ${index === 0 ? 'active' : ''}"></div>`;
-                        }
-                    });
-                    const counterHtml = photos.length > 1 ? `<div class="page-counter" id="counter-${postId}">1/${photos.length}</div>` : '';
-
-                    const postHtml = `
-                        <div class="post">
-                            <div class="post-header">
-                                <div class="user-info" onclick="editProfile()" title="Change name & avatar">
-                                    <img src="${currentUser.avatar}" class="avatar">
-                                    <div class="user-text">
-                                        <div class="username-row">
-                                            <span class="username">${currentUser.name}</span>
-                                        </div>
-                                        <span class="location">${dateString}</span>
-                                    </div>
-                                </div>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="more-btn"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-                            </div>
-
-                            <div class="image-container">
-                                ${counterHtml}
-                                <div class="slider" id="slider-${postId}" onscroll="updateDots('${postId}', ${photos.length})">
-                                    ${slidesHtml}
-                                </div>
-                            </div>
-
-                            <div class="action-bar">
-                                <div class="left-actions">
-                                    <svg class="action-icon" onclick="toggleHeart(this)" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                    <svg class="action-icon" onclick="toggleCommentBox('${postId}')" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                                </div>
-                                <div class="dots" id="dots-${postId}">${dotsHtml}</div>
-                                <div style="width:24px;"></div> 
-                            </div>
-
-                            <div class="likes-section">
-                                <img src="${currentUser.avatar}" class="like-avatar">
-                                <span>Liked by <b>others</b></span>
-                            </div>
-
-                            <div class="comments-section" id="comments-list-${postId}">
-                                <div class="comment-row">
-                                    <span class="comment-user">My Memory</span>
-                                    <span class="comment-text">Uploaded photos 📸</span>
-                                </div>
-                            </div>
-                            
-                            <div class="timestamp">POSTED ON ${dateKey}</div>
-
-                            <div class="add-comment-section" id="comment-box-${postId}">
-                                <img src="${currentUser.avatar}" class="my-avatar-small">
-                                <input type="text" id="input-${postId}" class="comment-input" placeholder="Add a comment...">
-                                <button class="post-btn" onclick="postComment('${postId}', 'input-${postId}')">Post</button>
-                            </div>
-                        </div>
-                    `;
-
-                    feedContainer.insertAdjacentHTML('beforeend', postHtml);
-                    renderCommentsList(postId, postComments);
-                }
-            } catch (err) {
-                console.error(err);
-                document.getElementById('status-msg').innerText = "Database Loading Error. Click Fix Layout button.";
-            }
-        }
-
-        function toggleHeart(el) { el.classList.toggle('heart-filled'); }
-
-        function updateDots(postId, totalPhotos) {
+        // 2. 輪播圖更新 (小圓點 + 右上角數字)
+        function updateDots(postId) {
             const slider = document.getElementById(`slider-${postId}`);
             const dotsContainer = document.getElementById(`dots-${postId}`);
             const counter = document.getElementById(`counter-${postId}`);
-            if(!slider) return;
-            const index = Math.round(slider.scrollLeft / slider.clientWidth);
-            if(counter) counter.innerText = `${index + 1}/${totalPhotos}`;
-            if(dotsContainer) {
-                const dots = dotsContainer.children;
-                for (let i = 0; i < dots.length; i++) {
-                    dots[i].classList.toggle('active', i === index);
+            
+            const scrollLeft = slider.scrollLeft;
+            const width = slider.clientWidth;
+            
+            // 計算現在在第幾張 (0, 1, 2...)
+            const index = Math.round(scrollLeft / width);
+            const total = dotsContainer.children.length;
+
+            // 更新右上角數字
+            if(counter) {
+                counter.innerText = `${index + 1}/${total}`;
+            }
+
+            // 更新圓點 active 狀態
+            const dots = dotsContainer.children;
+            for (let i = 0; i < dots.length; i++) {
+                if (i === index) {
+                    dots[i].classList.add('active');
+                } else {
+                    dots[i].classList.remove('active');
                 }
             }
         }
-
-        // 初始化
-        renderFeed();
     </script>
 </body>
 </html>
