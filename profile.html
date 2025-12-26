@@ -354,7 +354,7 @@
     function handleSubscription() {
         const isPremium = localStorage.getItem('isPremium');
         if (isPremium === 'true') {
-            alert("您目前已經是尊爵會員！\n享受您的專屬權益吧！✨");
+            console.log("已是會員");
         } else {
             window.location.href = "payment.html";
         }
