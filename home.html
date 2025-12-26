@@ -32,29 +32,27 @@
         .card { 
             width: 100%; 
             max-width: 500px; 
-            /* 1. 移除強制正方形設定 */
-            /* aspect-ratio: 1 / 1; */ 
+            aspect-ratio: 1 / 1; 
             
             /* 讓高度自動適應 */
             height: auto;
-            max-height: 75vh; /* 限制最大高度，避免長圖把按鈕擠出畫面 */
+            max-height:200vh; /* 限制最大高度，避免長圖把按鈕擠出畫面 */
             
-            border-radius: 35px; 
+            border-radius: 60px; 
             overflow: hidden; 
             
             /* 2. 背景色改成透明，解決「看起來被分隔」的問題 */
             background-color: transparent; 
             
             position: relative; 
-            /* 陰影保留，讓照片有立體感，若想完全平面可移除這行 */
-            box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2); 
+            
         }
 
         .card img { 
             width: 100%; 
             /* 3. 圖片高度設為 auto，維持原圖比例 */
-            height: auto; 
-            object-fit: contain; 
+            height: 100%; 
+            object-fit: cover; 
             display: block; /* 消除圖片底部的微小縫隙 */
         }
 
