@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Social Feed</title>
     <style>
-        /* --- 1. 基礎設定 (保留) --- */
+        /* --- 1. 基礎設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: #F3ECE5; color: #000; padding-bottom: 80px; }
         body::-webkit-scrollbar { display: none; }
@@ -15,7 +15,7 @@
 
         /* --- Header --- */
         .post-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; }
-        .user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; } /* 加了 cursor */
+        .user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1); background: #ddd; }
         .user-text { display: flex; flex-direction: column; }
         .username-row { display: flex; align-items: center; gap: 3px; }
@@ -53,14 +53,23 @@
         .timestamp { font-size: 10px; color: #888; margin-top: 4px; padding: 0 15px; text-transform: uppercase; }
         #status-msg { text-align: center; margin-top: 50px; color: #888; font-size: 14px; }
 
-        /* --- 新增：留言輸入框樣式 --- */
+        /* --- 留言輸入框樣式 (修改：預設隱藏 display: none) --- */
         .add-comment-section {
-            display: flex;
+            display: none; /* <--- 關鍵修改：預設隱藏 */
             align-items: center;
             padding: 10px 15px 0 15px;
             margin-top: 5px;
-            border-top: 1px solid #9C7C66;
+            border-top: 1px solid rgba(0,0,0,0.03); /* 這裡可以改線條顏色 */
         }
+        
+        /* 當被 JS 切換為顯示時的 class */
+        .add-comment-section.show {
+            display: flex;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
         .my-avatar-small {
             width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; object-fit: cover;
         }
@@ -97,14 +106,12 @@
     <input type="file" id="profile-upload" accept="image/*" style="display: none;">
 
     <script>
-        // --- 1. 資料庫設定 (升級版本為 2) ---
         const dbName = "MemoriesDB";
-        const storeName = "photos";     // 存照片
-        const commentStore = "comments"; // 存留言 (新)
-        const profileStore = "profile";  // 存個人檔 (新)
+        const storeName = "photos";     
+        const commentStore = "comments"; 
+        const profileStore = "profile";  
         let db;
         
-        // 目前的使用者資料 (預設值)
         let currentUser = {
             name: "My Memory",
             avatar: "https://i.pravatar.cc/150?img=12"
@@ -112,19 +119,13 @@
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                // 注意：這裡版本號改成了 2，這樣才會觸發 onupgradeneeded 建立新倉庫
                 const request = indexedDB.open(dbName, 2);
-                
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
-                    // 如果沒有照片庫，建立它
                     if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
-                    // 如果沒有留言庫，建立它
                     if (!db.objectStoreNames.contains(commentStore)) db.createObjectStore(commentStore);
-                    // 如果沒有個人檔庫，建立它
                     if (!db.objectStoreNames.contains(profileStore)) db.createObjectStore(profileStore);
                 };
-
                 request.onsuccess = (e) => {
                     db = e.target.result;
                     resolve(db);
@@ -132,8 +133,6 @@
                 request.onerror = (e) => reject(e);
             });
         }
-
-        // --- 2. 資料存取函式 ---
 
         function getData(store, key) {
             return new Promise((resolve) => {
@@ -154,64 +153,67 @@
             });
         }
 
-        // 讀取個人檔案
         async function loadProfile() {
             const profile = await getData(profileStore, "user_info");
-            if (profile) {
-                currentUser = profile;
-            }
+            if (profile) currentUser = profile;
         }
 
-        // 修改個人檔案 (點擊頭像觸發)
         function editProfile() {
             const newName = prompt("Enter your username:", currentUser.name);
             if (newName) {
                 currentUser.name = newName;
-                // 觸發上傳頭貼
                 document.getElementById('profile-upload').click();
             }
         }
 
-        // 監聽頭貼上傳
         document.getElementById('profile-upload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = async function(evt) {
-                    currentUser.avatar = evt.target.result; // Base64
-                    // 存入資料庫
+                    currentUser.avatar = evt.target.result;
                     await saveData(profileStore, "user_info", currentUser);
-                    // 重新渲染頁面
                     renderFeed();
                 };
                 reader.readAsDataURL(file);
             } else {
-                // 如果只改名沒改圖
                  saveData(profileStore, "user_info", currentUser).then(renderFeed);
             }
         });
 
-        // --- 3. 留言功能邏輯 ---
+        // --- 核心修改：切換留言框顯示 ---
+        function toggleCommentBox(postId) {
+            const box = document.getElementById(`comment-box-${postId}`);
+            const input = document.getElementById(`input-${postId}`);
+            
+            // 切換 class "show"
+            if (box.classList.contains('show')) {
+                box.classList.remove('show');
+                // 為了讓 CSS display none 生效，這裡移除 style
+                box.style.display = 'none'; 
+            } else {
+                box.style.display = 'flex'; // 先設為 flex
+                // 稍微延遲加上 show class 觸發動畫
+                setTimeout(() => box.classList.add('show'), 10);
+                input.focus(); // 自動聚焦到輸入框
+            }
+        }
 
         async function addComment(postId, inputId) {
             const input = document.getElementById(inputId);
             const text = input.value.trim();
             if (!text) return;
 
-            // 1. 讀取舊留言
             let comments = await getData(commentStore, postId) || [];
             
-            // 2. 加入新留言
             comments.push({
                 user: currentUser.name,
                 text: text,
                 time: new Date().toISOString()
             });
 
-            // 3. 存回資料庫
             await saveData(commentStore, postId, comments);
 
-            // 4. 清空輸入框並重新渲染留言區
             input.value = '';
             renderCommentsSection(postId, comments);
         }
@@ -219,10 +221,6 @@
         function renderCommentsSection(postId, comments) {
             const container = document.getElementById(`comments-container-${postId}`);
             let html = '';
-            // 固定顯示的第一條 (標題說明)
-            // html += `<div class="comment-row"><span class="comment-user">${currentUser.name}</span><span class="comment-text">My memory log 📸</span></div>`;
-            
-            // 渲染資料庫裡的留言
             comments.forEach(c => {
                 html += `
                 <div class="comment-row">
@@ -233,11 +231,9 @@
             container.innerHTML = html;
         }
 
-        // --- 4. 主渲染邏輯 ---
-
         async function renderFeed() {
             await initDB();
-            await loadProfile(); // 先讀取使用者資料
+            await loadProfile();
 
             const memories = await getData(storeName, "all_photos") || {};
             const feedContainer = document.getElementById('dynamic-feed');
@@ -251,7 +247,6 @@
 
             if (sortedDates.length === 0) {
                 statusMsg.innerHTML = "No photos yet.<br>Click the user avatar in a post to set your profile!";
-                // 為了讓使用者能設定 Profile，我們即使沒照片也讓他知道怎麼操作，或是這裡你可以放一個假的 Demo
                 return;
             } else {
                 statusMsg.style.display = 'none';
@@ -262,14 +257,10 @@
                 if (!photos || photos.length === 0) continue;
 
                 const postId = dateKey.replace(/-/g, '');
-                
-                // 讀取該貼文的留言
                 const postComments = await getData(commentStore, postId) || [];
-
                 const dateObj = new Date(dateKey.replace(/-/g, '/'));
                 const dateString = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-                // 圖片輪播 HTML
                 let slidesHtml = '';
                 let dotsHtml = '';
                 photos.forEach((photoBase64, index) => {
@@ -284,7 +275,7 @@
                 const postHtml = `
                     <div class="post">
                         <div class="post-header">
-                            <div class="user-info" onclick="editProfile()" title="Click to edit profile">
+                            <div class="user-info" onclick="editProfile()">
                                 <img src="${currentUser.avatar}" class="avatar">
                                 <div class="user-text">
                                     <div class="username-row">
@@ -306,7 +297,8 @@
                         <div class="action-bar">
                             <div class="left-actions">
                                 <svg class="action-icon" onclick="toggleHeart(this)" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                <svg class="action-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                
+                                <svg class="action-icon" onclick="toggleCommentBox('${postId}')" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                             </div>
                             <div class="dots" id="dots-${postId}">${dotsHtml}</div>
                             <div style="width:24px;"></div> 
@@ -322,11 +314,11 @@
                                 <span class="comment-user">${currentUser.name}</span>
                                 <span class="comment-text">Uploaded ${photos.length} photos 📸</span>
                             </div>
-                            </div>
+                        </div>
                         
                         <div class="timestamp">POSTED ON ${dateKey}</div>
 
-                        <div class="add-comment-section">
+                        <div class="add-comment-section" id="comment-box-${postId}">
                             <img src="${currentUser.avatar}" class="my-avatar-small">
                             <input type="text" id="input-${postId}" class="comment-input" placeholder="Add a comment...">
                             <button class="post-btn" onclick="addComment('${postId}', 'input-${postId}')">Post</button>
@@ -335,7 +327,6 @@
                 `;
 
                 feedContainer.insertAdjacentHTML('beforeend', postHtml);
-                // 初始渲染留言
                 renderCommentsSection(postId, postComments);
             }
         }
@@ -357,9 +348,7 @@
             }
         }
 
-        // 初始化
         renderFeed();
-
     </script>
 </body>
 </html>
