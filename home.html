@@ -81,28 +81,52 @@
     <div id="loading-toast">Saving...</div>
 
     <script>
+        // --- 1. 強制更新頭像函式 ---
         function loadUserProfile() {
             const avatarDiv = document.querySelector('.avatar-placeholder');
             const savedAvatar = localStorage.getItem('myProfileAvatar');
             
-            if (savedAvatar && avatarDiv) {
-                avatarDiv.style.backgroundImage = `url('${savedAvatar}')`;
-                avatarDiv.style.backgroundSize = 'cover';
-                avatarDiv.style.backgroundPosition = 'center';
-                avatarDiv.style.backgroundColor = 'transparent';
+            // 為了除錯，可以在 F12 console 看有沒有抓到
+            console.log("嘗試載入頭像...", savedAvatar ? "有資料" : "無資料");
+
+            if (avatarDiv) {
+                if (savedAvatar) {
+                    // 有照片：設定背景圖
+                    avatarDiv.style.backgroundImage = `url('${savedAvatar}')`;
+                    avatarDiv.style.backgroundSize = 'cover';
+                    avatarDiv.style.backgroundPosition = 'center';
+                    avatarDiv.style.backgroundColor = 'transparent'; 
+                } else {
+                    // 沒照片：恢復預設狀態 (避免還有舊的背景圖殘留)
+                    avatarDiv.style.backgroundImage = 'none';
+                    avatarDiv.style.backgroundColor = '#9C7C66'; // 回復原本的咖啡色
+                }
             }
         }
 
-        // ★★★ 關鍵修改：使用 pageshow 確保從別頁跳回來時也會更新 ★★★
-        window.addEventListener('pageshow', function(event) {
+        // --- 2. 綁定所有可能的「回到頁面」事件 ---
+        
+        // 第一次載入
+        window.addEventListener('DOMContentLoaded', loadUserProfile);
+        
+        // 從上一頁回來 / 重新整理
+        window.addEventListener('pageshow', (event) => {
+            // event.persisted 代表是從快取讀取的，這時一定要重跑
             loadUserProfile();
         });
-        
-        // 保險起見，原本的 load 也留著
-        window.addEventListener('load', loadUserProfile);
+
+        // 切換分頁後回來
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                loadUserProfile();
+            }
+        });
+
+        // 視窗重新取得焦點 (例如從手機多工列切回來)
+        window.addEventListener('focus', loadUserProfile);
 
 
-        // --- 以下是你原本的資料庫與相機功能 (保持不變) ---
+        // --- 以下是原本的資料庫與功能 (保持不變) ---
         const dbName = "MemoriesDB";
         const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
@@ -144,11 +168,9 @@
             });
         }
 
-        // --- 自動載入當天最新照片 ---
         async function loadLatestPhoto() {
             if (!db) await initDB();
             const memories = await getAllMemories();
-            
             const now = new Date();
             const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
             
@@ -161,7 +183,6 @@
 
         initDB().then(loadLatestPhoto);
 
-        // --- 介面互動 ---
         const shutterBtn = document.querySelector('.shutter-btn');
         const overlay = document.getElementById('action-sheet-overlay');
         const mainImage = document.getElementById('displayImg');
@@ -174,7 +195,6 @@
         document.getElementById('btn_camera').addEventListener('click', () => { document.getElementById('input_camera').click(); overlay.classList.remove('show'); });
         document.getElementById('btn_gallery').addEventListener('click', () => { document.getElementById('input_gallery').click(); overlay.classList.remove('show'); });
 
-        // --- 檔案處理 ---
         async function handleFileSelect(e) {
             const files = e.target.files;
             if (!files || files.length === 0) return;
