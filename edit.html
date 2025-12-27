@@ -232,17 +232,17 @@
     <input type="file" id="hiddenFileInput" accept="image/*" multiple>
 
     <script>
-        // --- 1. IndexedDB 設定 ---
+        // --- IndexedDB 初始化 ---
         const dbName = "MemoriesDB";
-        const storeName = "photos";
-        const channel = new BroadcastChannel('memory_update'); 
+        const storeName = "posts_timeline"; // 改名：不再存 photos，改存 timeline
         let db;
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 1);
+                const request = indexedDB.open(dbName, 2); // ★★★ 版本號升級為 2，觸發更新 ★★★
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
+                    // 建立新的儲存區來放貼文列表
                     if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
                 };
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
@@ -250,215 +250,144 @@
             });
         }
 
-        function getAllMemories() {
+        // 取得所有貼文列表 (這會是一個 Array)
+        function getTimeline() {
             return new Promise((resolve) => {
-                if (!db) return resolve({});
+                if (!db) return resolve([]);
                 const tx = db.transaction([storeName], "readonly");
                 const store = tx.objectStore(storeName);
-                const req = store.get("all_photos");
-                req.onsuccess = (e) => resolve(e.target.result || {});
-                req.onerror = () => resolve({});
+                const req = store.get("feed_data");
+                req.onsuccess = (e) => resolve(e.target.result || []); // 預設回傳空陣列
+                req.onerror = () => resolve([]);
             });
         }
 
-        function saveAllMemories(data) {
+        // 儲存整個列表
+        function saveTimeline(data) {
             return new Promise((resolve, reject) => {
                 const tx = db.transaction([storeName], "readwrite");
                 const store = tx.objectStore(storeName);
-                const req = store.put(data, "all_photos");
+                const req = store.put(data, "feed_data");
                 req.onsuccess = () => resolve();
                 req.onerror = () => reject();
             });
         }
 
-        // --- 2. UI 互動邏輯 ---
+        // --- 變數與 UI 邏輯 (保持不變) ---
+        const imageLoader = document.getElementById('imageLoader');
+        const placeholder = document.getElementById('placeholder');
+        const previewSlider = document.getElementById('previewSlider');
+        const reselectBtn = document.getElementById('reselectBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const pageIndicator = document.getElementById('pageIndicator');
+        const compressCanvas = document.getElementById('compressCanvas');
+        const ctx = compressCanvas.getContext('2d');
+        let pendingImages = []; 
 
-        // 人名 Tag
-        const btnTagPeople = document.getElementById('btnTagPeople');
-        btnTagPeople.addEventListener('click', function() {
-            this.classList.toggle('active');
-        });
-
-        // 地點 Tag (動畫邏輯)
-        const btnLocation = document.getElementById('btnLocation');
-        btnLocation.addEventListener('click', function() {
-            if (this.classList.contains('active')) {
-                // 取消時：變回圓形
-                this.classList.remove('active');
-            } else {
-                // 開始載入 (保持圓形，開始閃爍)
-                this.classList.add('loading'); 
-                
-                // 1.5秒後變身
-                setTimeout(() => {
-                    this.classList.remove('loading'); 
-                    this.classList.add('active'); // CSS 會處理寬度展開和文字顯示
-                }, 1500);
-            }
-        });
-
-        // --- 3. 相簿邏輯 ---
-        
-        let galleryImages = []; 
-        let selectedIndices = new Set();
-        let isMultiSelect = false;
-
-        const mainPreview = document.getElementById('mainPreview');
-        const galleryGrid = document.getElementById('galleryGrid');
-        const multiSelectBtn = document.getElementById('multiSelectBtn');
-        const fileInput = document.getElementById('hiddenFileInput');
-        const nextBtn = document.getElementById('nextBtn');
-
-        // 上傳監聽
-        fileInput.addEventListener('change', function(e) {
+        // 圖片選擇邏輯 (與上一版相同)
+        imageLoader.addEventListener('change', async function(e) {
             const files = Array.from(e.target.files);
-            if(files.length === 0) return;
-
-            files.reverse().forEach(file => {
-                galleryImages.unshift(URL.createObjectURL(file));
-            });
-
-            renderGalleryPhotos();
-            
-            if (galleryImages.length > 0 && !isMultiSelect) {
-                selectedIndices.clear();
-                mainPreview.src = galleryImages[0];
-                mainPreview.style.display = 'block';
+            if (files.length === 0) return;
+            placeholder.innerHTML = `<div style="opacity:0.6">Processing ${files.length} photos...</div>`;
+            pendingImages = [];
+            previewSlider.innerHTML = ''; 
+            for (const file of files) {
+                try {
+                    const base64 = await processImage(file);
+                    pendingImages.push(base64);
+                } catch (err) { console.error(err); }
             }
+            if (pendingImages.length > 0) {
+                renderPreview();
+                placeholder.style.display = 'none';
+                previewSlider.style.display = 'flex';
+                reselectBtn.style.display = 'flex';
+                shareBtn.disabled = false;
+                if(pendingImages.length > 1) {
+                    pageIndicator.style.display = 'block';
+                    pageIndicator.textContent = `1/${pendingImages.length}`;
+                }
+            } else { resetSelection(); }
         });
 
-        function renderGalleryPhotos() {
-            // 清除現有照片 (保留第一格)
-            const existingPhotos = galleryGrid.querySelectorAll('.gallery-item:not(.upload-tile)');
-            existingPhotos.forEach(el => el.remove());
-            
-            const selectedArray = Array.from(selectedIndices);
-
-            galleryImages.forEach((url, index) => {
-                const item = document.createElement('div');
-                const isSelected = selectedIndices.has(index);
-                item.className = `gallery-item ${isSelected ? 'selected' : ''}`;
-                
-                const img = document.createElement('img');
-                img.src = url;
-                
-                const badge = document.createElement('div');
-                badge.className = 'selection-badge';
-                
-                if (isMultiSelect && isSelected) {
-                    badge.textContent = selectedArray.indexOf(index) + 1;
-                    badge.style.display = 'flex';
-                } else {
-                    badge.style.display = 'none';
-                }
-                
-                item.onclick = () => handleItemClick(index);
-                item.appendChild(img);
-                item.appendChild(badge);
-                galleryGrid.appendChild(item);
+        function processImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let maxWidth = 1080;
+                        let w = img.width; let h = img.height;
+                        if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
+                        compressCanvas.width = w; compressCanvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(compressCanvas.toDataURL('image/jpeg', 0.85));
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
             });
         }
 
-        function toggleMultiSelect() {
-            isMultiSelect = !isMultiSelect;
-            
-            if (isMultiSelect) {
-                multiSelectBtn.classList.add('active');
-                if (selectedIndices.size === 0 && galleryImages.length > 0 && mainPreview.src) {
-                    const currentSrc = mainPreview.src;
-                    const idx = galleryImages.indexOf(currentSrc);
-                    if(idx !== -1) selectedIndices.add(idx);
-                }
-            } else {
-                multiSelectBtn.classList.remove('active');
-                selectedIndices.clear();
-            }
-            renderGalleryPhotos();
+        function renderPreview() {
+            previewSlider.innerHTML = pendingImages.map(src => `<div class="preview-item"><img src="${src}"></div>`).join('');
+        }
+        
+        previewSlider.addEventListener('scroll', () => {
+            const index = Math.round(previewSlider.scrollLeft / previewSlider.offsetWidth);
+            pageIndicator.textContent = `${index + 1}/${pendingImages.length}`;
+        });
+
+        function resetSelection() {
+            pendingImages = [];
+            imageLoader.value = ""; 
+            previewSlider.style.display = 'none'; previewSlider.innerHTML = '';
+            reselectBtn.style.display = 'none'; pageIndicator.style.display = 'none';
+            placeholder.style.display = 'flex';
+            placeholder.innerHTML = `<div class="upload-icon">📷</div><p>Select photos</p><label class="upload-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> Open Gallery<input type="file" id="imageLoader" accept="image/*" multiple style="display: none;"></label>`;
+            shareBtn.disabled = true;
         }
 
-        function handleItemClick(index) {
-            const url = galleryImages[index];
-
-            if (isMultiSelect) {
-                if (selectedIndices.has(index)) {
-                    selectedIndices.delete(index);
-                } else {
-                    selectedIndices.add(index);
-                    mainPreview.src = url;
-                    mainPreview.style.display = 'block';
-                }
-            } else {
-                mainPreview.src = url;
-                mainPreview.style.display = 'block';
-                selectedIndices.clear(); 
-            }
-            renderGalleryPhotos();
-        }
-
-        // --- 4. Share 邏輯 (修正：不跳選單) ---
-        nextBtn.addEventListener('click', async () => {
-            let imagesToSave = [];
-
-            if (selectedIndices.size > 0) {
-                selectedIndices.forEach(idx => imagesToSave.push(galleryImages[idx]));
-            } else if (mainPreview.src && mainPreview.style.display !== 'none') {
-                imagesToSave.push(mainPreview.src);
-            }
-
-            if(imagesToSave.length === 0) {
-                alert("Please select a photo first!");
-                // 這裡拿掉了自動觸發 click，避免用戶困擾
-                return;
-            }
-
-            nextBtn.textContent = "Posting...";
-            nextBtn.style.opacity = "0.5";
+        // --- ★★★ 關鍵修改：儲存邏輯 ★★★ ---
+        shareBtn.addEventListener('click', async () => {
+            if (pendingImages.length === 0) return;
+            shareBtn.textContent = "Posting...";
+            shareBtn.disabled = true;
 
             if (!db) await initDB();
-            let memories = await getAllMemories();
+            
+            // 1. 讀取目前的貼文列表 (Array)
+            let timeline = await getTimeline();
 
             const now = new Date();
-            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+            const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+            
+            // 2. 建立一個全新的貼文物件
+            const newPost = {
+                id: Date.now(), // 使用時間戳當作唯一 ID
+                timestamp: now.getTime(),
+                dateString: dateStr,
+                images: pendingImages, // 這次選的這組照片
+                likes: 0,
+                isLiked: false,
+                comments: [] // 初始為空，我們在 social.html 會自動補上作者內文
+            };
 
-            if (!memories[dateKey]) memories[dateKey] = [];
-            if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
-
-            for (let url of imagesToSave) {
-                try {
-                    const base64 = await urlToBase64(url);
-                    memories[dateKey].push(base64);
-                } catch (e) { console.error(e); }
-            }
+            // 3. 加到列表最前面 (Unshift)
+            timeline.unshift(newPost);
 
             try {
-                await saveAllMemories(memories);
-                channel.postMessage('updated');
-                window.location.href = "home.html"; 
+                // 4. 存回資料庫
+                await saveTimeline(timeline);
+                window.location.href = "social.html";
             } catch (err) {
-                alert("Storage full.");
-                nextBtn.textContent = "Share";
-                nextBtn.style.opacity = "1";
+                console.error(err);
+                alert("Upload failed.");
+                shareBtn.textContent = "Share";
+                shareBtn.disabled = false;
             }
         });
 
-        function urlToBase64(url) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'Anonymous';
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let w = img.width, h = img.height;
-                    const max = 1024;
-                    if(w > max) { h*=max/w; w=max; }
-                    canvas.width = w; canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, w, h);
-                    resolve(canvas.toDataURL('image/jpeg', 0.8));
-                };
-                img.onerror = reject;
-                img.src = url;
-            });
-        } 
         initDB();
     </script>
 </body>
