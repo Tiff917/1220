@@ -31,6 +31,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            /* ★ 加入這兩行來鎖死左右滑動 ★ */
+            overflow-x: hidden; 
+            width: 100%;
         }
 
         /* --- 主容器 (響應式核心) --- */
@@ -53,6 +56,8 @@
                 max-height: 800px;
                 border-radius: 40px; /* 只有電腦版有圓角 */
                 box-shadow: 0 20px 40px rgba(100, 80, 70, 0.15);
+                /* ★ 確保手機版也鎖死 ★ */
+                overflow-x: hidden;
             }
         }
 
