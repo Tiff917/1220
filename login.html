@@ -274,7 +274,7 @@
         <div class="home-indicator"></div>
     </div>
 
-    <script>
+<script>
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('passwordInput');
         const emailInput = document.getElementById('emailInput');
@@ -311,15 +311,23 @@
             }
 
             if (isValid) {
+                // --- ★ 修改處：抓取 Email 並儲存 ---
+                localStorage.setItem('myProfileEmail', emailValue);
+                
+                // (選用) 如果這台電腦之前沒登入過，名字可能是空的，我們可以先給一個預設值，避免 Profile 顯示空白
+                if (!localStorage.getItem('myProfileName')) {
+                    localStorage.setItem('myProfileName', "Me");
+                }
+                // --- ★ 修改處結束 ---
+
                 // 為了展示效果，這裡加上簡單的按鈕 Loading 狀態
                 loginBtn.textContent = 'Logging in...';
                 loginBtn.style.backgroundColor = '#6D5D55';
                 
                 setTimeout(() => {
-                    alert("Login Successful!"); // 實際請改為 window.location.href = "home.html";
-                    window.location.href = "index.html";
-                    loginBtn.textContent = 'Log in';
-                    loginBtn.style.backgroundColor = '#D7BDB0';
+                    // 登入成功
+                    // 注意：這裡我將跳轉頁面改為 'social.html' (主頁)，您可以根據需求改回 'index.html'
+                    window.location.href = "social.html"; 
                 }, 1000);
             }
         });
