@@ -31,22 +31,27 @@
         .card { 
             width: 100%; 
             max-width: 500px; 
+            
+            /* 強制正方形 */
             aspect-ratio: 1 / 1; 
             
-            /* --- ★★★ 關鍵修正：統一圓角設定 ★★★ --- */
-            /* 將 overflow: hidden 和 border-radius 放在一起 */
-            /* 使用較大的值 (例如 80px) 來製作明顯的圓角正方形 */
+            /* --- ★★★ 終極修正：使用 clip-path 裁切 ★★★ --- */
+            /* 這行指令會像剪刀一樣，把元素直接剪成圓角，不會有白邊或鋸齒 */
+            -webkit-clip-path: inset(0 round 80px);
+            clip-path: inset(0 round 80px);
+            
+            /* 為了相容性，border-radius 還是留著 */
             border-radius: 80px;
-            overflow: hidden; 
+            
+            /* 這裡不需要 overflow: hidden 了，因為 clip-path 已經切掉了 */
+            /* overflow: hidden; */ 
             
             background-color: transparent; 
             position: relative; 
             
-            /* 移除不必要的 GPU 加速屬性，有時會導致邊緣渲染問題 */
-            /* transform: translateZ(0); */
-            /* -webkit-transform: translateZ(0); */
-            /* backface-visibility: hidden; */
-            /* -webkit-mask-image: -webkit-radial-gradient(white, black); */
+            /* 強制開啟硬體加速，讓切邊更利落 */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
             
             transition: transform 0.2s ease; 
             cursor: grab;
