@@ -188,32 +188,52 @@
             });
         }
 
-        // 修改後的讀取最新照片函式
+       // --- 讀取最新照片 (高效能 Cursor 版) ---
         async function loadLatestPhoto() {
             if (!db) await initDB();
-            const memories = await getAllMemories();
-            
-            // 1. 取得所有有存照片的日期 (例如 ['2023-10-20', '2023-10-27'])
-            const dates = Object.keys(memories);
-
-            // 如果資料庫是空的，就什麼都不做，維持預設圖片
-            if (dates.length === 0) return;
-
-            // 2. 對日期進行排序 (由新到舊)
-            // 因為日期格式是 YYYY-M-D，直接比字串可能會錯，轉成 Date 物件比時間戳記最準
-            dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-            // 3. 取得最新的日期
-            const newestDate = dates[0];
-            const photosInNewestDate = memories[newestDate];
-
-            // 4. 取得該日期中「最後一張」上傳的照片
-            if (photosInNewestDate && photosInNewestDate.length > 0) {
-                const lastPhoto = photosInNewestDate[photosInNewestDate.length - 1];
-                document.getElementById('displayImg').src = lastPhoto;
-            }
+        
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction("all_photos", "readonly");
+                const store = tx.objectStore("all_photos");
+        
+                // openCursor(null, 'prev') 的意思就是：
+                // 從資料庫的「最後面」開始讀取 (prev = previous)，也就是最新的資料
+                const request = store.openCursor(null, 'prev');
+        
+                request.onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        // cursor.value 就是我們存進去的物件： { date:..., timestamp:..., image: File }
+                        const record = cursor.value;
+        
+                        // 檢查是否有 image 屬性
+                        if (record.image) {
+                            const imgElement = document.getElementById('displayImg');
+                            
+                            // ★ 關鍵修改：判斷是 Blob 還是舊的 Base64
+                            if (record.image instanceof Blob || record.image instanceof File) {
+                                // 新版資料：建立連結
+                                imgElement.src = URL.createObjectURL(record.image);
+                            } else {
+                                // 舊版資料 (相容舊代碼)
+                                imgElement.src = record.image;
+                            }
+                        }
+                        resolve(record); // 找到最新一筆就結束，不繼續迴圈
+                    } else {
+                        // 資料庫是空的
+                        resolve(null);
+                    }
+                };
+        
+                request.onerror = (e) => {
+                    console.error("讀取最新照片失敗:", e);
+                    reject(e);
+                };
+            });
         }
-
+        
+        // 執行
         initDB().then(loadLatestPhoto);
 
         // 3. 按鈕互動
