@@ -356,6 +356,36 @@
             }
         }
 
+        const usernameDiv = document.querySelector('.username');
+
+        // 1. 網頁一打開，先從信箱(localStorage) 抓名字來顯示
+        // 如果信箱是空的，就顯示 "Me"
+        window.addEventListener('load', () => {
+            const savedName = localStorage.getItem('myProfileName');
+            if (savedName) {
+                usernameDiv.innerText = savedName;
+            } else {
+                usernameDiv.innerText = "Me";
+            }
+        });
+        
+        // 2. 當使用者打完字、點擊別處時 (onblur)，把新名字存進信箱
+        function saveName() {
+            const newName = usernameDiv.innerText.trim();
+            
+            // 如果使用者把名字刪光了，就自動變回 Me
+            if (!newName) {
+                usernameDiv.innerText = "Me";
+                localStorage.setItem('myProfileName', "Me");
+            } else {
+                // 把名字存入 localStorage
+                localStorage.setItem('myProfileName', newName);
+            }
+        
+            // ★ 關鍵：通知 social.html 資料已經更新了 (如果有使用 BroadcastChannel)
+            const channel = new BroadcastChannel('memory_update');
+            channel.postMessage('updated');
+        }
         checkStatus();
     </script>
 </body>
