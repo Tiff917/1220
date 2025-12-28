@@ -17,12 +17,14 @@
         .search-pill { height: 50px; width: 140px; border-radius: 25px; display: flex; justify-content: flex-start; align-items: center; padding-left: 15px; }
         .chat-btn { width: 50px; height: 50px; border-radius: 50%; }
 
-        /* Main Content */
+       /* Main Content */
         .content { 
             flex: 1; 
             width: 100%; 
-            margin:40px 0;
-            padding: 20px 24px; 
+            /* 修正 1: 移除 margin，讓 flex 自動置中就好 */
+            margin: 0; 
+            padding: 20px 24px; /* 保持原本的內距即可 */
+            
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -32,28 +34,31 @@
         .card { 
             width: 100%; 
             max-width: 500px; 
-            margin:20px 0; 
+            /* 修正 2: 移除 margin，避免卡片上下位置跑掉 */
+            margin: 0;
+            
             /* 強制正方形 */
             aspect-ratio: 1 / 1; 
             
-            /* --- ★★★ 終極修正：使用 clip-path 裁切 ★★★ --- */
-            /* 這行指令會像剪刀一樣，把元素直接剪成圓角，不會有白邊或鋸齒 */
-            -webkit-clip-path: inset(0 round 80px);
-            clip-path: inset(0 round 80px);
-            
-            /* 為了相容性，border-radius 還是留著 */
+            /* --- ★★★ 終極圓角方案 (最平滑) ★★★ --- */
+            /* 1. 設定圓角大小 */
             border-radius: 80px;
+
+            /* 2. 基礎裁切 */
+            overflow: hidden; 
+
+            /* 3. ★關鍵★：Webkit 遮罩 (專門修復 iOS 白邊/鋸齒的神奇指令) */
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
             
-            /* 這裡不需要 overflow: hidden 了，因為 clip-path 已經切掉了 */
-            /* overflow: hidden; */ 
-            
-            background-color: transparent; 
-            position: relative; 
-            
-            /* 強制開啟硬體加速，讓切邊更利落 */
+            /* 4. 強制 GPU 加速 (讓動畫流暢) */
             transform: translateZ(0);
             -webkit-transform: translateZ(0);
             
+            /* 5. 解決圖層混合問題 */
+            isolation: isolate;
+            
+            background-color: transparent; 
+            position: relative; 
             transition: transform 0.2s ease; 
             cursor: grab;
         }
@@ -66,10 +71,8 @@
             pointer-events: none; 
             user-select: none;
             
-            /* --- ★★★ 關鍵修正：移除圖片自身的圓角 ★★★ --- */
-            /* 既然父容器 .card 已經設定了 overflow: hidden 和 border-radius，
-               圖片就不需要再設定一次，否則兩層圓角疊加可能產生鋸齒或奇怪的角。 */
-            /* border-radius: 80px;  <-- 移除這行 */
+            /* 圖片本身不需要圓角，交給 .card 切就好 */
+            border-radius: 0; 
         }
         /* Footer */
         .footer { flex-shrink: 0; padding: 20px 40px 100px 40px;  margin:20px 0px;display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; align-self: center;}
