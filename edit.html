@@ -23,151 +23,90 @@
         .main-preview-container {
             position: relative;
             width: 100%;
-            aspect-ratio: 1/1; /* 正方形 */
+            aspect-ratio: 1/1; 
             background-color: #f0f0f0;
             overflow: hidden;
         }
         
         #mainPreviewImg {
             width: 100%; height: 100%; object-fit: cover;
-            transition: opacity 0.2s; /* 加快一點切換速度 */
+            transition: opacity 0.2s;
         }
 
-        /* 浮動控制列 */
         .overlay-controls {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            left: 15px;
-            display: flex;
-            justify-content: flex-end; 
-            align-items: center;
-            gap: 10px;
+            position: absolute; bottom: 15px; right: 15px; left: 15px;
+            display: flex; justify-content: flex-end; align-items: center; gap: 10px;
             pointer-events: none; 
         }
 
-        /* --- 按鈕樣式 --- */
+        /* --- 按鈕樣式 (維持不變) --- */
         .control-btn {
-            height: 36px;
-            border: none;
-            color: white;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(4px);
-            pointer-events: auto;
-            cursor: pointer;
+            height: 36px; border: none; color: white;
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);
+            pointer-events: auto; cursor: pointer;
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-
-        .btn-circle {
-            width: 36px;
-            border-radius: 50%;
-            padding: 0;
-        }
-
-        .btn-capsule {
-            padding: 0 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        /* Icon 設定 */
-        .control-btn svg {
-            width: 13px !important;
-            height: 13px !important;
-        }
-
-        .btn-text {
-            font-size: 13px;
-            font-weight: 600;
-            margin-left: 0;
-            max-width: 0;
-            opacity: 0;
-            white-space: nowrap;
-            transition: all 0.3s ease;
-        }
+        .btn-circle { width: 36px; border-radius: 50%; padding: 0; }
+        .btn-capsule { padding: 0 16px; border-radius: 20px; font-size: 13px; font-weight: 600; }
         
-        .btn-capsule .btn-text-static {
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 6px;
-        }
+        /* Icon 縮小 */
+        .control-btn svg { width: 13px !important; height: 13px !important; }
+
+        /* 按鈕文字 */
+        .btn-text { font-size: 13px; font-weight: 600; margin-left: 0; max-width: 0; opacity: 0; white-space: nowrap; transition: all 0.3s ease; }
+        .btn-capsule .btn-text-static { font-size: 12px; font-weight: 600; margin-left: 6px; }
 
         /* Active 狀態 */
-        .control-btn.active {
-            background: #be9f82;
-            color: #fff;
-        }
+        .control-btn.active { background: #be9f82; color: #fff; }
+        #locationBtn.active { width: auto; padding: 0 16px; border-radius: 20px; }
+        #locationBtn.active .btn-text { max-width: 100px; opacity: 1; margin-left: 6px; }
 
-        #locationBtn.active {
-            width: auto;
-            padding: 0 16px; 
-            border-radius: 20px;
-        }
-        #locationBtn.active .btn-text {
-            max-width: 100px;
-            opacity: 1;
-            margin-left: 6px;
-        }
-
-        /* --- 4.下方照片網格 --- */
+        /* --- 4. 下方網格與圈圈樣式 (核心修正) --- */
         .grid-gallery {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-            margin-top: 2px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 2px;
         }
         .grid-item {
-            position: relative;
-            aspect-ratio: 1/1;
-            overflow: hidden;
-            background: #eee;
-            cursor: pointer;
+            position: relative; aspect-ratio: 1/1; overflow: hidden; background: #eee; cursor: pointer;
         }
         .grid-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: opacity 0.2s; }
-        
-        .grid-item.active img { opacity: 1; }
-        
-        /* 遮罩：選中時變暗 */
-        .grid-item.selected .overlay-mask { 
-            position: absolute; inset: 0; background: rgba(0,0,0,0.2); 
+        .grid-item.active img { opacity: 1; } /* 當前大圖 */
+
+        /* 遮罩：被選中時變暗 */
+        .overlay-mask {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: none;
         }
-        
-        /* ★★★ 選取編號圈圈 (改良版) ★★★ */
+        .grid-item.selected .overlay-mask { display: block; }
+
+        /* ★★★ 圈圈核心樣式修正 ★★★ */
         .check-circle {
             position: absolute; top: 6px; right: 6px;
             width: 22px; height: 22px;
             border-radius: 50%; 
-            
-            /* 預設樣式 (空心) */
-            border: 1.5px solid rgba(255, 255, 255, 0.8);
-            background: rgba(0,0,0,0.1); 
-            
-            display: none; /* 平常隱藏 */
             z-index: 10;
+            display: none; /* 預設不顯示 */
             
-            /* 文字置中 */
-            justify-content: center;
-            align-items: center;
-            font-size: 11px;
-            font-weight: 700;
-            color: transparent;
-            transition: all 0.2s ease;
+            /* 空心狀態樣式 */
+            border: 2px solid rgba(255, 255, 255, 0.9); /* 白色邊框加粗一點點 */
+            background-color: rgba(0, 0, 0, 0.2); /* 淡淡的黑底，確保淺色照片上看得到 */
+            box-shadow: 0 0 4px rgba(0,0,0,0.2); /* 加點陰影增加層次 */
+
+            /* 數字置中 */
+            justify-content: center; align-items: center;
+            font-size: 11px; font-weight: 700; color: white;
+            transition: transform 0.1s ease;
         }
 
-        /* 多選模式開啟時，所有圈圈都顯示 (空心) */
-        .select-mode-on .check-circle {
-            display: flex;
+        /* 1. 當處於多選模式時，所有圈圈都要顯示 (這就是您要的空心圈圈) */
+        .grid-item.mode-select .check-circle {
+            display: flex; 
         }
 
-        /* 選中後的樣式：變實心金色，顯示數字 */
-        .grid-item.selected .check-circle { 
-            background: #be9f82; 
-            border-color: #be9f82; 
-            color: white; 
-            transform: scale(1.05); /* 選中時微微放大 */
+        /* 2. 當被選中時，圈圈變色填滿 */
+        .grid-item.selected .check-circle {
+            background-color: #be9f82; /* 金色背景 */
+            border-color: #be9f82;     /* 邊框同色 */
+            transform: scale(1.1);     /* 選中時稍微放大，視覺回饋更強 */
         }
 
         canvas { display: none; }
@@ -182,29 +121,16 @@
     </div>
 
     <div id="contentArea">
-        
         <div class="main-preview-container">
             <img id="mainPreviewImg" src="" alt="Preview">
             
             <div class="overlay-controls">
-                <button class="control-btn btn-circle" id="tagFriendBtn">
-                    <i data-lucide="user"></i>
-                </button>
-                
-                <button class="control-btn btn-circle" id="locationBtn">
-                    <i data-lucide="map-pin"></i>
-                    <span class="btn-text">Kaohsiung</span>
-                </button>
-                
-                <button class="control-btn btn-capsule" id="multiSelectBtn">
-                    <i data-lucide="layers"></i>
-                    <span class="btn-text-static">SELECT MULTIPLE</span>
-                </button>
+                <button class="control-btn btn-circle" id="tagFriendBtn"><i data-lucide="user"></i></button>
+                <button class="control-btn btn-circle" id="locationBtn"><i data-lucide="map-pin"></i><span class="btn-text">Kaohsiung</span></button>
+                <button class="control-btn btn-capsule" id="multiSelectBtn"><i data-lucide="layers"></i><span class="btn-text-static">SELECT MULTIPLE</span></button>
             </div>
         </div>
-
         <div class="grid-gallery" id="gridGallery"></div>
-        
         <input type="file" id="imageLoader" accept="image/*" multiple style="display: none;">
     </div>
 
@@ -212,29 +138,23 @@
 
     <script>
         lucide.createIcons();
-
-        // --- Database Setup ---
         const dbName = "MemoriesDB";
         let db;
 
+        // DB 初始化 (與之前相同)
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 2);
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
-                    if (!db.objectStoreNames.contains("posts_timeline")) {
-                        db.createObjectStore("posts_timeline", { keyPath: "id" });
-                    }
-                    if (!db.objectStoreNames.contains("all_photos")) {
-                        db.createObjectStore("all_photos", { autoIncrement: true });
-                    }
+                    if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    if (!db.objectStoreNames.contains("all_photos")) db.createObjectStore("all_photos", { autoIncrement: true });
                 };
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e);
             });
         }
 
-        // --- DOM Elements ---
         const mainPreviewImg = document.getElementById('mainPreviewImg');
         const gridGallery = document.getElementById('gridGallery');
         const multiSelectBtn = document.getElementById('multiSelectBtn');
@@ -244,7 +164,6 @@
         const compressCanvas = document.getElementById('compressCanvas');
         const ctx = compressCanvas.getContext('2d');
 
-        // --- State ---
         let pendingImages = [
             "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80", 
             "https://images.unsplash.com/photo-1551334787-21e6bd3ab135?w=800&q=80", 
@@ -260,17 +179,14 @@
         let currentLocation = null; 
         let currentMainIndex = 0;   
 
-        // --- Initialization ---
         window.onload = () => {
             if (pendingImages.length > 0) {
-                // 預設選取全部
                 selectedIndices = pendingImages.map((_, i) => i);
                 renderMainPreview();
                 renderGrid();
             }
         };
 
-        // --- Rendering ---
         function renderMainPreview() {
             if (pendingImages[currentMainIndex]) {
                 mainPreviewImg.style.opacity = 0;
@@ -281,6 +197,7 @@
             }
         }
 
+        // ★★★ 核心修正：渲染邏輯 ★★★
         function renderGrid() {
             gridGallery.innerHTML = pendingImages.map((src, idx) => {
                 const isActive = (idx === currentMainIndex);
@@ -288,35 +205,33 @@
                 // 計算編號
                 const selectionIndex = selectedIndices.indexOf(idx);
                 const isSelected = selectionIndex !== -1;
+                // 有選中顯示數字，沒選中顯示空字串 (但CSS會讓圈圈空心顯示)
                 const selectionNumber = isSelected ? selectionIndex + 1 : '';
 
-                // CSS Class 判斷
-                // select-mode-on: 父容器是否有這個 class 決定是否顯示空圈圈
-                const itemClass = `grid-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${isSelectMode ? 'select-mode-on' : ''}`;
-
-                const mask = isSelectMode && isSelected 
-                    ? `<div class="overlay-mask"></div>` 
-                    : '';
+                // CSS 類別控制：
+                // mode-select: 用來觸發「顯示空心圈圈」
+                // selected: 用來觸發「填滿顏色 + 顯示數字」
+                let classes = `grid-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
+                if (isSelectMode) classes += ' mode-select';
 
                 return `
-                    <div class="${itemClass}" onclick="handleGridClick(${idx})">
+                    <div class="${classes}" onclick="handleGridClick(${idx})">
                         <img src="${src}">
-                        ${mask}
+                        <div class="overlay-mask"></div>
                         <div class="check-circle">${selectionNumber}</div>
                     </div>
                 `;
             }).join('');
         }
 
-        // --- Interaction ---
-        
-        // 1. 網格點擊
+        // ★★★ 核心修正：點擊邏輯 ★★★
         window.handleGridClick = (idx) => {
-            if (isSelectMode) {
-                // ★ 改良重點：即使是多選模式，點擊時也切換大圖，讓使用者知道自己點了哪張
-                currentMainIndex = idx;
-                renderMainPreview();
+            // 1. 無論是否多選，先切換上方大圖 (滿足您的同步切換需求)
+            currentMainIndex = idx;
+            renderMainPreview();
 
+            // 2. 如果是多選模式，處理選取狀態
+            if (isSelectMode) {
                 const existingIndex = selectedIndices.indexOf(idx);
                 if (existingIndex !== -1) {
                     // 已選 -> 移除 (數字自動遞補)
@@ -325,22 +240,17 @@
                     // 未選 -> 加入
                     selectedIndices.push(idx);
                 }
-                renderGrid();
-            } else {
-                // 一般模式：只切換大圖
-                currentMainIndex = idx;
-                renderMainPreview();
-                renderGrid();
             }
+            // 3. 重新渲染網格 (更新圈圈和數字)
+            renderGrid();
         };
 
-        // 2. 標註朋友
+        // 按鈕事件處理
         tagFriendBtn.addEventListener('click', () => {
             isFriendTagged = !isFriendTagged;
             tagFriendBtn.classList.toggle('active', isFriendTagged);
         });
 
-        // 3. 標註地點
         locationBtn.addEventListener('click', () => {
             if (currentLocation) {
                 currentLocation = null;
@@ -355,65 +265,38 @@
             }
         });
 
-        // 4. 多選模式
         multiSelectBtn.addEventListener('click', () => {
             isSelectMode = !isSelectMode;
             multiSelectBtn.classList.toggle('active', isSelectMode);
             renderGrid();
         });
 
-        // --- Save & Post ---
         shareBtn.addEventListener('click', async () => {
-            // 注意：要發布的照片是根據 selectedIndices 的順序排列的
-            // 這樣使用者選的順序 (1, 2, 3) 就會是發布的順序
             const imagesToPost = selectedIndices.map(i => pendingImages[i]);
-            
-            if (imagesToPost.length === 0) {
-                alert("Please select at least one photo.");
-                return;
-            }
+            if (imagesToPost.length === 0) { alert("Please select at least one photo."); return; }
 
             shareBtn.textContent = "Posting...";
-            
             if (!db) await initDB();
-
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
             
             const newPost = {
-                id: Date.now(),
-                timestamp: now.getTime(),
-                dateString: dateStr,
-                images: imagesToPost, 
-                location: currentLocation, 
-                isFriendTagged: isFriendTagged, 
-                likes: 0,
-                comments: []
+                id: Date.now(), timestamp: now.getTime(), dateString: dateStr,
+                images: imagesToPost, location: currentLocation, isFriendTagged: isFriendTagged,
+                likes: 0, comments: []
             };
 
             const memoryItems = imagesToPost.map(imgUrl => ({
-                date: dateStr,
-                timestamp: now.getTime(),
-                image: imgUrl
+                date: dateStr, timestamp: now.getTime(), image: imgUrl
             }));
 
             const tx = db.transaction(["posts_timeline", "all_photos"], "readwrite");
-            
             tx.objectStore("posts_timeline").add(newPost);
-            
             const memoriesStore = tx.objectStore("all_photos");
             memoryItems.forEach(item => memoriesStore.add(item));
 
-            tx.oncomplete = () => {
-                console.log("Success!");
-                window.location.href = "home.html";
-            };
-
-            tx.onerror = (err) => {
-                console.error("Failed", err);
-                alert("Error saving post");
-                shareBtn.textContent = "Finish";
-            };
+            tx.oncomplete = () => { window.location.href = "home.html"; };
+            tx.onerror = () => { alert("Error saving post"); shareBtn.textContent = "Finish"; };
         });
 
         initDB();
