@@ -30,7 +30,7 @@
         
         #mainPreviewImg {
             width: 100%; height: 100%; object-fit: cover;
-            transition: opacity 0.3s;
+            transition: opacity 0.2s; /* 加快一點切換速度 */
         }
 
         /* 浮動控制列 */
@@ -73,7 +73,7 @@
             font-weight: 600;
         }
 
-        /* ★★★ Icon 縮小設定 (13px) ★★★ */
+        /* Icon 設定 */
         .control-btn svg {
             width: 13px !important;
             height: 13px !important;
@@ -90,7 +90,7 @@
         }
         
         .btn-capsule .btn-text-static {
-            font-size: 12px; /* 字也稍微縮小一點配合 Icon */
+            font-size: 12px;
             font-weight: 600;
             margin-left: 6px;
         }
@@ -101,7 +101,6 @@
             color: #fff;
         }
 
-        /* 地點展開邏輯 */
         #locationBtn.active {
             width: auto;
             padding: 0 16px; 
@@ -131,17 +130,22 @@
         
         .grid-item.active img { opacity: 1; }
         
+        /* 遮罩：選中時變暗 */
         .grid-item.selected .overlay-mask { 
-            position: absolute; inset: 0; background: rgba(0,0,0,0.3); 
+            position: absolute; inset: 0; background: rgba(0,0,0,0.2); 
         }
         
-        /* ★★★ 選取編號圈圈 (改成顯示數字) ★★★ */
+        /* ★★★ 選取編號圈圈 (改良版) ★★★ */
         .check-circle {
             position: absolute; top: 6px; right: 6px;
-            width: 22px; height: 22px; /* 稍微大一點點好放數字 */
-            border-radius: 50%; border: 1.5px solid white;
-            background: rgba(0,0,0,0.2);
-            display: none; 
+            width: 22px; height: 22px;
+            border-radius: 50%; 
+            
+            /* 預設樣式 (空心) */
+            border: 1.5px solid rgba(255, 255, 255, 0.8);
+            background: rgba(0,0,0,0.1); 
+            
+            display: none; /* 平常隱藏 */
             z-index: 10;
             
             /* 文字置中 */
@@ -149,15 +153,21 @@
             align-items: center;
             font-size: 11px;
             font-weight: 700;
-            color: transparent; /* 未選取時不顯示文字 */
+            color: transparent;
+            transition: all 0.2s ease;
         }
 
-        /* 選取後的樣式：變成金色背景，顯示白色數字 */
+        /* 多選模式開啟時，所有圈圈都顯示 (空心) */
+        .select-mode-on .check-circle {
+            display: flex;
+        }
+
+        /* 選中後的樣式：變實心金色，顯示數字 */
         .grid-item.selected .check-circle { 
             background: #be9f82; 
             border-color: #be9f82; 
             color: white; 
-            display: flex; /* 強制顯示 */
+            transform: scale(1.05); /* 選中時微微放大 */
         }
 
         canvas { display: none; }
@@ -253,6 +263,7 @@
         // --- Initialization ---
         window.onload = () => {
             if (pendingImages.length > 0) {
+                // 預設選取全部
                 selectedIndices = pendingImages.map((_, i) => i);
                 renderMainPreview();
                 renderGrid();
@@ -274,28 +285,24 @@
             gridGallery.innerHTML = pendingImages.map((src, idx) => {
                 const isActive = (idx === currentMainIndex);
                 
-                // ★ 計算選取順序 (index + 1)
-                // 如果 idx 在 selectedIndices 裡面，找出它是第幾個
+                // 計算編號
                 const selectionIndex = selectedIndices.indexOf(idx);
                 const isSelected = selectionIndex !== -1;
                 const selectionNumber = isSelected ? selectionIndex + 1 : '';
 
-                // 只有在選取模式才顯示圈圈
-                // 如果被選中，顯示數字；沒選中，顯示空圈圈
-                const checkCircle = isSelectMode 
-                    ? `<div class="check-circle">${selectionNumber}</div>` 
-                    : '';
-                
+                // CSS Class 判斷
+                // select-mode-on: 父容器是否有這個 class 決定是否顯示空圈圈
+                const itemClass = `grid-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${isSelectMode ? 'select-mode-on' : ''}`;
+
                 const mask = isSelectMode && isSelected 
                     ? `<div class="overlay-mask"></div>` 
                     : '';
 
                 return `
-                    <div class="grid-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}" 
-                         onclick="handleGridClick(${idx})">
+                    <div class="${itemClass}" onclick="handleGridClick(${idx})">
                         <img src="${src}">
                         ${mask}
-                        ${checkCircle}
+                        <div class="check-circle">${selectionNumber}</div>
                     </div>
                 `;
             }).join('');
@@ -306,16 +313,21 @@
         // 1. 網格點擊
         window.handleGridClick = (idx) => {
             if (isSelectMode) {
+                // ★ 改良重點：即使是多選模式，點擊時也切換大圖，讓使用者知道自己點了哪張
+                currentMainIndex = idx;
+                renderMainPreview();
+
                 const existingIndex = selectedIndices.indexOf(idx);
                 if (existingIndex !== -1) {
-                    // 如果已選，移除 (後面的數字會自動遞補)
+                    // 已選 -> 移除 (數字自動遞補)
                     selectedIndices.splice(existingIndex, 1);
                 } else {
-                    // 如果未選，加入 (變成最大號碼)
+                    // 未選 -> 加入
                     selectedIndices.push(idx);
                 }
                 renderGrid();
             } else {
+                // 一般模式：只切換大圖
                 currentMainIndex = idx;
                 renderMainPreview();
                 renderGrid();
@@ -352,7 +364,10 @@
 
         // --- Save & Post ---
         shareBtn.addEventListener('click', async () => {
-            const imagesToPost = pendingImages.filter((_, i) => selectedIndices.includes(i));
+            // 注意：要發布的照片是根據 selectedIndices 的順序排列的
+            // 這樣使用者選的順序 (1, 2, 3) 就會是發布的順序
+            const imagesToPost = selectedIndices.map(i => pendingImages[i]);
+            
             if (imagesToPost.length === 0) {
                 alert("Please select at least one photo.");
                 return;
@@ -391,7 +406,7 @@
 
             tx.oncomplete = () => {
                 console.log("Success!");
-                window.location.href = "index.html";
+                window.location.href = "home.html";
             };
 
             tx.onerror = (err) => {
