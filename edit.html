@@ -17,7 +17,6 @@
         }
         .header-btn { font-size: 16px; color: #8e8e93; border: none; background: none; cursor: pointer; }
         .header-title { font-size: 17px; font-weight: 600; }
-        /* 首頁風格的主色調 */
         .header-btn.finish { color: #be9f82; font-weight: 600; } 
 
         /* --- 3. 主圖預覽區 --- */
@@ -41,10 +40,10 @@
             right: 15px;
             left: 15px;
             display: flex;
-            justify-content: flex-end; /* 靠右對齊 */
+            justify-content: flex-end; 
             align-items: center;
             gap: 10px;
-            pointer-events: none; /* 讓點擊穿透容器 */
+            pointer-events: none; 
         }
 
         /* --- 按鈕樣式 --- */
@@ -52,23 +51,21 @@
             height: 36px;
             border: none;
             color: white;
-            background: rgba(0, 0, 0, 0.4); /* 預設：半透明黑 */
+            background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(4px);
             pointer-events: auto;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 平滑過渡 */
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             display: flex; align-items: center; justify-content: center;
             overflow: hidden;
         }
 
-        /* 圓形按鈕基礎 */
         .btn-circle {
             width: 36px;
             border-radius: 50%;
             padding: 0;
         }
 
-        /* 膠囊按鈕基礎 */
         .btn-capsule {
             padding: 0 16px;
             border-radius: 20px;
@@ -76,49 +73,47 @@
             font-weight: 600;
         }
 
-        /* ★★★ Icon 縮小 0.8 倍 ★★★ */
+        /* ★★★ Icon 縮小設定 (13px) ★★★ */
         .control-btn svg {
-            transform: scale(0.8);
-            transition: transform 0.2s;
+            width: 13px !important;
+            height: 13px !important;
         }
 
-        /* 按鈕內的文字 (主要用於地點按鈕展開) */
         .btn-text {
             font-size: 13px;
             font-weight: 600;
             margin-left: 0;
-            max-width: 0; /* 預設隱藏文字 */
+            max-width: 0;
             opacity: 0;
             white-space: nowrap;
             transition: all 0.3s ease;
         }
-        /* 多選按鈕本身就有文字，不需要隱藏 */
+        
         .btn-capsule .btn-text-static {
-            font-size: 13px;
+            font-size: 12px; /* 字也稍微縮小一點配合 Icon */
             font-weight: 600;
-            margin-left: 4px;
+            margin-left: 6px;
         }
 
-        /* ★★★ 按鈕 Active 狀態 (配合首頁顏色 #be9f82) ★★★ */
+        /* Active 狀態 */
         .control-btn.active {
-            background: #be9f82; /* 變成首頁風格的金色 */
+            background: #be9f82;
             color: #fff;
         }
 
-        /* --- 特殊邏輯：地點按鈕展開 --- */
-        /* 當地點按鈕變為 active 時，將其轉變為膠囊狀並顯示文字 */
+        /* 地點展開邏輯 */
         #locationBtn.active {
-            width: auto; /* 寬度自動展開 */
-            padding: 0 16px; /* 增加內距 */
-            border-radius: 20px; /* 變圓角 */
+            width: auto;
+            padding: 0 16px; 
+            border-radius: 20px;
         }
         #locationBtn.active .btn-text {
-            max-width: 100px; /* 顯示文字 */
+            max-width: 100px;
             opacity: 1;
             margin-left: 6px;
         }
 
-        /* --- 4.下方照片網格 (一行三張) --- */
+        /* --- 4.下方照片網格 --- */
         .grid-gallery {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -134,25 +129,35 @@
         }
         .grid-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: opacity 0.2s; }
         
-        /* 選中狀態 / 當前主圖狀態 */
         .grid-item.active img { opacity: 1; }
         
-        /* 多選模式下的遮罩 */
         .grid-item.selected .overlay-mask { 
             position: absolute; inset: 0; background: rgba(0,0,0,0.3); 
         }
         
-        /* 勾選圈圈 (顏色也配合首頁) */
+        /* ★★★ 選取編號圈圈 (改成顯示數字) ★★★ */
         .check-circle {
             position: absolute; top: 6px; right: 6px;
-            width: 20px; height: 20px;
-            border-radius: 50%; border: 2px solid white;
+            width: 22px; height: 22px; /* 稍微大一點點好放數字 */
+            border-radius: 50%; border: 1.5px solid white;
             background: rgba(0,0,0,0.2);
             display: none; 
             z-index: 10;
+            
+            /* 文字置中 */
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: transparent; /* 未選取時不顯示文字 */
         }
+
+        /* 選取後的樣式：變成金色背景，顯示白色數字 */
         .grid-item.selected .check-circle { 
-            background: #be9f82; border-color: #be9f82; 
+            background: #be9f82; 
+            border-color: #be9f82; 
+            color: white; 
+            display: flex; /* 強制顯示 */
         }
 
         canvas { display: none; }
@@ -173,16 +178,16 @@
             
             <div class="overlay-controls">
                 <button class="control-btn btn-circle" id="tagFriendBtn">
-                    <i data-lucide="user" size="18"></i>
+                    <i data-lucide="user"></i>
                 </button>
                 
                 <button class="control-btn btn-circle" id="locationBtn">
-                    <i data-lucide="map-pin" size="18"></i>
+                    <i data-lucide="map-pin"></i>
                     <span class="btn-text">Kaohsiung</span>
                 </button>
                 
                 <button class="control-btn btn-capsule" id="multiSelectBtn">
-                    <i data-lucide="layers" size="16"></i>
+                    <i data-lucide="layers"></i>
                     <span class="btn-text-static">SELECT MULTIPLE</span>
                 </button>
             </div>
@@ -229,7 +234,7 @@
         const compressCanvas = document.getElementById('compressCanvas');
         const ctx = compressCanvas.getContext('2d');
 
-        // --- State (預設範例圖) ---
+        // --- State ---
         let pendingImages = [
             "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80", 
             "https://images.unsplash.com/photo-1551334787-21e6bd3ab135?w=800&q=80", 
@@ -267,11 +272,18 @@
 
         function renderGrid() {
             gridGallery.innerHTML = pendingImages.map((src, idx) => {
-                const isSelected = selectedIndices.includes(idx);
                 const isActive = (idx === currentMainIndex);
                 
+                // ★ 計算選取順序 (index + 1)
+                // 如果 idx 在 selectedIndices 裡面，找出它是第幾個
+                const selectionIndex = selectedIndices.indexOf(idx);
+                const isSelected = selectionIndex !== -1;
+                const selectionNumber = isSelected ? selectionIndex + 1 : '';
+
+                // 只有在選取模式才顯示圈圈
+                // 如果被選中，顯示數字；沒選中，顯示空圈圈
                 const checkCircle = isSelectMode 
-                    ? `<div class="check-circle" style="display:block;"></div>` 
+                    ? `<div class="check-circle">${selectionNumber}</div>` 
                     : '';
                 
                 const mask = isSelectMode && isSelected 
@@ -294,9 +306,12 @@
         // 1. 網格點擊
         window.handleGridClick = (idx) => {
             if (isSelectMode) {
-                if (selectedIndices.includes(idx)) {
-                    selectedIndices = selectedIndices.filter(i => i !== idx);
+                const existingIndex = selectedIndices.indexOf(idx);
+                if (existingIndex !== -1) {
+                    // 如果已選，移除 (後面的數字會自動遞補)
+                    selectedIndices.splice(existingIndex, 1);
                 } else {
+                    // 如果未選，加入 (變成最大號碼)
                     selectedIndices.push(idx);
                 }
                 renderGrid();
@@ -307,30 +322,28 @@
             }
         };
 
-        // 2. 標註朋友 (Active變色)
+        // 2. 標註朋友
         tagFriendBtn.addEventListener('click', () => {
             isFriendTagged = !isFriendTagged;
             tagFriendBtn.classList.toggle('active', isFriendTagged);
         });
 
-        // 3. 標註地點 (Active變色 + 展開顯示 Kaohsiung)
+        // 3. 標註地點
         locationBtn.addEventListener('click', () => {
             if (currentLocation) {
-                // 取消地點
                 currentLocation = null;
                 locationBtn.classList.remove('active');
             } else {
-                // 模擬讀取
                 locationBtn.style.opacity = "0.7";
                 setTimeout(() => {
                     currentLocation = "Kaohsiung";
                     locationBtn.style.opacity = "1";
-                    locationBtn.classList.add('active'); // CSS 會處理展開動畫
+                    locationBtn.classList.add('active');
                 }, 500);
             }
         });
 
-        // 4. 多選模式 (Active變色)
+        // 4. 多選模式
         multiSelectBtn.addEventListener('click', () => {
             isSelectMode = !isSelectMode;
             multiSelectBtn.classList.toggle('active', isSelectMode);
@@ -378,7 +391,7 @@
 
             tx.oncomplete = () => {
                 console.log("Success!");
-                window.location.href = "home.html";
+                window.location.href = "index.html";
             };
 
             tx.onerror = (err) => {
