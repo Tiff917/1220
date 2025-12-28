@@ -3,464 +3,446 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Post with Tagging</title>
+    <title>New Post</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* --- 基礎設定 --- */
+        /* --- 1. 基礎設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #f0f2f5; padding: 20px; max-width: 600px; margin: 0 auto; min-height: 100vh; }
+        body { background-color: #ffffff; color: #000; padding-bottom: 20px; }
         
-        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        h2 { margin-bottom: 20px; color: #1f2937; }
-
-        /* --- 上傳與空狀態 --- */
-        #placeholder { border: 2px dashed #ddd; border-radius: 12px; padding: 40px; text-align: center; color: #888; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; transition: all 0.3s; }
-        .upload-icon { font-size: 40px; margin-bottom: 10px; }
-        .upload-btn { margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: #eef2ff; color: #4f46e5; border-radius: 25px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
-        .upload-btn:active { transform: scale(0.98); background: #e0e7ff; }
-
-        /* --- 控制列 (頁碼 + 選取按鈕) --- */
-        .controls-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; display: none; /* 初始隱藏 */ }
-        .page-indicator { font-size: 13px; color: #6b7280; background: #f3f4f6; padding: 4px 10px; border-radius: 12px; }
-        
-        .btn-toggle-select {
-            background: #f3f4f6; color: #4b5563; border: none; 
-            padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500;
-            cursor: pointer; display: flex; align-items: center; gap: 6px; 
-            transition: all 0.2s;
+        /* --- 2. 頂部導航 (參考截圖) --- */
+        .header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px 20px; background: #fff; position: sticky; top: 0; z-index: 50;
         }
-        .btn-toggle-select:active { transform: scale(0.95); }
-        /* 選取模式開啟時的樣式 */
-        .btn-toggle-select.active { background: #dbeafe; color: #2563eb; }
+        .header-btn { font-size: 16px; color: #8e8e93; border: none; background: none; cursor: pointer; }
+        .header-title { font-size: 17px; font-weight: 600; }
+        .header-btn.finish { color: #be9f82; font-weight: 600; } /* 類似截圖的卡其金色 */
 
-        /* --- 照片預覽滑動區 --- */
-        #previewSlider { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 5px; scroll-behavior: smooth; display: none; scrollbar-width: none; }
-        #previewSlider::-webkit-scrollbar { display: none; }
-        
-        /* 照片卡片 */
-        .preview-item { flex: 0 0 33%; position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1/1; transition: transform 0.2s; cursor: pointer; }
-        .preview-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        
-        /* 選取模式下的互動 */
-        .preview-item.select-mode:active { transform: scale(0.95); }
-
-        /* 遮罩層 (未選時透明，選中時變暗) */
-        .img-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
-        .preview-item.selected .img-overlay { opacity: 1; }
-
-        /* 勾選圈圈 (右上角) */
-        .check-icon { 
-            position: absolute; top: 6px; right: 6px; 
-            width: 20px; height: 20px; 
-            border-radius: 50%; 
-            border: 2px solid rgba(255,255,255,0.8); 
-            display: none; /* 非選取模式隱藏 */
-            justify-content: center; align-items: center; 
-            background: rgba(0,0,0,0.2); 
-            transition: all 0.2s;
-        }
-        .select-mode .check-icon { display: flex; } /* 開啟模式時顯示 */
-        
-        /* 選中後的勾勾樣式 (變深色背景) */
-        .preview-item.selected .check-icon { background: #2563eb; border-color: #2563eb; }
-        .preview-item.selected .check-icon svg { opacity: 1; }
-        .check-icon svg { width: 12px; height: 12px; color: white; opacity: 0; transition: opacity 0.2s; }
-
-        /* --- [新增] 朋友標註區 --- */
-        #friendSection { margin-top: 25px; display: none; }
-        .section-title { font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 10px; }
-        
-        .friend-list { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
-        .friend-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 56px; }
-        
-        /* 頭像容器 */
-        .avatar-wrapper { position: relative; width: 50px; height: 50px; }
-        .avatar-img { width: 100%; height: 100%; border-radius: 50%; background: #e5e7eb; object-fit: cover; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
-        /* ★★★ 朋友標註圈圈 (關鍵功能) ★★★ */
-        .tag-circle { 
-            position: absolute; bottom: 0; right: 0; 
-            width: 16px; height: 16px; 
-            border-radius: 50%; 
-            border: 2px solid white; 
-            background-color: transparent; /* 預設：透明 */
-            border-color: #9ca3af;         /* 預設：灰色邊框 */
-            transition: all 0.2s ease;
+        /* --- 3. 主圖預覽區 (重點配色) --- */
+        .main-preview-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1/1; /* 正方形 */
+            background-color: #f0f0f0;
+            overflow: hidden;
         }
         
-        /* 被標註狀態 (變深色實心) */
-        .friend-item.tagged .tag-circle {
-            background-color: #2563eb; /* 藍色實心 */
-            border-color: white;
+        #mainPreviewImg {
+            width: 100%; height: 100%; object-fit: cover;
+            display: none; /* 有圖才顯示 */
         }
-        
-        /* 名字變色 */
-        .friend-name { font-size: 12px; margin-top: 5px; color: #6b7280; transition: color 0.2s; }
-        .friend-item.tagged .friend-name { color: #2563eb; font-weight: 600; }
 
-        /* --- 地點與發布 --- */
-        #locationContainer { display: none; align-items: center; gap: 10px; margin-top: 20px; padding: 12px; background: #f9fafb; border-radius: 8px; }
-        #locationInput { border: none; background: transparent; flex: 1; outline: none; font-size: 14px; color: #374151; }
-        
-        #shareBtn { width: 100%; margin-top: 25px; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; opacity: 0.5; pointer-events: none; transition: opacity 0.2s; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); }
-        #shareBtn:not(:disabled) { opacity: 1; pointer-events: auto; }
-        #shareBtn:active { transform: scale(0.98); }
+        /* 浮動控制列 (參考截圖：半透明深色) */
+        .overlay-controls {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            left: 15px;
+            display: flex;
+            justify-content: flex-end; /* 靠右對齊 */
+            align-items: center;
+            gap: 10px;
+            pointer-events: none; /* 讓點擊穿透容器，只點按鈕 */
+        }
 
-        /* 重選按鈕 (隱藏 input 用) */
-        .hidden-input { display: none; }
+        /* 圓形按鈕 (朋友/地點) */
+        .icon-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5); /* 半透明黑底 */
+            backdrop-filter: blur(4px);
+            border: none;
+            display: flex; justify-content: center; align-items: center;
+            color: white;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        /* 選取多張按鈕 (膠囊狀) */
+        .select-multiple-btn {
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 20px;
+            background: rgba(80, 70, 60, 0.75); /* 截圖中的深棕灰色 */
+            backdrop-filter: blur(4px);
+            border: none;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex; align-items: center; gap: 6px;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .select-multiple-btn.active {
+            background: #be9f82; /* 啟用時變亮 */
+            color: #fff;
+        }
+
+        /* --- 4.下方照片網格 --- */
+        .grid-gallery {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 一行 4 張 */
+            gap: 2px;
+            margin-top: 2px;
+        }
+        .grid-item {
+            position: relative;
+            aspect-ratio: 1/1;
+            overflow: hidden;
+            background: #eee;
+            cursor: pointer;
+        }
+        .grid-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: opacity 0.2s; }
         
+        /* 選中狀態 / 當前主圖狀態 */
+        .grid-item.active img { opacity: 1; }
+        .grid-item.selected .overlay { background: rgba(0,0,0,0.4); }
+        
+        /* 勾選圈圈 */
+        .check-circle {
+            position: absolute; top: 4px; right: 4px;
+            width: 18px; height: 18px;
+            border-radius: 50%; border: 2px solid white;
+            background: rgba(0,0,0,0.3);
+            display: none; /* 選取模式才顯示 */
+        }
+        .grid-item.selected .check-circle { background: #be9f82; border-color: #be9f82; }
+
+        /* --- 5. 朋友標註列表 (隱藏式) --- */
+        #friendSection {
+            padding: 15px;
+            background: white;
+            display: none; /* 點擊 icon 才顯示 */
+        }
+        .friend-list { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .friend-item { display: flex; flex-direction: column; align-items: center; min-width: 60px; cursor: pointer; }
+        .avatar-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; }
+        .friend-item.tagged .avatar-img { border-color: #be9f82; }
+        .friend-name { font-size: 12px; margin-top: 4px; color: #666; }
+        .friend-item.tagged .friend-name { color: #be9f82; font-weight: bold; }
+
+        /* --- 其他 --- */
+        .empty-state {
+            height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999;
+        }
+        .upload-trigger {
+            padding: 10px 20px; background: #eee; border-radius: 20px; margin-top: 10px; cursor: pointer; font-weight: 500;
+        }
+        #locationInput { display: none; width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #eee; border-radius: 8px; }
+        
+        /* 隱藏 Canvas */
         canvas { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>建立貼文</h2>
-    
-    <div id="placeholder">
-        <div class="upload-icon">📷</div>
-        <p style="color:#6b7280; font-size:15px;">分享你的精彩時刻</p>
-        <label class="upload-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-            選擇照片
-            <input type="file" id="imageLoader" accept="image/*" multiple class="hidden-input">
-        </label>
+    <div class="header">
+        <button class="header-btn" onclick="history.back()">Back</button>
+        <div class="header-title">Post</div>
+        <button class="header-btn finish" id="shareBtn">Finish</button>
     </div>
 
-    <div id="controlsHeader" class="controls-header">
-        <span id="pageIndicator" class="page-indicator">0/0</span>
+    <div id="contentArea">
         
-        <button id="multiSelectBtn" class="btn-toggle-select">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-            選取多張
-        </button>
-    </div>
+        <div id="placeholder" class="empty-state">
+            <i data-lucide="image" size="48"></i>
+            <label class="upload-trigger">
+                Open Gallery
+                <input type="file" id="imageLoader" accept="image/*" multiple style="display: none;">
+            </label>
+        </div>
 
-    <div id="previewSlider"></div>
-
-    <div id="friendSection">
-        <div class="section-title">標註朋友</div>
-        <div class="friend-list" id="friendListContainer">
+        <div id="editorSection" style="display: none;">
+            
+            <div class="main-preview-container">
+                <img id="mainPreviewImg" src="" alt="Preview">
+                
+                <div class="overlay-controls">
+                    <button class="icon-btn" id="tagFriendBtn">
+                        <i data-lucide="user-plus" size="18"></i>
+                    </button>
+                    <button class="icon-btn" id="locationBtn">
+                        <i data-lucide="map-pin" size="18"></i>
+                    </button>
+                    <button class="select-multiple-btn" id="multiSelectBtn">
+                        <i data-lucide="layers" size="16"></i>
+                        SELECT MULTIPLE
+                    </button>
+                </div>
             </div>
-        <hr style="border: 0; border-top: 1px solid #e5e7eb; margin-top: 15px;">
+
+            <input type="text" id="locationInput" placeholder="Add location...">
+
+            <div id="friendSection">
+                <p style="font-size:12px; color:#999; margin-bottom:10px;">Tag Friends:</p>
+                <div class="friend-list" id="friendListContainer"></div>
+            </div>
+
+            <div class="grid-gallery" id="gridGallery"></div>
+        </div>
     </div>
 
-    <div id="locationContainer">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-        <input type="text" id="locationInput" placeholder="新增地點 (選填)">
-    </div>
+    <canvas id="compressCanvas"></canvas>
 
-    <button id="shareBtn" disabled>發布貼文</button>
-</div>
+    <script>
+        // 初始化 Icons
+        lucide.createIcons();
 
-<canvas id="compressCanvas"></canvas>
+        // --- Database Setup ---
+        const dbName = "MemoriesDB";
+        let db;
 
-<script>
-    // --- IndexedDB Setup (保留原功能) ---
-    const dbName = "MemoriesDB";
-    const storeName = "posts_timeline";
-    let db;
+        // 我們需要同時寫入兩個 Store:
+        // 1. posts_timeline (給 Social.html 用)
+        // 2. all_photos (給 Memories.html 用)
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, 2); // 確保版本號足夠
+                
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    // Social Store
+                    if (!db.objectStoreNames.contains("posts_timeline")) {
+                        db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    }
+                    // Memories Store
+                    if (!db.objectStoreNames.contains("all_photos")) {
+                        db.createObjectStore("all_photos", { autoIncrement: true });
+                    }
+                };
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                request.onerror = (e) => reject(e);
+            });
+        }
 
-    function initDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(dbName, 2);
-            request.onupgradeneeded = (e) => {
-                db = e.target.result;
-                if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
-            };
-            request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-            request.onerror = (e) => reject(e);
-        });
-    }
+        // --- DOM Elements ---
+        const imageLoader = document.getElementById('imageLoader');
+        const placeholder = document.getElementById('placeholder');
+        const editorSection = document.getElementById('editorSection');
+        const mainPreviewImg = document.getElementById('mainPreviewImg');
+        const gridGallery = document.getElementById('gridGallery');
+        const multiSelectBtn = document.getElementById('multiSelectBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const friendSection = document.getElementById('friendSection');
+        const friendListContainer = document.getElementById('friendListContainer');
+        const locationInput = document.getElementById('locationInput');
+        const compressCanvas = document.getElementById('compressCanvas');
+        const ctx = compressCanvas.getContext('2d');
 
-    function getTimeline() {
-        return new Promise((resolve) => {
-            if (!db) return resolve([]);
-            const tx = db.transaction([storeName], "readonly");
-            const store = tx.objectStore(storeName);
-            const req = store.get("feed_data");
-            req.onsuccess = (e) => resolve(e.target.result || []);
-            req.onerror = () => resolve([]);
-        });
-    }
+        // --- State ---
+        let pendingImages = []; // Array of Base64 strings
+        let selectedIndices = []; // Indices selected for posting
+        let isSelectMode = false;
+        let taggedFriendIds = [];
+        let currentMainIndex = 0; // 當前大圖顯示哪一張
 
-    function saveTimeline(data) {
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction([storeName], "readwrite");
-            const store = tx.objectStore(storeName);
-            const req = store.put(data, "feed_data");
-            req.onsuccess = () => resolve();
-            req.onerror = () => reject();
-        });
-    }
+        // 模擬朋友資料
+        const friendsData = [
+            { id: 1, name: 'Alice', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice' },
+            { id: 2, name: 'Bob', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob' },
+            { id: 3, name: 'Charlie', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie' },
+            { id: 4, name: 'David', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David' }
+        ];
 
-    // --- DOM Elements ---
-    const imageLoader = document.getElementById('imageLoader');
-    const placeholder = document.getElementById('placeholder');
-    const previewSlider = document.getElementById('previewSlider');
-    const controlsHeader = document.getElementById('controlsHeader');
-    const multiSelectBtn = document.getElementById('multiSelectBtn');
-    const pageIndicator = document.getElementById('pageIndicator');
-    const friendSection = document.getElementById('friendSection');
-    const friendListContainer = document.getElementById('friendListContainer');
-    const locationContainer = document.getElementById('locationContainer');
-    const locationInput = document.getElementById('locationInput');
-    const shareBtn = document.getElementById('shareBtn');
-    const compressCanvas = document.getElementById('compressCanvas');
-    const ctx = compressCanvas.getContext('2d');
+        // --- Logic: 圖片處理 ---
+        imageLoader.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
 
-    // --- 狀態變數 ---
-    let pendingImages = [];     // 所有上傳圖片的 Base64
-    let selectedIndices = [];   // 被選中的圖片索引 (多選模式用)
-    let isSelectMode = false;   // 是否處於多選模式
-    let taggedFriendIds = [];   // 被標註的朋友 ID
-
-    // 模擬朋友資料
-    const friendsData = [
-        { id: 1, name: '小明', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
-        { id: 2, name: '雅婷', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka' },
-        { id: 3, name: '建國', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob' },
-        { id: 4, name: '美美', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jess' },
-        { id: 5, name: '阿豪', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jack' }
-    ];
-
-    // --- 1. 圖片處理與上傳 ---
-    imageLoader.addEventListener('change', async function(e) {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        placeholder.innerHTML = `<div style="opacity:0.6; margin-top:20px;">處理 ${files.length} 張照片中...</div>`;
-        pendingImages = [];
-        selectedIndices = [];
-        previewSlider.innerHTML = '';
-
-        for (const file of files) {
-            try {
+            // 簡單Loading
+            placeholder.innerHTML = "Processing...";
+            
+            pendingImages = [];
+            for (const file of files) {
                 const base64 = await processImage(file);
                 pendingImages.push(base64);
-            } catch (err) { console.error(err); }
-        }
+            }
 
-        if (pendingImages.length > 0) {
-            // 剛上傳完，重置狀態
-            isSelectMode = false;
-            selectedIndices = []; 
-            multiSelectBtn.classList.remove('active');
-            multiSelectBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg> 選取多張`;
-
-            // UI 顯示切換
-            placeholder.style.display = 'none';
-            controlsHeader.style.display = 'flex';
-            previewSlider.style.display = 'flex';
-            friendSection.style.display = 'block'; // 顯示朋友區
-            locationContainer.style.display = 'flex';
-            shareBtn.disabled = false;
-
-            renderPreview();
-            renderFriends(); // 渲染朋友列表
-            updatePageIndicator();
-        } else {
-            resetSelection();
-        }
-    });
-
-    function processImage(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    let maxWidth = 1080;
-                    let w = img.width; let h = img.height;
-                    if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
-                    compressCanvas.width = w; compressCanvas.height = h;
-                    ctx.drawImage(img, 0, 0, w, h);
-                    resolve(compressCanvas.toDataURL('image/jpeg', 0.85));
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
+            if (pendingImages.length > 0) {
+                placeholder.style.display = 'none';
+                editorSection.style.display = 'block';
+                // 預設選取全部
+                selectedIndices = pendingImages.map((_, i) => i);
+                currentMainIndex = 0;
+                
+                renderMainPreview();
+                renderGrid();
+                renderFriends();
+            }
         });
-    }
 
-    // --- 2. 渲染邏輯 ---
+        function processImage(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        const max = 1080;
+                        if (w > max || h > max) {
+                            if (w > h) { h *= max/w; w = max; }
+                            else { w *= max/h; h = max; }
+                        }
+                        compressCanvas.width = w; compressCanvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(compressCanvas.toDataURL('image/jpeg', 0.8));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
 
-    // 渲染照片預覽 (包含遮罩與打勾)
-    function renderPreview() {
-        previewSlider.innerHTML = pendingImages.map((src, index) => {
-            const isSelected = selectedIndices.includes(index);
-            // 動態 class
-            const classes = `preview-item ${isSelectMode ? 'select-mode' : ''} ${isSelected ? 'selected' : ''}`;
-            
-            return `
-                <div class="${classes}" onclick="handleImageClick(${index})">
-                    <img src="${src}">
-                    <div class="img-overlay"></div>
-                    <div class="check-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        // --- Logic: 渲染 ---
+        function renderMainPreview() {
+            if (pendingImages[currentMainIndex]) {
+                mainPreviewImg.style.display = 'block';
+                mainPreviewImg.src = pendingImages[currentMainIndex];
+            }
+        }
+
+        function renderGrid() {
+            gridGallery.innerHTML = pendingImages.map((src, idx) => {
+                const isSelected = selectedIndices.includes(idx);
+                const isActive = (idx === currentMainIndex);
+                
+                // 多選模式下顯示勾勾
+                const checkCircle = isSelectMode 
+                    ? `<div class="check-circle" style="display:block; ${isSelected ? 'background:#be9f82; border-color:#be9f82;' : ''}"></div>` 
+                    : '';
+
+                return `
+                    <div class="grid-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}" 
+                         onclick="handleGridClick(${idx})">
+                        <img src="${src}">
+                        ${checkCircle}
                     </div>
-                </div>
-            `;
-        }).join('');
-    }
+                `;
+            }).join('');
+        }
 
-    // 渲染朋友列表 (包含圈圈變色邏輯)
-    function renderFriends() {
-        friendListContainer.innerHTML = friendsData.map(friend => {
-            const isTagged = taggedFriendIds.includes(friend.id);
-            return `
-                <div class="friend-item ${isTagged ? 'tagged' : ''}" onclick="toggleFriendTag(${friend.id})">
-                    <div class="avatar-wrapper">
-                        <img class="avatar-img" src="${friend.avatar}">
-                        <div class="tag-circle"></div>
+        function renderFriends() {
+            friendListContainer.innerHTML = friendsData.map(f => {
+                const isTagged = taggedFriendIds.includes(f.id);
+                return `
+                    <div class="friend-item ${isTagged ? 'tagged' : ''}" onclick="toggleFriend(${f.id})">
+                        <img class="avatar-img" src="${f.avatar}">
+                        <span class="friend-name">${f.name}</span>
                     </div>
-                    <span class="friend-name">${friend.name}</span>
-                </div>
-            `;
-        }).join('');
-    }
-
-    // --- 3. 互動邏輯 ---
-
-    // 切換選取模式
-    multiSelectBtn.addEventListener('click', () => {
-        isSelectMode = !isSelectMode;
-        
-        if (isSelectMode) {
-            // 開啟模式
-            multiSelectBtn.classList.add('active');
-            multiSelectBtn.innerHTML = `取消選取`; // 簡化文字
-            // 可以選擇預設清空選取，或保持
-            selectedIndices = [];
-        } else {
-            // 關閉模式
-            multiSelectBtn.classList.remove('active');
-            multiSelectBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg> 選取多張`;
-            selectedIndices = [];
-        }
-        
-        renderPreview();
-        updatePageIndicator();
-    });
-
-    // 點擊照片
-    window.handleImageClick = (index) => {
-        if (!isSelectMode) return; // 如果不是選取模式，不做事 (或可做放大)
-
-        if (selectedIndices.includes(index)) {
-            selectedIndices = selectedIndices.filter(i => i !== index);
-        } else {
-            selectedIndices.push(index);
-        }
-        renderPreview();
-        updatePageIndicator();
-    };
-
-    // 點擊朋友 (切換標註狀態)
-    window.toggleFriendTag = (id) => {
-        if (taggedFriendIds.includes(id)) {
-            taggedFriendIds = taggedFriendIds.filter(fid => fid !== id);
-        } else {
-            taggedFriendIds.push(id);
-        }
-        renderFriends(); // 重新渲染以更新 CSS class
-    };
-
-    // 更新頁碼指示器
-    previewSlider.addEventListener('scroll', updatePageIndicator);
-    function updatePageIndicator() {
-        if (pendingImages.length === 0) return;
-        
-        if (isSelectMode) {
-            // 選取模式下顯示選取數量
-            pageIndicator.textContent = selectedIndices.length > 0 
-                ? `已選 ${selectedIndices.length} 張` 
-                : '請選擇照片';
-            pageIndicator.style.background = selectedIndices.length > 0 ? '#dbeafe' : '#f3f4f6';
-            pageIndicator.style.color = selectedIndices.length > 0 ? '#1d4ed8' : '#6b7280';
-        } else {
-            // 一般模式顯示滑動頁碼 (簡易計算)
-            const index = Math.round(previewSlider.scrollLeft / previewSlider.offsetWidth * 3); // 概略估算
-            pageIndicator.textContent = `共 ${pendingImages.length} 張`;
-            pageIndicator.style.background = '#f3f4f6';
-            pageIndicator.style.color = '#6b7280';
-        }
-    }
-
-    function resetSelection() {
-        pendingImages = [];
-        selectedIndices = [];
-        taggedFriendIds = [];
-        isSelectMode = false;
-        
-        imageLoader.value = "";
-        previewSlider.style.display = 'none';
-        controlsHeader.style.display = 'none';
-        friendSection.style.display = 'none';
-        locationContainer.style.display = 'none';
-        locationInput.value = "";
-        
-        placeholder.style.display = 'flex';
-        placeholder.innerHTML = `<div class="upload-icon">📷</div><p>分享你的精彩時刻</p><label class="upload-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> 選擇照片<input type="file" id="imageLoader" accept="image/*" multiple class="hidden-input"></label>`;
-        shareBtn.disabled = true;
-    }
-
-    // --- 4. 發布功能 ---
-    shareBtn.addEventListener('click', async () => {
-        // 決定要發布的照片：
-        // 1. 如果有選取 (且在選取模式)，只發選取的
-        // 2. 如果沒選取 (或不在模式)，發全部
-        let imagesToPost = [];
-        
-        if (isSelectMode && selectedIndices.length > 0) {
-            imagesToPost = pendingImages.filter((_, i) => selectedIndices.includes(i));
-        } else if (isSelectMode && selectedIndices.length === 0) {
-            alert("在選取模式下，請至少選擇一張照片，或取消選取模式以發布全部。");
-            return;
-        } else {
-            imagesToPost = pendingImages;
+                `;
+            }).join('');
         }
 
-        if (imagesToPost.length === 0) return;
-
-        shareBtn.textContent = "發布中...";
-        shareBtn.disabled = true;
-
-        if (!db) await initDB();
-        let timeline = await getTimeline();
-        const now = new Date();
-        const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-        const locationText = locationInput.value.trim();
+        // --- Logic: 互動 ---
         
-        // 獲取被標註朋友的完整資料
-        const taggedFriendsInfo = friendsData.filter(f => taggedFriendIds.includes(f.id));
-
-        const newPost = {
-            id: Date.now(),
-            timestamp: now.getTime(),
-            dateString: dateStr,
-            images: imagesToPost,
-            location: locationText || null,
-            taggedFriends: taggedFriendsInfo, // ★ 儲存標註資料
-            likes: 0,
-            isLiked: false,
-            comments: []
+        // 點擊網格照片
+        window.handleGridClick = (idx) => {
+            if (isSelectMode) {
+                // 多選模式：切換選取狀態
+                if (selectedIndices.includes(idx)) {
+                    selectedIndices = selectedIndices.filter(i => i !== idx);
+                } else {
+                    selectedIndices.push(idx);
+                }
+                renderGrid();
+            } else {
+                // 一般模式：切換大圖預覽
+                currentMainIndex = idx;
+                renderMainPreview();
+                renderGrid();
+            }
         };
 
-        timeline.unshift(newPost);
+        // 切換多選模式
+        multiSelectBtn.addEventListener('click', () => {
+            isSelectMode = !isSelectMode;
+            multiSelectBtn.classList.toggle('active', isSelectMode);
+            renderGrid(); // 更新網格顯示勾勾
+        });
 
-        try {
-            await saveTimeline(timeline);
-            alert("發布成功！");
-            window.location.href = "social.html"; // 根據你的需求跳轉
-        } catch (err) {
-            console.error(err);
-            alert("發布失敗，請稍後再試");
-            shareBtn.textContent = "發布貼文";
-            shareBtn.disabled = false;
-        }
-    });
+        // 標註朋友與地點 (顯示/隱藏區域)
+        document.getElementById('tagFriendBtn').addEventListener('click', () => {
+            friendSection.style.display = friendSection.style.display === 'none' ? 'block' : 'none';
+        });
+        document.getElementById('locationBtn').addEventListener('click', () => {
+            locationInput.style.display = locationInput.style.display === 'none' ? 'block' : 'none';
+            if(locationInput.style.display === 'block') locationInput.focus();
+        });
 
-    initDB();
-</script>
+        window.toggleFriend = (id) => {
+            if (taggedFriendIds.includes(id)) taggedFriendIds = taggedFriendIds.filter(tid => tid !== id);
+            else taggedFriendIds.push(id);
+            renderFriends();
+        };
+
+        // --- Logic: 同步儲存與跳轉 (核心需求) ---
+        shareBtn.addEventListener('click', async () => {
+            // 1. 過濾出要發布的照片
+            const imagesToPost = pendingImages.filter((_, i) => selectedIndices.includes(i));
+            if (imagesToPost.length === 0) {
+                alert("Please select at least one photo.");
+                return;
+            }
+
+            shareBtn.textContent = "Posting...";
+            
+            if (!db) await initDB();
+
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+            
+            // 2. 準備 Post 資料 (給 Social.html)
+            const newPost = {
+                id: Date.now(),
+                timestamp: now.getTime(),
+                dateString: dateStr,
+                images: imagesToPost, // 陣列
+                location: locationInput.value || null,
+                taggedFriends: taggedFriendIds,
+                likes: 0,
+                comments: []
+            };
+
+            // 3. 準備 Memories 資料 (給 Memories.html)
+            // Memories 通常是單張照片的集合，我們把這次選的每張照片都存進去
+            // 如果 Memories 需要依照日期分組，它讀取時可以用 dateString 分組
+            const memoryItems = imagesToPost.map(imgBase64 => ({
+                date: dateStr,
+                timestamp: now.getTime(),
+                image: imgBase64
+            }));
+
+            // 4. 開始交易 (Transaction) - 同時寫入兩個 Object Store
+            // 注意：要寫入兩個 store，transaction 必須包含這兩個 store name
+            const tx = db.transaction(["posts_timeline", "all_photos"], "readwrite");
+            
+            // 寫入 Social
+            const socialStore = tx.objectStore("posts_timeline");
+            socialStore.add(newPost);
+
+            // 寫入 Memories (迴圈寫入每一張)
+            const memoriesStore = tx.objectStore("all_photos");
+            memoryItems.forEach(item => {
+                memoriesStore.add(item);
+            });
+
+            // 5. 交易完成後的動作
+            tx.oncomplete = () => {
+                console.log("Saved to Social and Memories!");
+                // 跳轉回首頁
+                window.location.href = "home.html";
+            };
+
+            tx.onerror = (err) => {
+                console.error("Transaction failed", err);
+                alert("Failed to post.");
+                shareBtn.textContent = "Finish";
+            };
+        });
+
+        initDB();
+    </script>
 </body>
 </html>
