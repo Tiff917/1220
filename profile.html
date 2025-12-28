@@ -245,6 +245,12 @@
             } else {
                 usernameField.innerText = "Me";
             }
+
+            const savedEmail = localStorage.getItem('myProfileEmail');
+            const emailDiv = document.querySelector('.email'); // 抓取顯示 Email 的 div
+            if (savedEmail) {
+                emailDiv.innerText = savedEmail;
+            }
             loadAvatar();
         });
 
