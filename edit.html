@@ -117,7 +117,25 @@
         const dbName = "MemoriesDB";
         let db;
 
-        // --- 強制修復功能 ---
+        // --- 1. 變數與 DOM 綁定 ---
+        const mainPreviewImg = document.getElementById('mainPreviewImg');
+        const emptyPlaceholder = document.getElementById('emptyPlaceholder');
+        const gridGallery = document.getElementById('gridGallery');
+        const multiSelectBtn = document.getElementById('multiSelectBtn');
+        const tagFriendBtn = document.getElementById('tagFriendBtn');
+        const locationBtn = document.getElementById('locationBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const imageLoader = document.getElementById('imageLoader');
+        
+        // 狀態變數
+        let pendingImages = []; // 這裡現在存的是 File 物件，不是 Base64 字串
+        let selectedIndices = [];
+        let isSelectMode = false;
+        let isFriendTagged = false;
+        let currentLocation = null;
+        let currentMainIndex = -1;
+
+        // --- 2. 資料庫功能 ---
         async function hardReset() {
             if(!confirm("這會清除所有暫存資料以修復卡頓，確定嗎？")) return;
             if(db) { db.close(); db = null; }
@@ -127,14 +145,11 @@
             req.onblocked = () => { alert("重置被阻擋！請關閉其他開啟此網站的分頁。"); };
         }
 
-        // --- 資料庫初始化 ---
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 5); // 保持版本號 5
+                const request = indexedDB.open(dbName, 5);
                 
-                request.onblocked = () => {
-                    alert("資料庫被鎖定！請關閉其他分頁後重新整理。");
-                };
+                request.onblocked = () => alert("資料庫被鎖定！請關閉其他分頁後重新整理。");
 
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
@@ -144,90 +159,57 @@
 
                 request.onsuccess = (e) => { 
                     db = e.target.result; 
-                    // 確保倉庫存在，否則重置
                     if (!db.objectStoreNames.contains("posts_timeline") || !db.objectStoreNames.contains("all_photos")) {
                         db.close(); hardReset(); return;
                     }
                     resolve(db); 
                 };
-
                 request.onerror = (e) => reject(e);
             });
         }
 
-        const mainPreviewImg = document.getElementById('mainPreviewImg');
-        const emptyPlaceholder = document.getElementById('emptyPlaceholder');
-        const gridGallery = document.getElementById('gridGallery');
-        const multiSelectBtn = document.getElementById('multiSelectBtn');
-        const tagFriendBtn = document.getElementById('tagFriendBtn');
-        const locationBtn = document.getElementById('locationBtn');
-        const shareBtn = document.getElementById('shareBtn');
-        const imageLoader = document.getElementById('imageLoader');
-        const compressCanvas = document.getElementById('compressCanvas');
-        const ctx = compressCanvas.getContext('2d');
+        // --- 3. 核心工具：取得圖片連結 ---
+        // 這是實現「秒速預覽」的關鍵
+        function getImageUrl(fileOrUrl) {
+            if (fileOrUrl instanceof File || fileOrUrl instanceof Blob) {
+                return URL.createObjectURL(fileOrUrl);
+            }
+            return fileOrUrl;
+        }
 
-        let pendingImages = [];
-        let selectedIndices = [];
-        let isSelectMode = false;
-        let isFriendTagged = false;
-        let currentLocation = null;
-        let currentMainIndex = -1;
-
-        window.onunload = () => { if(db) db.close(); };
-        window.onload = () => { renderGrid(); };
-
-        // --- 圖片處理 ---
+        // --- 4. 圖片上傳處理 (修改版) ---
         imageLoader.addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
-            
-            emptyPlaceholder.innerHTML = "Processing...";
 
+            // 直接儲存原始檔案，不壓縮、不轉 Base64
             for (const file of files) {
-                try {
-                    const base64 = await processImage(file);
-                    pendingImages.push(base64);
-                } catch (err) { console.error(err); }
+                pendingImages.push(file);
             }
 
-            emptyPlaceholder.innerHTML = '<i data-lucide="image" style="width:48px; height:48px; opacity:0.2;"></i>';
-            lucide.createIcons();
-
-            const newIndex = pendingImages.length - 1;
-            currentMainIndex = newIndex;
-            if (!isSelectMode) selectedIndices = [newIndex];
+            // 更新介面
+            if (pendingImages.length > 0) {
+                emptyPlaceholder.style.display = 'none';
+                
+                const newIndex = pendingImages.length - 1;
+                currentMainIndex = newIndex;
+                if (!isSelectMode) selectedIndices = [newIndex];
+                
+                renderMainPreview();
+                renderGrid();
+            }
             
-            renderMainPreview();
-            renderGrid();
+            // 清空 input 讓同個檔案可以重複選取
+            imageLoader.value = '';
         });
 
-        function processImage(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        let w = img.width, h = img.height;
-                        // ★ 保留成功的壓縮設定
-                        const max = 600; 
-                        if (w > max || h > max) {
-                           if (w > h) { h *= max/w; w = max; } else { w *= max/h; h = max; }
-                        }
-                        compressCanvas.width = w; compressCanvas.height = h;
-                        ctx.drawImage(img, 0, 0, w, h);
-                        resolve(compressCanvas.toDataURL('image/jpeg', 0.7)); // 品質 0.5
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
+        // --- 5. 渲染邏輯 ---
         function renderMainPreview() {
             if (currentMainIndex !== -1 && pendingImages[currentMainIndex]) {
                 emptyPlaceholder.style.display = 'none';
                 mainPreviewImg.style.display = 'block';
-                mainPreviewImg.src = pendingImages[currentMainIndex];
+                // 使用 getImageUrl 來生成預覽連結
+                mainPreviewImg.src = getImageUrl(pendingImages[currentMainIndex]);
             } else {
                 emptyPlaceholder.style.display = 'flex';
                 mainPreviewImg.style.display = 'none';
@@ -240,13 +222,18 @@
                     <i data-lucide="image-plus"></i>
                 </div>
             `;
-            html += pendingImages.map((src, idx) => {
+            html += pendingImages.map((file, idx) => {
                 const isActive = (idx === currentMainIndex);
                 const selectionIndex = selectedIndices.indexOf(idx);
                 const isSelected = selectionIndex !== -1;
                 const selectionNumber = isSelected ? selectionIndex + 1 : '';
+                
                 let classes = `grid-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
                 if (isSelectMode) classes += ' mode-select';
+                
+                // 使用 getImageUrl 產生縮圖
+                const src = getImageUrl(file);
+
                 return `
                     <div class="${classes}" onclick="handleGridClick(${idx})">
                         <img src="${src}">
@@ -259,6 +246,7 @@
             lucide.createIcons();
         }
 
+        // --- 6. 互動功能 ---
         window.handleGridClick = (idx) => {
             currentMainIndex = idx;
             renderMainPreview();
@@ -295,37 +283,37 @@
             if (pendingImages.length === 0) return;
             isSelectMode = !isSelectMode;
             multiSelectBtn.classList.toggle('active', isSelectMode);
-            if (isSelectMode && currentMainIndex !== -1) selectedIndices = [currentMainIndex];
-            else if (!isSelectMode && currentMainIndex !== -1) selectedIndices = [currentMainIndex];
+            // 切換模式時，重置或保留當前選擇
+            if (!isSelectMode && currentMainIndex !== -1) selectedIndices = [currentMainIndex];
             renderGrid();
         });
 
-        // --- 儲存與發布 ---
+        // --- 7. 儲存與發布 (Blob 版) ---
         shareBtn.addEventListener('click', async () => {
             if (pendingImages.length === 0) { alert("Please add photos first."); return; }
             if (selectedIndices.length === 0) { alert("Please select at least one photo."); return; }
 
             shareBtn.disabled = true;
-            shareBtn.textContent = "Processing...";
-
-            // 5秒保護機制
-            const timeoutId = setTimeout(() => {
-                alert("儲存逾時！資料庫可能被鎖死。\n請點擊下方紅色按鈕重置。");
-                shareBtn.disabled = false;
-                shareBtn.textContent = "Finish";
-            }, 5000);
+            shareBtn.textContent = "Saving...";
 
             try {
                 if (!db) await initDB();
 
                 const now = new Date();
                 const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+                
+                // 取得選取的原始檔案物件 (Files)
                 const imagesToPost = selectedIndices.map(i => pendingImages[i]);
                 
                 const newPost = {
-                    id: Date.now(), timestamp: now.getTime(), dateString: dateStr,
-                    images: imagesToPost, location: currentLocation, isFriendTagged: isFriendTagged,
-                    likes: 0, comments: []
+                    id: Date.now(), 
+                    timestamp: now.getTime(), 
+                    dateString: dateStr,
+                    images: imagesToPost, // 儲存 File 物件
+                    location: currentLocation, 
+                    isFriendTagged: isFriendTagged,
+                    likes: 0, 
+                    comments: []
                 };
 
                 const tx = db.transaction(["posts_timeline", "all_photos"], "readwrite");
@@ -333,30 +321,32 @@
                 tx.objectStore("posts_timeline").add(newPost);
                 
                 const memoriesStore = tx.objectStore("all_photos");
-                imagesToPost.forEach(imgUrl => {
-                    memoriesStore.add({ date: dateStr, timestamp: now.getTime(), image: imgUrl });
+                imagesToPost.forEach(file => {
+                    memoriesStore.add({ date: dateStr, timestamp: now.getTime(), image: file });
                 });
 
                 tx.oncomplete = () => {
-                    clearTimeout(timeoutId);
                     window.location.href = "index.html";
                 };
 
                 tx.onerror = (e) => {
-                    clearTimeout(timeoutId);
+                    console.error(e);
                     alert("儲存錯誤: " + e.target.error.message);
                     shareBtn.disabled = false;
                     shareBtn.textContent = "Finish";
                 };
 
             } catch (err) {
-                clearTimeout(timeoutId);
+                console.error(err);
                 alert("系統錯誤: " + err.message);
                 shareBtn.disabled = false;
                 shareBtn.textContent = "Finish";
             }
         });
 
+        // 初始化
+        window.onunload = () => { if(db) db.close(); };
+        window.onload = () => { renderGrid(); };
         initDB().catch(e => console.error(e));
     </script>
 </body>
