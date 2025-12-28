@@ -168,7 +168,7 @@
         function initDB() {
             return new Promise((resolve, reject) => {
                 // 升級到版本 5，與 Post 頁面保持一致
-                const request = indexedDB.open(dbName, 5);
+                const request = indexedDB.open(dbName, 6);
                 
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
@@ -179,6 +179,9 @@
                     // 建立所有照片倉庫 (這是首頁讀取的地方)
                     if (!db.objectStoreNames.contains("all_photos")) {
                         db.createObjectStore("all_photos", { autoIncrement: true });
+                    }
+                    if (!db.objectStoreNames.contains("user_profile")){
+                        db.createObjectStore("user_profile");
                     }
                 };
 
