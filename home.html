@@ -125,24 +125,38 @@
     <script>
         // ★★★ Home Page Script (高效能 Blob 版) ★★★
 
-        // 1. 載入左上角頭像 (維持不變)
-        function loadUserProfile() {
+        // ★★★ Home Page 讀取頭像更新版 (讀取資料庫) ★★★
+        async function loadUserProfile() {
             const avatarDiv = document.querySelector('.avatar-placeholder');
-            const savedAvatar = localStorage.getItem('myProfileAvatar');
             
-            if (avatarDiv) {
-                if (savedAvatar) {
-                    avatarDiv.style.backgroundImage = `url('${savedAvatar}')`;
-                    avatarDiv.style.backgroundSize = 'cover';
-                    avatarDiv.style.backgroundPosition = 'center';
-                    avatarDiv.style.backgroundColor = 'transparent'; 
-                } else {
-                    avatarDiv.style.backgroundImage = 'none';
-                    avatarDiv.style.backgroundColor = '#9C7C66';
-                }
-            }
-        }
+            // 嘗試從資料庫讀取
+            if (!db) await initDB();
+            const tx = db.transaction(["user_profile"], "readonly"); // 需要確保 initDB 有建立 user_profile
+            const store = tx.objectStore("user_profile");
+            const req = store.get("avatar");
 
+            req.onsuccess = (e) => {
+                const result = e.target.result;
+                if (avatarDiv) {
+                    if (result) {
+                        let url;
+                        if (result instanceof Blob || result instanceof File) {
+                            url = URL.createObjectURL(result);
+                        } else {
+                            url = result; // 舊版 Base64
+                        }
+                        avatarDiv.style.backgroundImage = `url('${url}')`;
+                        avatarDiv.style.backgroundSize = 'cover';
+                        avatarDiv.style.backgroundPosition = 'center';
+                        avatarDiv.style.backgroundColor = 'transparent'; 
+                    } else {
+                        // 沒頭像時的預設值
+                        avatarDiv.style.backgroundImage = 'none';
+                        avatarDiv.style.backgroundColor = '#9C7C66';
+                    }
+                }
+            };
+        }
         window.addEventListener('pageshow', loadUserProfile);
         window.addEventListener('load', loadUserProfile);
 
