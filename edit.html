@@ -144,10 +144,14 @@
         <input type="file" id="imageLoader" accept="image/*" multiple style="display: none;">
     </div>
 
+    <div class="danger-zone">
+        <div id="statusLog" class="status-log">System Ready...</div>
+        <button class="reset-btn" onclick="hardReset()">⚠️ 點我修復資料庫 (Fix DB)</button>
+        <p style="font-size:12px; color:#999; margin-top:5px;">如果還是跑不動，請點上面紅色按鈕重置</p>
+    </div>
     <canvas id="compressCanvas"></canvas>
-
 <script>
-        lucide.createIcons();
+lucide.createIcons();
         const dbName = "MemoriesDB";
         let db;
         const statusLog = document.getElementById('statusLog');
@@ -158,39 +162,72 @@
             statusLog.scrollTop = statusLog.scrollHeight;
         }
 
-        // --- 強制修復功能 ---
+        // --- 強制修復功能 (更加強力) ---
         async function hardReset() {
-            if(!confirm("這會清除所有暫存貼文以修復卡頓，確定嗎？")) return;
+            if(!confirm("這會清除所有暫存資料並修復卡住的問題，確定嗎？")) return;
+            log("Closing DB connection...");
+            if(db) { db.close(); db = null; }
+            
             log("Deleting Database...");
-            if(db) db.close();
             const req = indexedDB.deleteDatabase(dbName);
+            
             req.onsuccess = () => {
-                alert("修復完成！請重新整理頁面。");
+                alert("資料庫已重置！頁面將重新整理。");
                 location.reload();
             };
+            
             req.onerror = (e) => {
-                alert("修復失敗，請嘗試關閉無痕模式，或手動清除瀏覽器快取。");
+                log("Delete Error: " + e.target.error);
+                alert("無法刪除，請嘗試「關閉所有分頁」後重開瀏覽器。");
+            };
+            
+            req.onblocked = () => {
+                log("Delete Blocked! Close other tabs.");
+                alert("重置被阻擋！請關閉其他所有開啟此網站的分頁 (Home, Social 等)。");
             };
         }
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                // 版本號 4，強制更新
-                const request = indexedDB.open(dbName, 4);
+                // 使用版本號 5，再次強制觸發更新
+                const request = indexedDB.open(dbName, 5);
                 
-                request.onupgradeneeded = (e) => {
-                    log("Upgrading DB...");
-                    db = e.target.result;
-                    if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
-                    if (!db.objectStoreNames.contains("all_photos")) db.createObjectStore("all_photos", { autoIncrement: true });
+                // ★★★ 防止卡死關鍵：監聽 blocked 事件 ★★★
+                request.onblocked = (e) => {
+                    log("Database Blocked! Please close other tabs.");
+                    alert("資料庫被鎖定！\n請關閉您瀏覽器中其他開啟本網站的分頁 (Home, Social)，然後重新整理此頁。");
                 };
+
+                request.onupgradeneeded = (e) => {
+                    log("Upgrading DB Structure...");
+                    db = e.target.result;
+                    // 如果倉庫不存在就建立
+                    if (!db.objectStoreNames.contains("posts_timeline")) {
+                        db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    }
+                    if (!db.objectStoreNames.contains("all_photos")) {
+                        db.createObjectStore("all_photos", { autoIncrement: true });
+                    }
+                };
+
                 request.onsuccess = (e) => { 
                     db = e.target.result; 
-                    log("DB Connected."); 
+                    
+                    // ★★★ 二次檢查：確保倉庫真的存在 ★★★
+                    if (!db.objectStoreNames.contains("posts_timeline") || !db.objectStoreNames.contains("all_photos")) {
+                        log("Store missing! Resetting...");
+                        // 如果版本對了但倉庫不見了，強制重置
+                        db.close();
+                        hardReset();
+                        return;
+                    }
+
+                    log("DB Connected Successfully."); 
                     resolve(db); 
                 };
+
                 request.onerror = (e) => {
-                    log("DB Error: " + e.target.error);
+                    log("DB Open Error: " + e.target.error);
                     reject(e);
                 };
             });
@@ -213,6 +250,11 @@
         let isFriendTagged = false;
         let currentLocation = null;
         let currentMainIndex = -1;
+
+        // 頁面關閉時釋放連線，避免卡死其他頁面
+        window.onunload = () => {
+            if(db) db.close();
+        };
 
         window.onload = () => { renderGrid(); };
 
@@ -249,14 +291,14 @@
                     const img = new Image();
                     img.onload = () => {
                         let w = img.width, h = img.height;
-                        // ★★★ 強制超壓縮：寬度 450px (極小) ★★★
+                        // 維持極小尺寸以確保成功
                         const max = 450; 
                         if (w > max || h > max) {
                            if (w > h) { h *= max/w; w = max; } else { w *= max/h; h = max; }
                         }
                         compressCanvas.width = w; compressCanvas.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
-                        // ★★★ 品質 0.5 ★★★
+                        // 品質 0.5
                         resolve(compressCanvas.toDataURL('image/jpeg', 0.5));
                     };
                     img.src = e.target.result;
@@ -342,21 +384,20 @@
             renderGrid();
         });
 
-        // --- 儲存與發布 (含 Timeout 保護) ---
+        // --- 儲存與發布 ---
         shareBtn.addEventListener('click', async () => {
             if (pendingImages.length === 0) { alert("Please add photos first."); return; }
             if (selectedIndices.length === 0) { alert("Please select at least one photo."); return; }
 
             shareBtn.disabled = true;
-            shareBtn.textContent = "Connecting...";
+            shareBtn.textContent = "Processing...";
             log("Start saving process...");
 
-            // 設定 5秒 超時強制報錯機制
+            // 5秒保護機制
             const timeoutId = setTimeout(() => {
-                alert("儲存逾時！您的資料庫可能已鎖死。\n請點擊下方的「紅色修復按鈕」重置。");
+                alert("儲存逾時！資料庫可能被鎖死。\n1. 請關閉其他分頁\n2. 點擊下方紅色按鈕重置");
                 shareBtn.disabled = false;
                 shareBtn.textContent = "Finish";
-                log("Error: Timeout triggered.");
             }, 5000);
 
             try {
@@ -372,13 +413,13 @@
                     likes: 0, comments: []
                 };
 
+                // 開啟交易
                 const tx = db.transaction(["posts_timeline", "all_photos"], "readwrite");
                 
-                shareBtn.textContent = "Writing DB...";
-                log("Transaction started...");
-
+                // 寫入 Social Store
                 tx.objectStore("posts_timeline").add(newPost);
                 
+                // 寫入 Memories Store
                 const memoriesStore = tx.objectStore("all_photos");
                 imagesToPost.forEach(imgUrl => {
                     memoriesStore.add({
@@ -387,29 +428,31 @@
                 });
 
                 tx.oncomplete = () => {
-                    clearTimeout(timeoutId); // 取消超時警告
+                    clearTimeout(timeoutId);
                     log("Save Complete!");
+                    // 成功後跳轉
                     window.location.href = "home.html";
                 };
 
                 tx.onerror = (e) => {
                     clearTimeout(timeoutId);
                     log("TX Error: " + e.target.error);
-                    alert("儲存失敗: " + e.target.error);
+                    alert("儲存錯誤: " + e.target.error.message);
                     shareBtn.disabled = false;
                     shareBtn.textContent = "Finish";
                 };
 
             } catch (err) {
                 clearTimeout(timeoutId);
-                log("Catch Error: " + err.message);
-                alert("發生錯誤: " + err.message);
+                log("Fatal Error: " + err.message);
+                alert("系統錯誤: " + err.message);
                 shareBtn.disabled = false;
                 shareBtn.textContent = "Finish";
             }
         });
 
-        initDB();
-    </script>
+        // 初始化
+        initDB().catch(e => console.error(e));
+</script>
 </body>
 </html>
