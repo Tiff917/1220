@@ -16,10 +16,11 @@
         body::-webkit-scrollbar { display: none; }
 
         /* --- 2. 動態牆容器 --- */
-        #feed-container { width: 100%; margin: 0; padding-bottom: 80px; padding-top: 10px; }
+        /* 修正：移除頂部留白，底部留一點點空間給 footer 防止遮擋，但不多留 */
+        #feed-container { width: 100%; margin: 0; padding-top: 0; padding-bottom: 60px; }
 
         /* 貼文卡片 */
-        .post-card { background: white; border-bottom: 1px solid #efefef; margin-bottom: 10px; padding-bottom: 10px; }
+        .post-card { background: white; border-bottom: 1px solid #efefef; margin-bottom: 0; padding-bottom: 10px; }
 
         /* 貼文頭部 */
         .post-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; }
@@ -46,8 +47,13 @@
         /* 互動區 */
         .action-bar { padding: 10px 14px; display: flex; align-items: center; position: relative; height: 44px; }
         .action-left { display: flex; gap: 16px; align-items: center; }
-        .icon-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .icon-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        .icon-btn:active { transform: scale(0.9); }
         
+        /* 讓愛心變紅色時有動畫 */
+        .heart-anim { animation: likeBounce 0.3s ease; }
+        @keyframes likeBounce { 0%{transform:scale(1);} 50%{transform:scale(1.2);} 100%{transform:scale(1);} }
+
         .pagination-dots { display: flex; gap: 4px; position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
         .dot { width: 6px; height: 6px; border-radius: 50%; background: #dbdbdb; transition: background 0.2s; }
         .dot.active { background: #bfa093; }
@@ -67,6 +73,31 @@
         .post-btn { color: #bfa093; font-weight: 600; font-size: 14px; border: none; background: none; cursor: pointer; padding-left: 10px; opacity: 0.5; pointer-events: none; }
         .post-btn.active { opacity: 1; pointer-events: auto; }
 
+        /* 全螢幕留言板 */
+        #comment-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 9999;
+            display: flex; flex-direction: column;
+            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        #comment-overlay.open { transform: translateX(0); }
+
+        .overlay-header {
+            height: 50px; border-bottom: 1px solid #dbdbdb;
+            display: flex; align-items: center; padding: 0 16px;
+            font-weight: 600; font-size: 16px; justify-content: space-between;
+        }
+        .back-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;}
+        .overlay-content { flex: 1; overflow-y: auto; padding: 16px; }
+        .caption-block { display: flex; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #efefef; margin-bottom: 12px; }
+        .caption-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover;}
+        .caption-text-area { flex: 1; font-size: 14px; line-height: 1.4; }
+        .overlay-footer {
+            border-top: 1px solid #dbdbdb; padding: 10px 16px;
+            display: flex; align-items: center; background: white;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom)); 
+        }
+
         /* 空狀態 */
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #8e8e8e; gap: 15px; }
         .empty-icon { font-size: 40px; opacity: 0.3; }
@@ -81,6 +112,22 @@
         </div>
     </div>
 
+    <div id="comment-overlay">
+        <div class="overlay-header">
+            <div class="back-btn" onclick="closeCommentPage()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </div>
+            <span>Comments</span>
+            <div style="width: 30px;"></div>
+        </div>
+        <div class="overlay-content" id="overlay-scroll-area"></div>
+        <div class="overlay-footer">
+            <img src="" class="user-avatar-small" id="overlay-my-avatar">
+            <input type="text" class="comment-input" id="overlay-input" placeholder="Add a comment..." autocomplete="off">
+            <button class="post-btn" id="overlay-post-btn">Post</button>
+        </div>
+    </div>
+
     <script>
         // --- 1. 使用者資訊與資料庫 ---
         const dbName = "MemoriesDB";
@@ -90,51 +137,46 @@
         let userAvatarUrl = "https://i.pravatar.cc/150?img=68"; // 預設頭像
         let userName = localStorage.getItem('myProfileName') || "Me";
 
-        // 監聽更新 (例如發完文回來，自動重整)
+        // 監聽更新
         channel.onmessage = (event) => {
             if (event.data === 'updated') loadAndRender();
         };
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                // ★★★ 版本 6，與 Post/Home/Memories 一致 ★★★
                 const request = indexedDB.open(dbName, 6);
-                
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
                     if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
                     if (!db.objectStoreNames.contains("user_profile")) db.createObjectStore("user_profile");
                 };
-
-                request.onsuccess = (e) => { 
-                    db = e.target.result; 
-                    resolve(db); 
-                };
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e);
             });
         }
 
-        // --- 2. 讀取資料 (貼文 + 頭像) ---
+        // --- 2. 讀取資料 ---
         async function loadAndRender() {
             try {
                 await initDB();
                 
-                // 1. 讀取我的頭像 (Blob -> URL)
+                // 讀取頭像
                 const avatarTx = db.transaction("user_profile", "readonly");
                 const avatarReq = avatarTx.objectStore("user_profile").get("avatar");
-                
                 avatarReq.onsuccess = (e) => {
                     const res = e.target.result;
                     if (res && (res instanceof Blob || res instanceof File)) {
                         userAvatarUrl = URL.createObjectURL(res);
+                        document.getElementById('overlay-my-avatar').src = userAvatarUrl;
+                    } else {
+                        document.getElementById('overlay-my-avatar').src = userAvatarUrl;
                     }
                 };
 
-                // 2. 讀取貼文時間軸
+                // 讀取貼文
                 const tx = db.transaction("posts_timeline", "readonly");
                 const store = tx.objectStore("posts_timeline");
-                const request = store.openCursor(null, 'prev'); // 'prev' = 從新到舊排序
-                
+                const request = store.openCursor(null, 'prev');
                 const tempPosts = [];
                 
                 request.onsuccess = (e) => {
@@ -145,6 +187,10 @@
                         post.imageUrls = post.images.map(blob => 
                             (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
                         );
+                        // 初始化讚數
+                        if (!post.likes) post.likes = 0;
+                        if (!post.isLiked) post.isLiked = false;
+                        
                         tempPosts.push(post);
                         cursor.continue();
                     } else {
@@ -155,27 +201,24 @@
 
             } catch (e) {
                 console.error("Loading error:", e);
-                document.getElementById('loading-msg').textContent = "Failed to load feed.";
             }
         }
 
         // --- 3. 渲染畫面 ---
         const feedContainer = document.getElementById('feed-container');
         
+        // 修正後的圖示：愛心改成標準線條，看起來不醜了
         const icons = {
             more: '<svg aria-label="More" color="#262626" fill="#262626" height="24" viewBox="0 0 24 24" width="24"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>',
-            heartOutline: '<svg aria-label="Like" color="#262626" fill="#262626" height="24" viewBox="0 0 24 24" width="24"><path d="M16.792 3.904A4.989 4.989 0 0 1 21.5 9.122c0 3.072-2.652 4.956-5.197 7.222-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.072 2.5 12.167 2.5 9.122a4.989 4.989 0 0 1 4.708-5.218 4.21 4.21 0 0 1 3.675 1.941c.84 1.175.98 1.763 1.12 1.763s.278-.588 1.11-1.766a4.17 4.17 0 0 1 3.679-1.938m0-2a6.04 6.04 0 0 0-4.797 2.127 6.052 6.052 0 0 0-4.787-2.127A6.985 6.985 0 0 0 .5 9.122c0 3.61 2.55 5.827 5.015 7.97.283.246.569.494.853.747l1.027.918a44.998 44.998 0 0 0 3.518 3.018 2 2 0 0 0 2.174 0 45.263 45.263 0 0 0 3.622-3.067c.285-.253.571-.5.854-.747 2.465-2.143 5.015-4.36 5.015-7.97a6.985 6.985 0 0 0-6.792-6.218Z"></path></svg>',
-            heartFilled: '<svg aria-label="Unlike" fill="#ed4956" height="24" viewBox="0 0 48 48" width="24"><path d="M34.6 3.1c-4.5 0-7.9 1.8-10.6 5.6-2.7-3.7-6.1-5.5-10.6-5.5C6 3.1 0 9.6 0 17.6c0 7.3 5.4 12 10.6 16.5.6.5 1.3 1.1 1.9 1.7l2.3 2c4.4 3.9 6.6 5.9 7.6 6.5.5.3 1.1.5 1.6.5s1.1-.2 1.6-.5c1-.6 2.8-2.2 7.8-6.8l2-1.8c.7-.6 1.3-1.2 2-1.7C42.7 29.6 48 25 48 17.6c0-8-6-14.5-13.4-14.5z"></path></svg>',
-            comment: '<svg aria-label="Comment" fill="none" height="24" viewBox="0 0 24 24" width="24"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z" stroke="black" stroke-linejoin="round" stroke-width="1.5"></path></svg>'
+            // 修正：使用 stroke-width="2" 的標準愛心
+            heartOutline: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#262626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+            heartFilled: '<svg width="24" height="24" viewBox="0 0 24 24" fill="#ed4956" stroke="#ed4956" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+            comment: '<svg aria-label="Comment" fill="none" height="24" viewBox="0 0 24 24" width="24"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z" stroke="black" stroke-linejoin="round" stroke-width="2"></path></svg>'
         };
 
         function renderPosts() {
             if (postsData.length === 0) {
-                feedContainer.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">📷</div>
-                        <div>No posts yet.</div>
-                    </div>`;
+                feedContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">📷</div><div>No posts yet.</div></div>`;
                 return;
             }
 
@@ -184,9 +227,15 @@
                 const dotsHtml = post.imageUrls.length > 1 ? `<div class="pagination-dots" id="dots-${post.id}">${post.imageUrls.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('')}</div>` : '';
                 const counterDisplay = post.imageUrls.length > 1 ? 'block' : 'none';
                 
-                // 預設說明文字
-                const captionText = (post.comments && post.comments.length > 0) ? post.comments[0].text : `Memory from ${post.dateString} ✨`;
+                // 內文邏輯
+                let captionText = `Memory from ${post.dateString} ✨`;
+                if (post.comments && post.comments.length > 0) {
+                    captionText = post.comments[0].text;
+                }
                 const locationHtml = post.location ? `<span class="location">${post.location}</span>` : `<span class="location">${post.dateString}</span>`;
+                
+                // 愛心狀態
+                const initialHeart = post.isLiked ? icons.heartFilled : icons.heartOutline;
 
                 return `
                 <div class="post-card" id="post-${post.id}">
@@ -203,15 +252,23 @@
                     </div>
                     <div class="action-bar">
                         <div class="action-left">
-                            <div class="icon-btn" onclick="toggleLike(this)">${icons.heartOutline}</div>
-                            <div class="icon-btn">${icons.comment}</div>
+                            <div class="icon-btn" id="like-btn-${post.id}" onclick="toggleLike(${post.id})">${initialHeart}</div>
+                            <div class="icon-btn" onclick="openCommentPage(${post.id})">${icons.comment}</div>
                         </div>
                         ${dotsHtml}
                     </div>
                     <div class="post-content">
-                        <span class="likes-count">${post.likes || 0} likes</span>
+                        <span class="likes-count" id="likes-count-${post.id}">${post.likes} likes</span>
+                        
                         <div class="comment-row"><span class="comment-user">${userName}</span>${captionText}</div>
+                        ${ post.comments.length > 1 ? `<div style="color:#8e8e8e; margin-bottom:4px; cursor:pointer;" onclick="openCommentPage(${post.id})">View all ${post.comments.length} comments</div>` : '' }
                         <div class="timestamp">${new Date(post.timestamp).toDateString()}</div>
+                        
+                        <div class="add-comment-section">
+                            <img src="${userAvatarUrl}" class="user-avatar-small">
+                            <input type="text" class="comment-input" id="input-${post.id}" placeholder="Add a comment..." autocomplete="off" oninput="checkInput(this, 'btn-${post.id}')" onkeypress="handleEnter(event, ${post.id}, 'input-${post.id}')">
+                            <button class="post-btn" id="btn-${post.id}" onclick="postComment(${post.id}, 'input-${post.id}')">Post</button>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
@@ -227,12 +284,134 @@
             counter.innerText = `${index + 1}/${dotsContainer.children.length}`;
         }
 
-        function toggleLike(btn) {
-            const isFilled = btn.innerHTML.includes('fill="#ed4956"');
-            btn.innerHTML = isFilled ? icons.heartOutline : icons.heartFilled;
+        // --- 4. 按讚功能 (即時+1/ -1) ---
+        async function toggleLike(postId) {
+            const post = postsData.find(p => p.id === postId);
+            const btn = document.getElementById(`like-btn-${postId}`);
+            const countSpan = document.getElementById(`likes-count-${postId}`);
+
+            if (post.isLiked) {
+                // 取消讚
+                post.likes--;
+                post.isLiked = false;
+                btn.innerHTML = icons.heartOutline;
+                btn.classList.remove('heart-anim');
+            } else {
+                // 按讚
+                post.likes++;
+                post.isLiked = true;
+                btn.innerHTML = icons.heartFilled;
+                btn.classList.add('heart-anim');
+            }
+            // 更新數字
+            countSpan.innerText = `${post.likes} likes`;
+
+            // 存回資料庫
+            await saveTimelineToDB();
         }
 
-        // 啟動
+        // --- 5. 留言系統 ---
+        let currentOpenPostId = null;
+
+        function openCommentPage(postId) {
+            currentOpenPostId = postId;
+            const post = postsData.find(p => p.id === postId);
+            const overlay = document.getElementById('comment-overlay');
+            const contentArea = document.getElementById('overlay-scroll-area');
+            
+            // 內文
+            let captionText = (post.comments && post.comments.length > 0) ? post.comments[0].text : `Memory from ${post.dateString} ✨`;
+
+            let html = `
+                <div class="caption-block">
+                    <img src="${userAvatarUrl}" class="caption-avatar">
+                    <div class="caption-text-area">
+                        <span class="comment-user">${userName}</span>
+                        <span>${captionText}</span>
+                        <div style="font-size:12px; color:#8e8e8e; margin-top:4px;">${new Date(post.timestamp).toDateString()}</div>
+                    </div>
+                </div>
+                <div class="all-comments-list">
+            `;
+            
+            // 其他留言 (從 index 1 開始，因為 0 是內文)
+            for (let i = 1; i < post.comments.length; i++) {
+                const c = post.comments[i];
+                let avatarSrc = (c.user === userName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
+                html += `
+                    <div class="comment-row" style="margin-bottom: 12px; display:flex; gap:12px;">
+                        <img src="${avatarSrc}" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">
+                        <div style="font-size:14px;">
+                            <span class="comment-user">${c.user}</span>
+                            <span>${c.text}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+            contentArea.innerHTML = html;
+            overlay.classList.add('open'); 
+
+            const input = document.getElementById('overlay-input');
+            const btn = document.getElementById('overlay-post-btn');
+            input.value = '';
+            btn.classList.remove('active');
+            btn.onclick = () => postCommentFromOverlay(postId);
+            input.oninput = () => checkInput(input, 'overlay-post-btn');
+            input.onkeypress = (e) => { if(e.key === 'Enter') postCommentFromOverlay(postId); };
+        }
+
+        function closeCommentPage() {
+            document.getElementById('comment-overlay').classList.remove('open');
+            currentOpenPostId = null;
+            renderPosts(); // 關閉時重新渲染，更新首頁的留言預覽
+        }
+
+        function checkInput(inputEl, btnId) {
+            const btn = document.getElementById(btnId);
+            if (inputEl.value.trim().length > 0) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+
+        function handleEnter(e, postId, inputId) {
+            if (e.key === 'Enter') postComment(postId, inputId);
+        }
+
+        // 儲存所有變更 (讚、留言)
+        async function saveTimelineToDB() {
+            const tx = db.transaction(["posts_timeline"], "readwrite");
+            const store = tx.objectStore("posts_timeline");
+            // 因為我們是修改了 postsData 裡的物件，所以要把每個物件都 put 回去
+            postsData.forEach(post => {
+                // 注意：imageUrls 不需要存回資料庫，那是顯示用的
+                const postToSave = { ...post }; 
+                delete postToSave.imageUrls; 
+                delete postToSave.user; // user 資訊也是動態抓的，不存
+                store.put(postToSave);
+            });
+        }
+
+        async function postComment(postId, inputId) {
+            const input = document.getElementById(inputId);
+            const text = input.value.trim();
+            if (!text) return;
+            const post = postsData.find(p => p.id === postId);
+            post.comments.push({ user: userName, text: text });
+            input.value = '';
+            renderPosts();
+            await saveTimelineToDB(); 
+        }
+
+        async function postCommentFromOverlay(postId) {
+            const input = document.getElementById('overlay-input');
+            const text = input.value.trim();
+            if (!text) return;
+            const post = postsData.find(p => p.id === postId);
+            post.comments.push({ user: userName, text: text });
+            openCommentPage(postId); // 重新渲染 Overlay 內容
+            await saveTimelineToDB(); 
+        }
+
         loadAndRender();
 
     </script>
