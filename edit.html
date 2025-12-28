@@ -209,13 +209,13 @@
                     img.onload = () => {
                         let w = img.width, h = img.height;
                         // ★ 保留成功的壓縮設定
-                        const max = 450; 
+                        const max = 600; 
                         if (w > max || h > max) {
                            if (w > h) { h *= max/w; w = max; } else { w *= max/h; h = max; }
                         }
                         compressCanvas.width = w; compressCanvas.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
-                        resolve(compressCanvas.toDataURL('image/jpeg', 0.5)); // 品質 0.5
+                        resolve(compressCanvas.toDataURL('image/jpeg', 0.7)); // 品質 0.5
                     };
                     img.src = e.target.result;
                 };
@@ -339,7 +339,7 @@
 
                 tx.oncomplete = () => {
                     clearTimeout(timeoutId);
-                    window.location.href = "home.html";
+                    window.location.href = "index.html";
                 };
 
                 tx.onerror = (e) => {
