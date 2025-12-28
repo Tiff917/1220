@@ -31,6 +31,9 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
+            /* ★ 加入這兩行來鎖死左右滑動 ★ */
+            overflow-x: hidden; 
+            width: 100%;
         }
 
         /* --- 2. 手機外框容器 --- */
@@ -226,6 +229,8 @@
             body {
                 background-color: var(--bg-color); /* 直接顯示內層背景色 */
                 align-items: flex-start;
+                /* ★ 確保手機版也鎖死 ★ */
+                overflow-x: hidden;
             }
 
             .phone-frame {
