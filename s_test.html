@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Social Feed</title>
+    <style>
+        /* --- 1. 基礎設定 --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background-color: #F0EAE4; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            color: #262626; 
+            overflow-x: hidden;
+        }
+        body::-webkit-scrollbar { display: none; }
+
+        /* --- 2. 動態牆容器 --- */
+        #feed-container { width: 100%; margin: 0; padding-top: 0; padding-bottom: 60px; }
+
+        /* 貼文卡片 */
+        .post-card { background: white; border-bottom: 1px solid #efefef; margin-bottom: 0; padding-bottom: 10px; }
+
+        /* 貼文頭部 (加入 position: relative 以便定位下拉選單) */
+        .post-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; position: relative; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1); }
+        .username { font-weight: 600; font-size: 14px; text-decoration: none; color: #262626; }
+        .location { font-size: 12px; color: #262626; display: block; }
+
+        /* 頭像樣式 */
+        .avatar, .user-avatar-small, .caption-avatar { 
+            background-color: #dbdbdb; /* 預設灰色背景 */
+        }
+        .user-avatar-small { width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; object-fit: cover; }
+        .caption-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+
+        /* 圖片輪播 */
+        .media-container { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #fafafa; }
+        .slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; height: 100%; }
+        .slider::-webkit-scrollbar { display: none; }
+        .slide-item { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; }
+        .slide-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        .image-counter {
+            position: absolute; top: 14px; right: 14px;
+            background: rgba(0,0,0,0.6); color: white;
+            padding: 4px 10px; border-radius: 14px;
+            font-size: 12px; font-weight: 600;
+            display: none; pointer-events: none;
+        }
+
+        /* 互動區 */
+        .action-bar { padding: 10px 14px; display: flex; align-items: center; position: relative; height: 44px; }
+        .action-left { display: flex; gap: 16px; align-items: center; }
+        .icon-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        .icon-btn:active { transform: scale(0.9); }
+        
+        .heart-anim { animation: likeBounce 0.3s ease; }
+        @keyframes likeBounce { 0%{transform:scale(1);} 50%{transform:scale(1.2);} 100%{transform:scale(1);} }
+
+        .pagination-dots { display: flex; gap: 4px; position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: #dbdbdb; transition: background 0.2s; }
+        .dot.active { background: #bfa093; }
+
+        /* 文字內容 */
+        .post-content { padding: 0 14px; font-size: 14px; }
+        .likes-count { font-weight: 600; margin-bottom: 8px; display: block; }
+        .comments-preview { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+        .comment-row { line-height: 1.4; word-wrap: break-word; margin-bottom: 4px; }
+        .comment-user { font-weight: 600; margin-right: 5px; }
+        .timestamp { font-size: 10px; color: #8e8e8e; text-transform: uppercase; margin-bottom: 12px; display: block; }
+
+        /* 留言輸入 */
+        .add-comment-section { display: flex; align-items: center; padding-top: 10px; border-top: 1px solid #efefef; margin-top: 5px; }
+        .comment-input { flex: 1; border: none; font-size: 14px; padding: 5px 0; background: transparent; }
+        .post-btn { color: #bfa093; font-weight: 600; font-size: 14px; border: none; background: none; cursor: pointer; padding-left: 10px; opacity: 0.5; pointer-events: none; }
+        .post-btn.active { opacity: 1; pointer-events: auto; }
+
+        /* 全螢幕留言板 */
+        #comment-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 9999;
+            display: flex; flex-direction: column;
+            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        #comment-overlay.open { transform: translateX(0); }
+
+        .overlay-header {
+            height: 50px; border-bottom: 1px solid #dbdbdb;
+            display: flex; align-items: center; padding: 0 16px;
+            font-weight: 600; font-size: 16px; justify-content: space-between;
+        }
+        .back-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;}
+        .overlay-content { flex: 1; overflow-y: auto; padding: 16px; }
+        .caption-block { display: flex; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #efefef; margin-bottom: 12px; }
+        .caption-text-area { flex: 1; font-size: 14px; line-height: 1.4; }
+        .overlay-footer {
+            border-top: 1px solid #dbdbdb; padding: 10px 16px;
+            display: flex; align-items: center; background: white;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom)); 
+        }
+
+        /* 空狀態 */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #8e8e8e; gap: 15px; }
+        .empty-icon { font-size: 40px; opacity: 0.3; }
+
+        /* --- 新增：下拉式選單樣式 --- */
+        .popup-menu {
+            display: none; /* 預設隱藏 */
+            position: absolute;
+            top: 40px; /* 在 icon 下方 */
+            right: 14px; /* 對齊右邊 */
+            background: white;
+            border: 1px solid #efefef;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            z-index: 100;
+            width: 100px;
+            animation: fadeIn 0.1s ease;
+        }
+        .popup-menu.show { display: block; }
+
+        .menu-item {
+            padding: 12px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ed4956; /* 檢舉用紅色 */
+            cursor: pointer;
+        }
+        .menu-item:active { background-color: #fafafa; }
+
+        @keyframes fadeIn { from{opacity:0; transform:translateY(-5px);} to{opacity:1; transform:translateY(0);} }
+    </style>
+</head>
+<body>
+
+    <div id="feed-container">
+        <div class="empty-state" id="loading-msg">
+            <div class="empty-icon">📷</div>
+            <div>Loading feed...</div>
+        </div>
+    </div>
+
+    <div id="comment-overlay">
+        <div class="overlay-header">
+            <div class="back-btn" onclick="closeCommentPage()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </div>
+            <span>Comments</span>
+            <div style="width: 30px;"></div>
+        </div>
+        <div class="overlay-content" id="overlay-scroll-area"></div>
+        <div class="overlay-footer">
+            <img src="" class="user-avatar-small" id="overlay-my-avatar">
+            <input type="text" class="comment-input" id="overlay-input" placeholder="Add a comment..." autocomplete="off">
+            <button class="post-btn" id="overlay-post-btn">Post</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 使用者資訊與資料庫 ---
+        const dbName = "MemoriesDB";
+        const channel = new BroadcastChannel('memory_update'); 
+        let db;
+        let postsData = [];
+        let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        // 初始化時嘗試抓一次
+        let userName = localStorage.getItem('myProfileName') || "Me";
+
+        // 監聽更新
+        channel.onmessage = (event) => {
+            if (event.data === 'updated') loadAndRender();
+        };
+
+        // 點擊空白處關閉選單
+        window.onclick = function(event) {
+            if (!event.target.closest('.icon-btn') && !event.target.closest('.popup-menu')) {
+                document.querySelectorAll('.popup-menu').forEach(menu => menu.classList.remove('show'));
+            }
+        }
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, 6);
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    if (!db.objectStoreNames.contains("user_profile")) db.createObjectStore("user_profile");
+                };
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        // --- 2. 讀取資料 ---
+        async function loadAndRender() {
+            try {
+                await initDB();
+                
+                // 讀取頭像
+                const avatarTx = db.transaction("user_profile", "readonly");
+                const avatarReq = avatarTx.objectStore("user_profile").get("avatar");
+                avatarReq.onsuccess = (e) => {
+                    const res = e.target.result;
+                    if (res && (res instanceof Blob || res instanceof File)) {
+                        userAvatarUrl = URL.createObjectURL(res);
+                        document.getElementById('overlay-my-avatar').src = userAvatarUrl;
+                    } else {
+                        document.getElementById('overlay-my-avatar').src = userAvatarUrl;
+                    }
+                };
+
+                // 讀取貼文
+                const tx = db.transaction("posts_timeline", "readonly");
+                const store = tx.objectStore("posts_timeline");
+                const request = store.openCursor(null, 'prev');
+                const tempPosts = [];
+                
+                request.onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        const post = cursor.value;
+                        post.imageUrls = post.images.map(blob => 
+                            (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
+                        );
+                        if (!post.likes) post.likes = 0;
+                        if (!post.isLiked) post.isLiked = false;
+                        
+                        tempPosts.push(post);
+                        cursor.continue();
+                    } else {
+                        postsData = tempPosts;
+                        renderPosts();
+                    }
+                };
+            } catch (e) {
+                console.error("Loading error:", e);
+            }
+        }
+
+        // --- 3. 渲染畫面 ---
+        const feedContainer = document.getElementById('feed-container');
+        
+        const icons = {
+            more: '<svg aria-label="More" color="#262626" fill="#262626" height="24" viewBox="0 0 24 24" width="24"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>',
+            heartOutline: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#262626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+            heartFilled: '<svg width="24" height="24" viewBox="0 0 24 24" fill="#ed4956" stroke="#ed4956" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+            comment: '<svg aria-label="Comment" fill="none" height="24" viewBox="0 0 24 24" width="24"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z" stroke="black" stroke-linejoin="round" stroke-width="2"></path></svg>'
+        };
+
+        function renderPosts() {
+            // ★ 強制每次渲染都抓取最新的名字
+            const currentName = localStorage.getItem('myProfileName') || "Me";
+            // 為了除錯，我們更新全域變數
+            userName = currentName; 
+
+            if (postsData.length === 0) {
+                feedContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">📷</div><div>No posts yet.</div></div>`;
+                return;
+            }
+
+            feedContainer.innerHTML = postsData.map(post => {
+                const imagesHtml = post.imageUrls.map(url => `<div class="slide-item"><img src="${url}"></div>`).join('');
+                const dotsHtml = post.imageUrls.length > 1 ? `<div class="pagination-dots" id="dots-${post.id}">${post.imageUrls.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('')}</div>` : '';
+                const counterDisplay = post.imageUrls.length > 1 ? 'block' : 'none';
+                
+                // 內文邏輯
+                let captionText = "";
+                if (post.comments && post.comments.length > 0) {
+                    captionText = post.comments[0].text;
+                }
+                
+                const locationHtml = post.location ? `<span class="location">${post.location}</span>` : `<span class="location">${post.dateString}</span>`;
+                const initialHeart = post.isLiked ? icons.heartFilled : icons.heartOutline;
+
+                return `
+                <div class="post-card" id="post-${post.id}">
+                    <div class="post-header">
+                        <div class="user-info">
+                            <img src="${userAvatarUrl}" class="avatar">
+                            <div><span class="username">${currentName}</span>${locationHtml}</div>
+                        </div>
+                        
+                        <div class="icon-btn" onclick="toggleMenu(event, ${post.id})">${icons.more}</div>
+                        
+                        <div id="menu-${post.id}" class="popup-menu">
+                            <div class="menu-item" onclick="confirmReport(${post.id})">檢舉</div>
+                        </div>
+                    </div>
+                    <div class="media-container">
+                        <div class="image-counter" id="counter-${post.id}" style="display:${counterDisplay}">1/${post.imageUrls.length}</div>
+                        <div class="slider" onscroll="updateSlider(${post.id})" id="slider-${post.id}">${imagesHtml}</div>
+                    </div>
+                    <div class="action-bar">
+                        <div class="action-left">
+                            <div class="icon-btn" id="like-btn-${post.id}" onclick="toggleLike(${post.id})">${initialHeart}</div>
+                            <div class="icon-btn" onclick="openCommentPage(${post.id})">${icons.comment}</div>
+                        </div>
+                        ${dotsHtml}
+                    </div>
+                    <div class="post-content">
+                        <span class="likes-count" id="likes-count-${post.id}">${post.likes} likes</span>
+                        
+                        ${ captionText ? `<div class="comment-row"><span class="comment-user">${currentName}</span>${captionText}</div>` : '' }
+                        
+                        ${ post.comments.length > 1 ? `<div style="color:#8e8e8e; margin-bottom:4px; cursor:pointer;" onclick="openCommentPage(${post.id})">View all ${post.comments.length} comments</div>` : '' }
+                        <div class="timestamp">${new Date(post.timestamp).toDateString()}</div>
+                        
+                        <div class="add-comment-section">
+                            <img src="${userAvatarUrl}" class="user-avatar-small">
+                            <input type="text" class="comment-input" id="input-${post.id}" placeholder="Add a comment..." autocomplete="off" oninput="checkInput(this, 'btn-${post.id}')" onkeypress="handleEnter(event, ${post.id}, 'input-${post.id}')">
+                            <button class="post-btn" id="btn-${post.id}" onclick="postComment(${post.id}, 'input-${post.id}')">Post</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function updateSlider(postId) {
+            const slider = document.getElementById(`slider-${postId}`);
+            const dotsContainer = document.getElementById(`dots-${postId}`);
+            const counter = document.getElementById(`counter-${postId}`);
+            if (!dotsContainer) return;
+            const index = Math.round(slider.scrollLeft / slider.offsetWidth);
+            Array.from(dotsContainer.children).forEach((dot, i) => dot.classList.toggle('active', i === index));
+            counter.innerText = `${index + 1}/${dotsContainer.children.length}`;
+        }
+
+        // --- 4. 按讚功能 ---
+        async function toggleLike(postId) {
+            const post = postsData.find(p => p.id === postId);
+            const btn = document.getElementById(`like-btn-${postId}`);
+            const countSpan = document.getElementById(`likes-count-${postId}`);
+
+            if (post.isLiked) {
+                post.likes--;
+                post.isLiked = false;
+                btn.innerHTML = icons.heartOutline;
+                btn.classList.remove('heart-anim');
+            } else {
+                post.likes++;
+                post.isLiked = true;
+                btn.innerHTML = icons.heartFilled;
+                btn.classList.add('heart-anim');
+            }
+            countSpan.innerText = `${post.likes} likes`;
+            await saveTimelineToDB();
+        }
+
+        // --- 5. 留言系統 ---
+        let currentOpenPostId = null;
+
+        function openCommentPage(postId) {
+            currentOpenPostId = postId;
+            const post = postsData.find(p => p.id === postId);
+            const overlay = document.getElementById('comment-overlay');
+            const contentArea = document.getElementById('overlay-scroll-area');
+            
+            // ★ 再次抓取名字給留言板用
+            const myName = localStorage.getItem('myProfileName') || "Me";
+            
+            let captionText = (post.comments && post.comments.length > 0) ? post.comments[0].text : `Memory from ${post.dateString} ✨`;
+
+            let html = `
+                <div class="caption-block">
+                    <img src="${userAvatarUrl}" class="caption-avatar">
+                    <div class="caption-text-area">
+                        <span class="comment-user">${myName}</span>
+                        <span>${captionText}</span>
+                        <div style="font-size:12px; color:#8e8e8e; margin-top:4px;">${new Date(post.timestamp).toDateString()}</div>
+                    </div>
+                </div>
+                <div class="all-comments-list">
+            `;
+            
+            for (let i = 1; i < post.comments.length; i++) {
+                const c = post.comments[i];
+                let avatarSrc = (c.user === myName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
+                html += `
+                    <div class="comment-row" style="margin-bottom: 12px; display:flex; gap:12px;">
+                        <img src="${avatarSrc}" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">
+                        <div style="font-size:14px;">
+                            <span class="comment-user">${c.user}</span>
+                            <span>${c.text}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+            contentArea.innerHTML = html;
+            overlay.classList.add('open'); 
+
+            const input = document.getElementById('overlay-input');
+            const btn = document.getElementById('overlay-post-btn');
+            input.value = '';
+            btn.classList.remove('active');
+            btn.onclick = () => postCommentFromOverlay(postId);
+            input.oninput = () => checkInput(input, 'overlay-post-btn');
+            input.onkeypress = (e) => { if(e.key === 'Enter') postCommentFromOverlay(postId); };
+        }
+
+        function closeCommentPage() {
+            document.getElementById('comment-overlay').classList.remove('open');
+            currentOpenPostId = null;
+            renderPosts(); 
+        }
+
+        function checkInput(inputEl, btnId) {
+            const btn = document.getElementById(btnId);
+            if (inputEl.value.trim().length > 0) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+
+        function handleEnter(e, postId, inputId) {
+            if (e.key === 'Enter') postComment(postId, inputId);
+        }
+
+        async function saveTimelineToDB() {
+            const tx = db.transaction(["posts_timeline"], "readwrite");
+            const store = tx.objectStore("posts_timeline");
+            postsData.forEach(post => {
+                const postToSave = { ...post }; 
+                delete postToSave.imageUrls; 
+                delete postToSave.user; 
+                store.put(postToSave);
+            });
+        }
+
+        async function postComment(postId, inputId) {
+            const input = document.getElementById(inputId);
+            const text = input.value.trim();
+            if (!text) return;
+            // 抓最新名字
+            const myName = localStorage.getItem('myProfileName') || "Me";
+            const post = postsData.find(p => p.id === postId);
+            post.comments.push({ user: myName, text: text });
+            input.value = '';
+            renderPosts();
+            await saveTimelineToDB(); 
+        }
+
+        async function postCommentFromOverlay(postId) {
+            const input = document.getElementById('overlay-input');
+            const text = input.value.trim();
+            if (!text) return;
+            const myName = localStorage.getItem('myProfileName') || "Me";
+            const post = postsData.find(p => p.id === postId);
+            post.comments.push({ user: myName, text: text });
+            openCommentPage(postId);
+            await saveTimelineToDB(); 
+        }
+
+        // --- 下拉選單邏輯 ---
+        function toggleMenu(event, postId) {
+            event.stopPropagation(); // 阻止冒泡
+            
+            // 先關閉所有打開的選單
+            document.querySelectorAll('.popup-menu.show').forEach(menu => {
+                if (menu.id !== `menu-${postId}`) {
+                    menu.classList.remove('show');
+                }
+            });
+
+            // 切換目前這個選單
+            const menu = document.getElementById(`menu-${postId}`);
+            menu.classList.toggle('show');
+        }
+        
+        function confirmReport(postId) {
+            alert(`已收到您對貼文 (ID: ${postId}) 的檢舉，我們會盡快審核。`);
+            // 關閉選單
+            document.getElementById(`menu-${postId}`).classList.remove('show');
+        }
+
+        loadAndRender();
+
+    </script>
+</body>
+</html>
