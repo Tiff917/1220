@@ -117,133 +117,175 @@
     </div>
 
     <script>
-        // --- 1. IndexedDB 與 廣播設定 ---
+        // --- 1. 資料庫設定 (與 Post/Home 頁面統一) ---
         const dbName = "MemoriesDB";
-        const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
         let db;
-        let savedMemories = {};
+        // savedMemories 結構範例: { "2023-12-28": [ {key: 1, image: Blob}, {key: 2, image: Blob} ] }
+        let savedMemories = {}; 
 
+        // 監聽其他頁面的更新 (例如剛發完文回來)
         channel.onmessage = async function(event) {
             if (event.data === 'updated') {
-                savedMemories = await getAllMemories();
+                await loadDataFromDB();
                 renderCalendar();
             }
         };
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 1);
+                // ★★★ 關鍵：版本號設為 6，對齊 new-post.html ★★★
+                const request = indexedDB.open(dbName, 6);
+
                 request.onupgradeneeded = function(e) {
                     db = e.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
+                    // 確保倉庫存在
+                    if (!db.objectStoreNames.contains("all_photos")) {
+                        db.createObjectStore("all_photos", { autoIncrement: true });
+                    }
+                    if (!db.objectStoreNames.contains("posts_timeline")) {
+                        db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    }
                 };
+
                 request.onsuccess = function(e) {
                     db = e.target.result;
                     resolve(db);
                 };
+                
                 request.onerror = (e) => reject(e);
             });
         }
 
-        function getAllMemories() {
+        // --- 2. 核心：從資料庫撈資料並重組 ---
+        async function loadDataFromDB() {
+            if (!db) await initDB();
+            
             return new Promise((resolve) => {
-                if (!db) return resolve({});
-                const tx = db.transaction([storeName], "readonly");
-                const store = tx.objectStore(storeName);
-                const req = store.get("all_photos");
-                req.onsuccess = (e) => resolve(e.target.result || {});
-                req.onerror = () => resolve({});
+                savedMemories = {}; // 重置
+                
+                const tx = db.transaction("all_photos", "readonly");
+                const store = tx.objectStore("all_photos");
+                
+                // 使用游標遍歷所有照片
+                const request = store.openCursor();
+                
+                request.onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        const record = cursor.value; // { date: "...", timestamp: ..., image: Blob }
+                        const key = cursor.key;      // 資料庫的主鍵 ID (刪除時需要)
+                        
+                        // 確保有日期屬性
+                        if (record.date) {
+                            if (!savedMemories[record.date]) {
+                                savedMemories[record.date] = [];
+                            }
+                            // 將資料存入對應日期的陣列中
+                            savedMemories[record.date].push({
+                                key: key,
+                                image: record.image,
+                                timestamp: record.timestamp
+                            });
+                        }
+                        cursor.continue();
+                    } else {
+                        // 讀取完成
+                        resolve();
+                    }
+                };
             });
         }
 
-        function saveAllMemories(data) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([storeName], "readwrite");
-                const store = tx.objectStore(storeName);
-                const req = store.put(data, "all_photos");
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject();
-            });
-        }
-
-        // --- 2. 邏輯初始化 ---
+        // --- 3. 頁面邏輯 ---
         let displayDate = new Date(); 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
+        // 啟動
         initDB().then(async () => {
-            savedMemories = await getAllMemories();
-            for (let key in savedMemories) {
-                if (!Array.isArray(savedMemories[key])) savedMemories[key] = [savedMemories[key]];
-            }
+            await loadDataFromDB();
             renderCalendar();
         });
 
+        // 清空所有資料
         async function clearAllData() {
-            if (confirm("確定要清空所有照片嗎？")) {
-                savedMemories = {};
-                await saveAllMemories(savedMemories);
-                renderCalendar();
-                channel.postMessage('updated');
+            if (confirm("確定要清空所有照片嗎？(這會刪除所有回憶)")) {
+                const tx = db.transaction(["all_photos", "posts_timeline"], "readwrite");
+                tx.objectStore("all_photos").clear();
+                tx.objectStore("posts_timeline").clear();
+                
+                tx.oncomplete = async () => {
+                    savedMemories = {};
+                    renderCalendar();
+                    channel.postMessage('updated'); // 通知其他頁面
+                    alert("已清空");
+                };
             }
         }
 
+        // --- 4. 此頁面上傳功能 (相容新格式) ---
         const fileInput = document.getElementById('fileInput');
         const addBtn = document.querySelector('.add-btn');
 
         function triggerUpload() { fileInput.click(); }
 
-        fileInput.addEventListener('change', function(event) {
-            const files = event.target.files;
-            if (!files || files.length === 0) return;
+        fileInput.addEventListener('change', async function(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
 
             addBtn.textContent = `Saving...`;
             addBtn.style.opacity = "0.7";
 
-            let processedCount = 0;
-            const today = new Date();
-            const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-            
-            if (!savedMemories[dateKey]) savedMemories[dateKey] = [];
+            try {
+                if(!db) await initDB();
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+                
+                const tx = db.transaction(["all_photos", "posts_timeline"], "readwrite");
+                const pStore = tx.objectStore("all_photos");
+                const tStore = tx.objectStore("posts_timeline");
 
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    compressImage(e.target.result, 1024, 0.8, async function(base64) {
-                        savedMemories[dateKey].push(base64);
-                        processedCount++;
-                        if (processedCount === files.length) {
-                            await saveAllMemories(savedMemories);
-                            if (displayDate.getFullYear() !== today.getFullYear() || displayDate.getMonth() !== today.getMonth()) {
-                                displayDate = new Date();
-                            }
-                            renderCalendar();
-                            channel.postMessage('updated');
-                            addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
-                            addBtn.style.opacity = "1";
-                        }
+                files.forEach(file => {
+                    // 1. 存入照片庫 (Blob)
+                    pStore.add({ date: dateStr, timestamp: now.getTime(), image: file });
+                    
+                    // 2. 存入時間軸 (保持一致性)
+                    tStore.add({
+                        id: Date.now() + Math.random(),
+                        timestamp: now.getTime(),
+                        dateString: dateStr,
+                        images: [file],
+                        location: null,
+                        isFriendTagged: false,
+                        likes: 0,
+                        comments: []
                     });
+                });
+
+                tx.oncomplete = async () => {
+                    await loadDataFromDB(); // 重新讀取
+                    
+                    // 如果顯示的月份不是當月，跳轉到當月
+                    if (displayDate.getFullYear() !== now.getFullYear() || displayDate.getMonth() !== now.getMonth()) {
+                        displayDate = new Date();
+                    }
+                    renderCalendar();
+                    channel.postMessage('updated');
+                    
+                    // 恢復按鈕
+                    addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Add Memory`;
+                    addBtn.style.opacity = "1";
+                    fileInput.value = ''; // 清空輸入
                 };
-                reader.readAsDataURL(file);
-            });
+            } catch(e) {
+                console.error(e);
+                alert("上傳失敗");
+                addBtn.textContent = "Try Again";
+            }
         });
 
-        function compressImage(base64Str, maxWidth, quality, callback) {
-            const img = new Image();
-            img.src = base64Str;
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                let w = img.width, h = img.height;
-                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
-                canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                callback(canvas.toDataURL('image/jpeg', quality));
-            };
-        }
-
-        // --- 渲染日曆 ---
+        // --- 5. 渲染日曆 (支援 Blob URL) ---
         function renderCalendar() {
             const container = document.getElementById('calendarContainer');
             const label = document.getElementById('monthLabel');
@@ -272,17 +314,22 @@
                 
                 if (savedMemories[dateKey] && savedMemories[dateKey].length > 0) {
                     const photos = savedMemories[dateKey];
-                    const lastPhoto = photos[photos.length - 1];
+                    // 取得最後一張照片
+                    const lastRecord = photos[photos.length - 1];
+                    
                     if (photos.length > 1) {
                         const ind = document.createElement('div');
                         ind.className = 'multiple-indicator';
                         cell.appendChild(ind);
                     }
+                    
                     const img = document.createElement('img');
-                    img.src = lastPhoto;
+                    // ★ 關鍵：使用 URL.createObjectURL 顯示 Blob
+                    img.src = URL.createObjectURL(lastRecord.image);
                     img.className = 'memory-photo';
                     img.onclick = () => openStoryViewer(dateKey);
                     cell.appendChild(img);
+                    
                     const num = document.createElement('span');
                     num.className = 'date-overlay'; num.innerText = d;
                     cell.appendChild(num);
@@ -306,21 +353,35 @@
             renderCalendar();
         }
 
-        // --- Story Viewer & 刪除 ---
+        // --- 6. Story Viewer & 刪除 (支援 Blob & DB ID) ---
         let storyList = [], currentIndex = 0, storyTimer, startY = 0, currentY = 0, isDragging = false;
         const overlay = document.getElementById('storyOverlay');
+        const DURATION = 3000; // 3秒
 
         function openStoryViewer(clickedDateKey) {
             storyList = [];
+            // 依照日期排序
             const sortedKeys = Object.keys(savedMemories).sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
-            let targetIndex = 0, foundTarget = false;
+            
+            let targetIndex = 0;
+            let foundTarget = false;
 
             sortedKeys.forEach(key => {
-                const photos = savedMemories[key];
-                photos.forEach((url, idx) => {
-                    storyList.push({ date: key, url: url });
+                const records = savedMemories[key];
+                records.forEach((record, idx) => {
+                    // 建立播放清單
+                    storyList.push({ 
+                        date: key, 
+                        // ★ 每次都建立一個新的 URL
+                        url: URL.createObjectURL(record.image), 
+                        dbKey: record.key, // 儲存資料庫 ID 供刪除用
+                        rawBlob: record.image 
+                    });
+                    
+                    // 找出點擊的那一天，定位到該天的第一張
                     if (key === clickedDateKey && idx === 0 && !foundTarget) {
-                        targetIndex = storyList.length - 1; foundTarget = true;
+                        targetIndex = storyList.length - 1; 
+                        foundTarget = true;
                     }
                 });
             });
@@ -330,50 +391,43 @@
             renderStory();
         }
 
-        // --- 核心修改：刪除功能 ---
         async function deleteCurrentStory(e) {
-            // 阻止冒泡，避免觸發背景點擊或滑動
-            if(e) {
-                e.stopPropagation();
-                e.preventDefault(); 
-            }
+            if(e) { e.stopPropagation(); e.preventDefault(); }
 
             if (confirm("Delete this photo?")) {
                 clearTimeout(storyTimer);
                 const currentItem = storyList[currentIndex];
-                const dateKey = currentItem.date;
-                const photoUrl = currentItem.url;
+                const dbKey = currentItem.dbKey; // 取得資料庫 ID
 
-                // 移除邏輯
-                const photoIndex = savedMemories[dateKey].indexOf(photoUrl);
-                if (photoIndex > -1) {
-                    savedMemories[dateKey].splice(photoIndex, 1);
-                }
-                if (savedMemories[dateKey].length === 0) {
-                    delete savedMemories[dateKey];
-                }
-
-                await saveAllMemories(savedMemories);
-                channel.postMessage('updated');
+                // 1. 從資料庫刪除
+                if(!db) await initDB();
+                const tx = db.transaction("all_photos", "readwrite");
+                tx.objectStore("all_photos").delete(dbKey);
                 
-                storyList.splice(currentIndex, 1);
+                tx.oncomplete = async () => {
+                    // 2. 重新讀取資料 (保持同步)
+                    await loadDataFromDB();
+                    channel.postMessage('updated');
 
-                if (storyList.length === 0) {
-                    closeStory();
-                    renderCalendar();
-                } else {
-                    if (currentIndex >= storyList.length) currentIndex = storyList.length - 1;
-                    renderStory();
-                    renderCalendar();
-                }
-                // 提示刪除成功
-                // alert("Deleted!");
+                    // 3. 更新播放清單 UI
+                    storyList.splice(currentIndex, 1);
+
+                    if (storyList.length === 0) {
+                        closeStory();
+                        renderCalendar();
+                    } else {
+                        if (currentIndex >= storyList.length) currentIndex = storyList.length - 1;
+                        renderStory();
+                        renderCalendar(); // 背景日曆也要更新
+                    }
+                };
             }
         }
 
         function renderStory() {
             if (currentIndex < 0 || currentIndex >= storyList.length) return;
             const currentItem = storyList[currentIndex];
+            
             document.getElementById('storyImageDisplay').src = currentItem.url;
 
             const sameDay = storyList.filter(s => s.date === currentItem.date);
@@ -388,15 +442,19 @@
                 fill.className = 'bar-fill';
                 bar.appendChild(fill);
                 barContainer.appendChild(bar);
+                
                 if (i === idxInDay) {
-                    setTimeout(() => { fill.style.width = '100%'; fill.style.transition = `width ${DURATION}ms linear`; }, 10);
+                    // 強制重繪以觸發動畫
+                    fill.offsetWidth; 
+                    fill.style.width = '100%'; 
+                    fill.style.transition = `width ${DURATION}ms linear`; 
                 } else if (i < idxInDay) {
                     fill.style.width = '100%';
                 }
             });
 
             clearTimeout(storyTimer);
-            storyTimer = setTimeout(() => nextStory(), 3000); // 3秒自動切換
+            storyTimer = setTimeout(() => nextStory(), DURATION);
         }
 
         function nextStory(e) { if(e) e.stopPropagation(); if (currentIndex < storyList.length - 1) { currentIndex++; renderStory(); } else { closeStory(); } }
@@ -404,22 +462,18 @@
         function closeStory() { clearTimeout(storyTimer); overlay.classList.remove('active'); }
 
         overlay.addEventListener('touchstart', (e) => { 
-            // 如果點到的是刪除按鈕，不要觸發滑動邏輯
             if(e.target.closest('.delete-btn')) return;
-            
             startY = e.touches[0].clientY; isDragging = false; overlay.style.transition = 'none'; 
         });
         
         overlay.addEventListener('touchmove', (e) => { 
             if(e.target.closest('.delete-btn')) return;
-
             currentY = e.touches[0].clientY; const diff = currentY - startY; 
             if (diff > 0) { isDragging = true; e.preventDefault(); overlay.style.transform = `translateY(${diff}px)`; overlay.style.opacity = 1 - (diff / 600); } 
         });
         
         overlay.addEventListener('touchend', (e) => { 
             if(e.target.closest('.delete-btn')) return;
-
             if (isDragging && currentY - startY > 100) closeStory(); else { overlay.style.transition = '0.2s'; overlay.style.transform = 'translateY(0)'; overlay.style.opacity = '1'; } isDragging = false; 
         });
     </script>
