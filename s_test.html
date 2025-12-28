@@ -167,9 +167,7 @@
         let db;
         let postsData = [];
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-        // 初始化時嘗試抓一次
-        let userName = localStorage.getItem('myProfileName') || "Me";
-
+        
         // 監聽更新
         channel.onmessage = (event) => {
             if (event.data === 'updated') loadAndRender();
@@ -252,10 +250,9 @@
         };
 
         function renderPosts() {
-            // ★ 強制每次渲染都抓取最新的名字
-            const currentName = localStorage.getItem('myProfileName') || "Me";
-            // 為了除錯，我們更新全域變數
-            userName = currentName; 
+            // ★ 名稱修正：每次渲染時，都直接去 localStorage 拿一次，不依賴全域變數
+            const storedName = localStorage.getItem('myProfileName');
+            const currentName = storedName ? storedName : "Me"; 
 
             if (postsData.length === 0) {
                 feedContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">📷</div><div>No posts yet.</div></div>`;
@@ -360,7 +357,8 @@
             const contentArea = document.getElementById('overlay-scroll-area');
             
             // ★ 再次抓取名字給留言板用
-            const myName = localStorage.getItem('myProfileName') || "Me";
+            const storedName = localStorage.getItem('myProfileName');
+            const myName = storedName ? storedName : "Me";
             
             let captionText = (post.comments && post.comments.length > 0) ? post.comments[0].text : `Memory from ${post.dateString} ✨`;
 
@@ -433,8 +431,9 @@
             const input = document.getElementById(inputId);
             const text = input.value.trim();
             if (!text) return;
-            // 抓最新名字
-            const myName = localStorage.getItem('myProfileName') || "Me";
+            const storedName = localStorage.getItem('myProfileName');
+            const myName = storedName ? storedName : "Me";
+
             const post = postsData.find(p => p.id === postId);
             post.comments.push({ user: myName, text: text });
             input.value = '';
@@ -446,7 +445,9 @@
             const input = document.getElementById('overlay-input');
             const text = input.value.trim();
             if (!text) return;
-            const myName = localStorage.getItem('myProfileName') || "Me";
+            const storedName = localStorage.getItem('myProfileName');
+            const myName = storedName ? storedName : "Me";
+
             const post = postsData.find(p => p.id === postId);
             post.comments.push({ user: myName, text: text });
             openCommentPage(postId);
@@ -455,24 +456,30 @@
 
         // --- 下拉選單邏輯 ---
         function toggleMenu(event, postId) {
-            event.stopPropagation(); // 阻止冒泡
-            
-            // 先關閉所有打開的選單
+            event.stopPropagation(); 
             document.querySelectorAll('.popup-menu.show').forEach(menu => {
-                if (menu.id !== `menu-${postId}`) {
-                    menu.classList.remove('show');
-                }
+                if (menu.id !== `menu-${postId}`) menu.classList.remove('show');
             });
-
-            // 切換目前這個選單
-            const menu = document.getElementById(`menu-${postId}`);
-            menu.classList.toggle('show');
+            document.getElementById(`menu-${postId}`).classList.toggle('show');
         }
         
+        // --- 顯示自動消失的提示 (Toast) ---
+        function showToast(message) {
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = message;
+            toast.classList.add('show');
+            
+            // 3秒後自動消失
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
         function confirmReport(postId) {
-            alert(`已收到您對貼文 (ID: ${postId}) 的檢舉，我們會盡快審核。`);
-            // 關閉選單
+            // 關閉下拉選單
             document.getElementById(`menu-${postId}`).classList.remove('show');
+            // 顯示 Toast 提示
+            showToast("已送出檢舉，我們會盡快審核。");
         }
 
         loadAndRender();
