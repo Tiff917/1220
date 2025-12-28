@@ -146,25 +146,53 @@
 
     <canvas id="compressCanvas"></canvas>
 
-    <script>
+<script>
         lucide.createIcons();
         const dbName = "MemoriesDB";
         let db;
+        const statusLog = document.getElementById('statusLog');
+
+        function log(msg) {
+            console.log(msg);
+            statusLog.innerHTML += `<div>${msg}</div>`;
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+
+        // --- 強制修復功能 ---
+        async function hardReset() {
+            if(!confirm("這會清除所有暫存貼文以修復卡頓，確定嗎？")) return;
+            log("Deleting Database...");
+            if(db) db.close();
+            const req = indexedDB.deleteDatabase(dbName);
+            req.onsuccess = () => {
+                alert("修復完成！請重新整理頁面。");
+                location.reload();
+            };
+            req.onerror = (e) => {
+                alert("修復失敗，請嘗試關閉無痕模式，或手動清除瀏覽器快取。");
+            };
+        }
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 3);
+                // 版本號 4，強制更新
+                const request = indexedDB.open(dbName, 4);
+                
                 request.onupgradeneeded = (e) => {
+                    log("Upgrading DB...");
                     db = e.target.result;
-                    if (!db.objectStoreNames.contains("posts_timeline")) {
-                        db.createObjectStore("posts_timeline", { keyPath: "id" });
-                    }
-                    if (!db.objectStoreNames.contains("all_photos")) {
-                        db.createObjectStore("all_photos", { autoIncrement: true });
-                    }
+                    if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    if (!db.objectStoreNames.contains("all_photos")) db.createObjectStore("all_photos", { autoIncrement: true });
                 };
-                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-                request.onerror = (e) => reject(e);
+                request.onsuccess = (e) => { 
+                    db = e.target.result; 
+                    log("DB Connected."); 
+                    resolve(db); 
+                };
+                request.onerror = (e) => {
+                    log("DB Error: " + e.target.error);
+                    reject(e);
+                };
             });
         }
 
@@ -179,46 +207,39 @@
         const compressCanvas = document.getElementById('compressCanvas');
         const ctx = compressCanvas.getContext('2d');
 
-        // ★★★ 初始狀態為空，但會保留第一格按鈕 ★★★
-        let pendingImages = []; 
-        
-        let selectedIndices = []; 
+        let pendingImages = [];
+        let selectedIndices = [];
         let isSelectMode = false;
-        let isFriendTagged = false; 
-        let currentLocation = null; 
-        let currentMainIndex = -1; // -1 代表沒選任何照片
+        let isFriendTagged = false;
+        let currentLocation = null;
+        let currentMainIndex = -1;
 
-        window.onload = () => {
-            renderGrid(); // 即使沒照片，也要渲染出第一格按鈕
-        };
+        window.onload = () => { renderGrid(); };
 
-        // --- 核心：上傳處理邏輯 ---
         imageLoader.addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
-
-            // 處理圖片
-            for (const file of files) {
-                const base64 = await processImage(file);
-                pendingImages.push(base64);
-            }
-
-            // 上傳後，自動選取剛上傳的第一張（也就是目前陣列的最後一張或是這批的第一張）
-            // 為了體驗更好，我們切換到剛上傳的最後一張
-            const newIndex = pendingImages.length - 1;
             
-            // 如果不在多選模式，直接切換過去
-            if (!isSelectMode) {
-                currentMainIndex = newIndex;
-                selectedIndices = [newIndex]; // 單選模式下就選這張
-            } else {
-                // 如果在多選模式，看是否要自動幫他加選？
-                // 通常 Instagram 邏輯是：在多選模式下新增照片，不會自動打勾，但會把視角切過去
-                currentMainIndex = newIndex;
+            log(`Processing ${files.length} images...`);
+            emptyPlaceholder.innerHTML = "Processing...";
+
+            for (const file of files) {
+                try {
+                    const base64 = await processImage(file);
+                    pendingImages.push(base64);
+                } catch (err) { log("Error processing image"); }
             }
 
+            emptyPlaceholder.innerHTML = '<i data-lucide="image" style="width:48px; height:48px; opacity:0.2;"></i>';
+            lucide.createIcons();
+
+            const newIndex = pendingImages.length - 1;
+            currentMainIndex = newIndex;
+            if (!isSelectMode) selectedIndices = [newIndex];
+            
             renderMainPreview();
             renderGrid();
+            log("Images ready.");
         });
 
         function processImage(file) {
@@ -228,13 +249,15 @@
                     const img = new Image();
                     img.onload = () => {
                         let w = img.width, h = img.height;
-                        const max = 600;
+                        // ★★★ 強制超壓縮：寬度 450px (極小) ★★★
+                        const max = 450; 
                         if (w > max || h > max) {
                            if (w > h) { h *= max/w; w = max; } else { w *= max/h; h = max; }
                         }
                         compressCanvas.width = w; compressCanvas.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
-                        resolve(compressCanvas.toDataURL('image/jpeg', 0.6));
+                        // ★★★ 品質 0.5 ★★★
+                        resolve(compressCanvas.toDataURL('image/jpeg', 0.5));
                     };
                     img.src = e.target.result;
                 };
@@ -242,17 +265,11 @@
             });
         }
 
-        // --- 渲染 ---
         function renderMainPreview() {
             if (currentMainIndex !== -1 && pendingImages[currentMainIndex]) {
                 emptyPlaceholder.style.display = 'none';
                 mainPreviewImg.style.display = 'block';
-                // 淡入效果
-                mainPreviewImg.style.opacity = 0;
-                setTimeout(() => {
-                    mainPreviewImg.src = pendingImages[currentMainIndex];
-                    mainPreviewImg.style.opacity = 1;
-                }, 50);
+                mainPreviewImg.src = pendingImages[currentMainIndex];
             } else {
                 emptyPlaceholder.style.display = 'flex';
                 mainPreviewImg.style.display = 'none';
@@ -260,27 +277,18 @@
         }
 
         function renderGrid() {
-            let html = '';
-
-            // ★★★ 第一格：固定的相機/相簿按鈕 ★★★
-            // 點擊觸發 input file
-            html += `
+            let html = `
                 <div class="grid-item camera-upload-item" onclick="document.getElementById('imageLoader').click()">
                     <i data-lucide="image-plus"></i>
                 </div>
             `;
-
-            // ★★★ 後面的格子：渲染 pendingImages ★★★
             html += pendingImages.map((src, idx) => {
                 const isActive = (idx === currentMainIndex);
-                
                 const selectionIndex = selectedIndices.indexOf(idx);
                 const isSelected = selectionIndex !== -1;
                 const selectionNumber = isSelected ? selectionIndex + 1 : '';
-
                 let classes = `grid-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
                 if (isSelectMode) classes += ' mode-select';
-
                 return `
                     <div class="${classes}" onclick="handleGridClick(${idx})">
                         <img src="${src}">
@@ -289,24 +297,18 @@
                     </div>
                 `;
             }).join('');
-
             gridGallery.innerHTML = html;
-            lucide.createIcons(); // 重新渲染剛插入的 icon
+            lucide.createIcons();
         }
 
         window.handleGridClick = (idx) => {
             currentMainIndex = idx;
             renderMainPreview();
-
             if (isSelectMode) {
                 const existingIndex = selectedIndices.indexOf(idx);
-                if (existingIndex !== -1) {
-                    selectedIndices.splice(existingIndex, 1);
-                } else {
-                    selectedIndices.push(idx);
-                }
+                if (existingIndex !== -1) selectedIndices.splice(existingIndex, 1);
+                else selectedIndices.push(idx);
             } else {
-                // 單選模式：點擊即選中該張 (為了發布準備)
                 selectedIndices = [idx];
             }
             renderGrid();
@@ -332,60 +334,79 @@
         });
 
         multiSelectBtn.addEventListener('click', () => {
-            if (pendingImages.length === 0) return; // 沒照片不能切換
-            
+            if (pendingImages.length === 0) return;
             isSelectMode = !isSelectMode;
             multiSelectBtn.classList.toggle('active', isSelectMode);
-            
-            if (isSelectMode) {
-                // 進入多選：只選當前這一張
-                if (currentMainIndex !== -1) {
-                    selectedIndices = [currentMainIndex];
-                }
-            } else {
-                // 退出多選：(邏輯可自訂，這裡設為只保留當前這張，或你要恢復單選狀態)
-                if (currentMainIndex !== -1) {
-                    selectedIndices = [currentMainIndex];
-                }
-            }
+            if (isSelectMode && currentMainIndex !== -1) selectedIndices = [currentMainIndex];
+            else if (!isSelectMode && currentMainIndex !== -1) selectedIndices = [currentMainIndex];
             renderGrid();
         });
 
+        // --- 儲存與發布 (含 Timeout 保護) ---
         shareBtn.addEventListener('click', async () => {
-            if (pendingImages.length === 0) {
-                 alert("Please add photos first."); 
-                 return;
+            if (pendingImages.length === 0) { alert("Please add photos first."); return; }
+            if (selectedIndices.length === 0) { alert("Please select at least one photo."); return; }
+
+            shareBtn.disabled = true;
+            shareBtn.textContent = "Connecting...";
+            log("Start saving process...");
+
+            // 設定 5秒 超時強制報錯機制
+            const timeoutId = setTimeout(() => {
+                alert("儲存逾時！您的資料庫可能已鎖死。\n請點擊下方的「紅色修復按鈕」重置。");
+                shareBtn.disabled = false;
+                shareBtn.textContent = "Finish";
+                log("Error: Timeout triggered.");
+            }, 5000);
+
+            try {
+                if (!db) await initDB();
+
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+                const imagesToPost = selectedIndices.map(i => pendingImages[i]);
+                
+                const newPost = {
+                    id: Date.now(), timestamp: now.getTime(), dateString: dateStr,
+                    images: imagesToPost, location: currentLocation, isFriendTagged: isFriendTagged,
+                    likes: 0, comments: []
+                };
+
+                const tx = db.transaction(["posts_timeline", "all_photos"], "readwrite");
+                
+                shareBtn.textContent = "Writing DB...";
+                log("Transaction started...");
+
+                tx.objectStore("posts_timeline").add(newPost);
+                
+                const memoriesStore = tx.objectStore("all_photos");
+                imagesToPost.forEach(imgUrl => {
+                    memoriesStore.add({
+                        date: dateStr, timestamp: now.getTime(), image: imgUrl
+                    });
+                });
+
+                tx.oncomplete = () => {
+                    clearTimeout(timeoutId); // 取消超時警告
+                    log("Save Complete!");
+                    window.location.href = "home.html";
+                };
+
+                tx.onerror = (e) => {
+                    clearTimeout(timeoutId);
+                    log("TX Error: " + e.target.error);
+                    alert("儲存失敗: " + e.target.error);
+                    shareBtn.disabled = false;
+                    shareBtn.textContent = "Finish";
+                };
+
+            } catch (err) {
+                clearTimeout(timeoutId);
+                log("Catch Error: " + err.message);
+                alert("發生錯誤: " + err.message);
+                shareBtn.disabled = false;
+                shareBtn.textContent = "Finish";
             }
-            // 防呆：如果多選模式下全部取消了，或者單選模式下沒選到 (理論上單選一定會選一張)
-            if (selectedIndices.length === 0) { 
-                alert("Please select at least one photo."); 
-                return; 
-            }
-
-            const imagesToPost = selectedIndices.map(i => pendingImages[i]);
-
-            shareBtn.textContent = "Posting...";
-            if (!db) await initDB();
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-            
-            const newPost = {
-                id: Date.now(), timestamp: now.getTime(), dateString: dateStr,
-                images: imagesToPost, location: currentLocation, isFriendTagged: isFriendTagged,
-                likes: 0, comments: []
-            };
-
-            const memoryItems = imagesToPost.map(imgUrl => ({
-                date: dateStr, timestamp: now.getTime(), image: imgUrl
-            }));
-
-            const tx = db.transaction(["posts_timeline", "all_photos"], "readwrite");
-            tx.objectStore("posts_timeline").add(newPost);
-            const memoriesStore = tx.objectStore("all_photos");
-            memoryItems.forEach(item => memoriesStore.add(item));
-
-            tx.oncomplete = () => { window.location.href = "index.html"; };
-            tx.onerror = () => { alert("Error saving post"); shareBtn.textContent = "Finish"; };
         });
 
         initDB();
