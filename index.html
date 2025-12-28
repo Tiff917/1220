@@ -70,7 +70,7 @@
         const container = document.getElementById('appContainer');
         const homeFrame = document.getElementById('homeFrame');
 
-        // 1. 初始化定位
+        // 1. 初始化定位 (回到中間的 home.html)
         window.onload = function() {
             setTimeout(() => {
                 if(container && homeFrame) {
@@ -79,21 +79,51 @@
             }, 10);
         };
 
-        // 2. 智慧鎖定邏輯 (維持你原本的功能)
+        // 2. ★ 智慧鎖定邏輯 (加強版) ★
+        // 每 0.1 秒檢查一次目前 homeFrame 裡面顯示的是哪個檔案
         setInterval(function() {
-            let shouldLock = false; 
+            let shouldLock = false; // 預設不鎖定 (可以滑)
+
             try {
-                const url = homeFrame.contentWindow.location.href.toLowerCase();
-                if (url.includes('search.html') || url.includes('edit.html') || url.includes('message.html')) {
+                // 抓取目前中間 iframe 載入的網址
+                const currentUrl = homeFrame.contentWindow.location.href.toLowerCase();
+                
+                // ★ 關鍵清單：這些頁面出現時，禁止左右滑動
+                const lockList = [
+                    'login.html', 
+                    'signup.html', 
+                    'forgot-password.html',
+                    'profile.html',
+                    'payment.html',
+                    'otp_verify.html',
+                    'reset_password.html',
+                    'search.html', 
+                    'edit.html', 
+                    'message.html'
+                ];
+
+                // 檢查目前網址是否包含上述任何一個關鍵字
+                if (lockList.some(page => currentUrl.includes(page))) {
                     shouldLock = true;
                 }
-            } catch (e) { shouldLock = false; }
 
+            } catch (e) {
+                // 跨網域存取可能會報錯，這裡忽略
+                console.log("Cross-origin error or loading:", e);
+            }
+
+            // 執行鎖定或解鎖
             if (shouldLock) {
-                if (container.style.overflowX !== 'hidden') container.style.overflowX = 'hidden';
-                if (container.scrollLeft !== homeFrame.offsetLeft) container.scrollLeft = homeFrame.offsetLeft;
+                // 鎖定：隱藏捲軸，並強制定位在中間 iframe
+                if (container.style.overflowX !== 'hidden') {
+                    container.style.overflowX = 'hidden';
+                    container.scrollLeft = homeFrame.offsetLeft; // 強制拉回中間
+                }
             } else {
-                if (container.style.overflowX !== 'scroll') container.style.overflowX = 'scroll';
+                // 解鎖：恢復可滑動狀態 (回到 home.html 時)
+                if (container.style.overflowX !== 'scroll') {
+                    container.style.overflowX = 'scroll';
+                }
             }
         }, 100);
     </script>
