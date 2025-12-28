@@ -292,14 +292,14 @@ lucide.createIcons();
                     img.onload = () => {
                         let w = img.width, h = img.height;
                         // 維持極小尺寸以確保成功
-                        const max = 450; 
+                        const max = 600; 
                         if (w > max || h > max) {
                            if (w > h) { h *= max/w; w = max; } else { w *= max/h; h = max; }
                         }
                         compressCanvas.width = w; compressCanvas.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
                         // 品質 0.5
-                        resolve(compressCanvas.toDataURL('image/jpeg', 0.5));
+                        resolve(compressCanvas.toDataURL('image/jpeg', 0.7));
                     };
                     img.src = e.target.result;
                 };
