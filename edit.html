@@ -147,7 +147,7 @@
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 5);
+                const request = indexedDB.open(dbName, 6);
                 
                 request.onblocked = () => alert("資料庫被鎖定！請關閉其他分頁後重新整理。");
 
