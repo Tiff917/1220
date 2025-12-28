@@ -17,6 +17,7 @@
         }
         .header-btn { font-size: 16px; color: #8e8e93; border: none; background: none; cursor: pointer; }
         .header-title { font-size: 17px; font-weight: 600; }
+        /* 首頁風格的主色調 */
         .header-btn.finish { color: #be9f82; font-weight: 600; } 
 
         /* --- 3. 主圖預覽區 --- */
@@ -33,21 +34,6 @@
             transition: opacity 0.3s;
         }
 
-        /* 顯示地點標籤 (模擬抓到高雄後顯示) */
-        .location-tag {
-            position: absolute;
-            bottom: 60px; /* 在按鈕上方 */
-            left: 15px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-            display: none; /* 預設隱藏 */
-            backdrop-filter: blur(4px);
-        }
-
         /* 浮動控制列 */
         .overlay-controls {
             position: absolute;
@@ -55,50 +41,87 @@
             right: 15px;
             left: 15px;
             display: flex;
-            justify-content: flex-end; 
+            justify-content: flex-end; /* 靠右對齊 */
             align-items: center;
             gap: 10px;
-            pointer-events: none; 
+            pointer-events: none; /* 讓點擊穿透容器 */
         }
 
-        /* 通用按鈕樣式 */
+        /* --- 按鈕樣式 --- */
         .control-btn {
             height: 36px;
             border: none;
             color: white;
-            background: rgba(0, 0, 0, 0.4); /* 預設：半透明淺黑 */
+            background: rgba(0, 0, 0, 0.4); /* 預設：半透明黑 */
             backdrop-filter: blur(4px);
             pointer-events: auto;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 平滑過渡 */
             display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
         }
 
-        /* 圓形按鈕 (朋友/地點) */
+        /* 圓形按鈕基礎 */
         .btn-circle {
             width: 36px;
             border-radius: 50%;
+            padding: 0;
         }
 
-        /* 膠囊按鈕 (多選) */
+        /* 膠囊按鈕基礎 */
         .btn-capsule {
             padding: 0 16px;
             border-radius: 20px;
             font-size: 13px;
             font-weight: 600;
-            gap: 6px;
         }
 
-        /* ★★★ 按鈕被點擊/選取後的樣式 (變深色) ★★★ */
+        /* ★★★ Icon 縮小 0.8 倍 ★★★ */
+        .control-btn svg {
+            transform: scale(0.8);
+            transition: transform 0.2s;
+        }
+
+        /* 按鈕內的文字 (主要用於地點按鈕展開) */
+        .btn-text {
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 0;
+            max-width: 0; /* 預設隱藏文字 */
+            opacity: 0;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        /* 多選按鈕本身就有文字，不需要隱藏 */
+        .btn-capsule .btn-text-static {
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        /* ★★★ 按鈕 Active 狀態 (配合首頁顏色 #be9f82) ★★★ */
         .control-btn.active {
-            background: rgba(0, 0, 0, 0.85); /* 變成深黑色 */
-            transform: scale(1.05); /* 微微放大回饋 */
+            background: #be9f82; /* 變成首頁風格的金色 */
+            color: #fff;
         }
 
-        /* --- 4.下方照片網格 (改為一行三張) --- */
+        /* --- 特殊邏輯：地點按鈕展開 --- */
+        /* 當地點按鈕變為 active 時，將其轉變為膠囊狀並顯示文字 */
+        #locationBtn.active {
+            width: auto; /* 寬度自動展開 */
+            padding: 0 16px; /* 增加內距 */
+            border-radius: 20px; /* 變圓角 */
+        }
+        #locationBtn.active .btn-text {
+            max-width: 100px; /* 顯示文字 */
+            opacity: 1;
+            margin-left: 6px;
+        }
+
+        /* --- 4.下方照片網格 (一行三張) --- */
         .grid-gallery {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* ★★★ 一行 3 張 ★★★ */
+            grid-template-columns: repeat(3, 1fr);
             gap: 2px;
             margin-top: 2px;
         }
@@ -119,20 +142,19 @@
             position: absolute; inset: 0; background: rgba(0,0,0,0.3); 
         }
         
-        /* 勾選圈圈 */
+        /* 勾選圈圈 (顏色也配合首頁) */
         .check-circle {
             position: absolute; top: 6px; right: 6px;
             width: 20px; height: 20px;
             border-radius: 50%; border: 2px solid white;
             background: rgba(0,0,0,0.2);
-            display: none; /* 選取模式才顯示 */
+            display: none; 
             z-index: 10;
         }
         .grid-item.selected .check-circle { 
             background: #be9f82; border-color: #be9f82; 
         }
 
-        /* 隱藏 Canvas */
         canvas { display: none; }
     </style>
 </head>
@@ -149,18 +171,19 @@
         <div class="main-preview-container">
             <img id="mainPreviewImg" src="" alt="Preview">
             
-            <div id="locationTag" class="location-tag">📍 Kaohsiung</div>
-
             <div class="overlay-controls">
                 <button class="control-btn btn-circle" id="tagFriendBtn">
                     <i data-lucide="user" size="18"></i>
                 </button>
+                
                 <button class="control-btn btn-circle" id="locationBtn">
                     <i data-lucide="map-pin" size="18"></i>
+                    <span class="btn-text">Kaohsiung</span>
                 </button>
+                
                 <button class="control-btn btn-capsule" id="multiSelectBtn">
                     <i data-lucide="layers" size="16"></i>
-                    SELECT MULTIPLE
+                    <span class="btn-text-static">SELECT MULTIPLE</span>
                 </button>
             </div>
         </div>
@@ -173,7 +196,6 @@
     <canvas id="compressCanvas"></canvas>
 
     <script>
-        // 初始化 Icons
         lucide.createIcons();
 
         // --- Database Setup ---
@@ -203,44 +225,38 @@
         const multiSelectBtn = document.getElementById('multiSelectBtn');
         const tagFriendBtn = document.getElementById('tagFriendBtn');
         const locationBtn = document.getElementById('locationBtn');
-        const locationTag = document.getElementById('locationTag');
         const shareBtn = document.getElementById('shareBtn');
         const compressCanvas = document.getElementById('compressCanvas');
         const ctx = compressCanvas.getContext('2d');
 
-        // --- State ---
-        // 為了讓畫面一開始就是完整的，我們先預載一些範例圖片
-        // 實作時您可以換成真實邏輯，或保留這些當作預設值
+        // --- State (預設範例圖) ---
         let pendingImages = [
-            "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80", // 相機
-            "https://images.unsplash.com/photo-1551334787-21e6bd3ab135?w=800&q=80", // 鞋子
-            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80", // 手錶
-            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80", // 耳機
-            "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80", // 紅鞋
-            "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&q=80"  // 墨鏡
+            "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80", 
+            "https://images.unsplash.com/photo-1551334787-21e6bd3ab135?w=800&q=80", 
+            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80", 
+            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80", 
+            "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80", 
+            "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&q=80"
         ];
         
-        let selectedIndices = []; // 已選取的索引
+        let selectedIndices = []; 
         let isSelectMode = false;
-        let isFriendTagged = false; // 是否有點擊過標註朋友
-        let currentLocation = null; // 地點
-        let currentMainIndex = 0;   // 當前大圖索引
+        let isFriendTagged = false; 
+        let currentLocation = null; 
+        let currentMainIndex = 0;   
 
-        // --- Logic: 初始化 ---
+        // --- Initialization ---
         window.onload = () => {
-            // 一進入頁面直接渲染，不顯示 Open Gallery
             if (pendingImages.length > 0) {
-                // 預設選取全部
                 selectedIndices = pendingImages.map((_, i) => i);
                 renderMainPreview();
                 renderGrid();
             }
         };
 
-        // --- Logic: 渲染 ---
+        // --- Rendering ---
         function renderMainPreview() {
             if (pendingImages[currentMainIndex]) {
-                // 淡入效果
                 mainPreviewImg.style.opacity = 0;
                 setTimeout(() => {
                     mainPreviewImg.src = pendingImages[currentMainIndex];
@@ -252,9 +268,8 @@
         function renderGrid() {
             gridGallery.innerHTML = pendingImages.map((src, idx) => {
                 const isSelected = selectedIndices.includes(idx);
-                const isActive = (idx === currentMainIndex); // 是否正在主圖顯示
+                const isActive = (idx === currentMainIndex);
                 
-                // 只有在選取模式才顯示勾勾
                 const checkCircle = isSelectMode 
                     ? `<div class="check-circle" style="display:block;"></div>` 
                     : '';
@@ -274,12 +289,11 @@
             }).join('');
         }
 
-        // --- Logic: 互動 ---
+        // --- Interaction ---
         
         // 1. 網格點擊
         window.handleGridClick = (idx) => {
             if (isSelectMode) {
-                // 多選模式：切換選取狀態
                 if (selectedIndices.includes(idx)) {
                     selectedIndices = selectedIndices.filter(i => i !== idx);
                 } else {
@@ -287,51 +301,44 @@
                 }
                 renderGrid();
             } else {
-                // 一般模式：切換上方大圖
                 currentMainIndex = idx;
                 renderMainPreview();
                 renderGrid();
             }
         };
 
-        // 2. 標註朋友 (純按鈕變色，不顯示列表)
+        // 2. 標註朋友 (Active變色)
         tagFriendBtn.addEventListener('click', () => {
             isFriendTagged = !isFriendTagged;
-            // 切換 active class 讓按鈕變深色
             tagFriendBtn.classList.toggle('active', isFriendTagged);
         });
 
-        // 3. 標註地點 (模擬抓取 -> 高雄 -> 變深色)
+        // 3. 標註地點 (Active變色 + 展開顯示 Kaohsiung)
         locationBtn.addEventListener('click', () => {
             if (currentLocation) {
-                // 如果已經有地點，再次點擊則是取消
+                // 取消地點
                 currentLocation = null;
                 locationBtn.classList.remove('active');
-                locationTag.style.display = 'none';
             } else {
-                // 模擬抓取 loading 感覺 (這裡可以加個轉圈圈，但簡單起見用變色邏輯)
-                locationBtn.style.opacity = "0.5"; 
-                
+                // 模擬讀取
+                locationBtn.style.opacity = "0.7";
                 setTimeout(() => {
-                    // 0.5秒後抓到地點
                     currentLocation = "Kaohsiung";
                     locationBtn.style.opacity = "1";
-                    locationBtn.classList.add('active'); // 變深色
-                    locationTag.style.display = 'block'; // 顯示圖片上的標籤
+                    locationBtn.classList.add('active'); // CSS 會處理展開動畫
                 }, 500);
             }
         });
 
-        // 4. 切換多選模式 (變深色)
+        // 4. 多選模式 (Active變色)
         multiSelectBtn.addEventListener('click', () => {
             isSelectMode = !isSelectMode;
             multiSelectBtn.classList.toggle('active', isSelectMode);
-            renderGrid(); // 重新渲染以顯示/隱藏勾勾
+            renderGrid();
         });
 
-        // --- Logic: 儲存與發布 ---
+        // --- Save & Post ---
         shareBtn.addEventListener('click', async () => {
-            // 過濾要發布的照片
             const imagesToPost = pendingImages.filter((_, i) => selectedIndices.includes(i));
             if (imagesToPost.length === 0) {
                 alert("Please select at least one photo.");
@@ -345,26 +352,23 @@
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
             
-            // 準備 Post 資料 (Social用)
             const newPost = {
                 id: Date.now(),
                 timestamp: now.getTime(),
                 dateString: dateStr,
                 images: imagesToPost, 
-                location: currentLocation, // 這裡會是 "Kaohsiung" 或 null
-                isFriendTagged: isFriendTagged, // 只存是否標註的狀態
+                location: currentLocation, 
+                isFriendTagged: isFriendTagged, 
                 likes: 0,
                 comments: []
             };
 
-            // 準備 Memories 資料 (Memories用)
             const memoryItems = imagesToPost.map(imgUrl => ({
                 date: dateStr,
                 timestamp: now.getTime(),
                 image: imgUrl
             }));
 
-            // 開始交易
             const tx = db.transaction(["posts_timeline", "all_photos"], "readwrite");
             
             tx.objectStore("posts_timeline").add(newPost);
