@@ -50,11 +50,10 @@
             margin-bottom: 40px;
         }
         
-        /* [新增] 頭像容器：為了放相機圖示 */
         .avatar-container {
             position: relative;
             margin-bottom: 16px;
-            cursor: pointer; /* 讓滑鼠變手型 */
+            cursor: pointer;
         }
 
         .avatar { 
@@ -70,26 +69,24 @@
             color: #ccc;
         }
         
-        /* 確保圖片填滿圓形 */
         .avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        /* [新增] 右下角的小相機圖示 */
         .camera-badge {
             position: absolute;
             bottom: 0;
             right: 0;
             width: 32px;
             height: 32px;
-            background-color: #8C7B6D; /* 配色 */
+            background-color: #8C7B6D; 
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            border: 3px solid #F0EAE4; /* 讓圖示跟頭像有點距離感 */
+            border: 3px solid #F0EAE4; 
             color: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
@@ -126,18 +123,9 @@
         }
         .menu-item:active { opacity: 0.6; }
 
-        /* 當 Subscription 變成啟用狀態時的樣式 */
-        .menu-item.is-premium .bell-icon { 
-            fill: #d32f2f; /* 變成紅色 */
-            animation: ding 0.5s ease; /* 搖晃動畫 */
-        }
-        
-        .menu-item.is-premium .item-text { 
-            color: #d32f2f; /* 文字也變紅 */
-            font-weight: 700;
-        }
-
-        /* 鈴鐺搖晃動畫 */
+        /* Premium 樣式 */
+        .menu-item.is-premium .item-icon { stroke: #d32f2f; animation: ding 0.5s ease; }
+        .menu-item.is-premium .item-text { color: #d32f2f; font-weight: 700; }
         @keyframes ding { 0%{transform:rotate(0)} 20%{transform:rotate(15deg)} 40%{transform:rotate(-10deg)} 60%{transform:rotate(5deg)} 80%{transform:rotate(-5deg)} 100%{transform:rotate(0)} }
 
         .item-icon { width: 24px; height: 24px; stroke: #8C7B6D; stroke-width: 1.8; }
@@ -168,21 +156,7 @@
         }
         .logout-btn:active { transform: scale(0.96); }
 
-        /* 當 Subscription 變成啟用狀態時 */
-        .menu-item.is-premium .item-icon { 
-            stroke: #d32f2f; /* 線條變成紅色 */
-            animation: ding 0.5s ease; /* 搖晃動畫 */
-        }
-        
-        .menu-item.is-premium .item-text { 
-            color: #d32f2f; /* 文字也變紅 */
-            font-weight: 700;
-        }
-        @keyframes ding { 0%{transform:rotate(0)} 20%{transform:rotate(15deg)} 40%{transform:rotate(-10deg)} 60%{transform:rotate(5deg)} 80%{transform:rotate(-5deg)} 100%{transform:rotate(0)} }
-
         .debug-btn { position: absolute; bottom: 10px; right: 10px; border: none; background: none; color: #ccc; font-size: 10px; opacity: 0.5; }
-        
-        /* 隱藏真正的檔案上傳按鈕 */
         #hiddenFileInput { display: none; }
     </style>
 </head>
@@ -217,35 +191,17 @@
         </div>
 
         <div class="menu-item" id="subscriptionRow" onclick="handleSubscription()">
-            
             <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
-            
             <span class="item-text" id="subText">Subscription</span>
-            
         </div>
 
-        <div class="menu-item">
-            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            <span class="item-text">Address</span>
-        </div>
-
-        <div class="menu-item">
-            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-            <span class="item-text">Contact Us</span>
-        </div>
-
-        <div class="menu-item">
-            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            <span class="item-text">Setting</span>
-        </div>
-
-        <div class="menu-item">
-            <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            <span class="item-text">Help & QA</span>
-        </div>
+        <div class="menu-item"><svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="item-text">Address</span></div>
+        <div class="menu-item"><svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg><span class="item-text">Contact Us</span></div>
+        <div class="menu-item"><svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span class="item-text">Setting</span></div>
+        <div class="menu-item"><svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span class="item-text">Help & QA</span></div>
     </div>
 
     <div class="logout-container">
@@ -254,127 +210,153 @@
 
     <button class="debug-btn" onclick="resetMember()">[Reset]</button>
 
-<script>
-    // --- 1. 頭像上傳邏輯 (暴力壓縮版) ---
-    const fileInput = document.getElementById('hiddenFileInput');
-    const avatarDisplay = document.getElementById('avatarDisplay');
-    const usernameDisplay = document.querySelector('.username');
+    <script>
+        // --- 1. 資料庫初始化 (Ver 6: 新增 user_profile 倉庫) ---
+        const dbName = "MemoriesDB";
+        let db;
 
-    // 頁面載入時讀取資料
-    window.addEventListener('load', () => {
-        const savedAvatar = localStorage.getItem('myProfileAvatar');
-        if (savedAvatar) {
-            avatarDisplay.innerHTML = `<img src="${savedAvatar}" alt="Profile">`;
-        }
-        const savedName = localStorage.getItem('myProfileName');
-        if (savedName) usernameDisplay.textContent = savedName;
-    });
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                // 將版本號提升到 6，以觸發 onupgradeneeded 建立新倉庫
+                const request = indexedDB.open(dbName, 6);
 
-    function triggerUpload() { fileInput.click(); }
-
-    // ★★★ 超級壓縮函式 ★★★
-    function compressAvatar(base64Str, maxWidth, quality, callback) {
-        const img = new Image();
-        img.src = base64Str;
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            
-            // 強制設定為正方形，或維持比例但極小
-            let w = img.width;
-            let h = img.height;
-            
-            // 保持比例縮小
-            if (w > h) {
-                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
-            } else {
-                if (h > maxWidth) { w *= maxWidth / h; h = maxWidth; }
-            }
-
-            canvas.width = w; 
-            canvas.height = h;
-            
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            
-            // 輸出壓縮後的圖片代碼
-            callback(canvas.toDataURL('image/jpeg', quality));
-        };
-    }
-
-    fileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            // 提示使用者正在處理
-            avatarDisplay.style.opacity = '0.5'; 
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                
-                // 這樣幾乎所有照片都能存進去
-                compressAvatar(event.target.result, 200, 0.7, function(compressedBase64){
-                    
-                    try { 
-                        // 1. 嘗試儲存
-                        localStorage.setItem('myProfileAvatar', compressedBase64); 
-                        
-                        // 2. 更新畫面
-                        avatarDisplay.innerHTML = `<img src="${compressedBase64}" alt="Profile">`;
-                        avatarDisplay.style.opacity = '1';
-                        
-                        // 3. 成功提示 (測試成功後可以註解掉這行)
-                        // console.log("儲存成功！");
-
-                    }catch (error) {
-                        console.log("隱藏的錯誤:", error); // 只在 F12 開發者工具顯示，不打擾使用者
-                        
-                        // 這行留著，確保發生錯誤時圖片不會一直半透明
-                        avatarDisplay.style.opacity = '1';
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    // 建立專門放使用者頭像的倉庫
+                    if (!db.objectStoreNames.contains("user_profile")) {
+                        db.createObjectStore("user_profile"); 
                     }
-                });
+                    // 確保原本的倉庫也存在 (避免報錯)
+                    if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    if (!db.objectStoreNames.contains("all_photos")) db.createObjectStore("all_photos", { autoIncrement: true });
+                };
+
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        // --- 2. 頭像上傳邏輯 (高清 Blob 版) ---
+        const fileInput = document.getElementById('hiddenFileInput');
+        const avatarDisplay = document.getElementById('avatarDisplay');
+        const usernameDisplay = document.querySelector('.username');
+
+        // 讀取頭像
+        async function loadAvatar() {
+            if (!db) await initDB();
+
+            const tx = db.transaction("user_profile", "readonly");
+            const store = tx.objectStore("user_profile");
+            const req = store.get("avatar"); // 固定 key 為 "avatar"
+
+            req.onsuccess = (e) => {
+                const result = e.target.result;
+                if (result) {
+                    // 如果是 Blob/File (高清)，用 URL.createObjectURL
+                    if (result instanceof Blob || result instanceof File) {
+                        const url = URL.createObjectURL(result);
+                        avatarDisplay.innerHTML = `<img src="${url}" alt="Profile">`;
+                    } else {
+                        // 相容舊的 Base64
+                        avatarDisplay.innerHTML = `<img src="${result}" alt="Profile">`;
+                    }
+                }
             };
-            reader.readAsDataURL(file);
         }
-    });
 
-    // --- 2. 訂閱狀態與其他邏輯 (保持不變) ---
-    const row = document.getElementById('subscriptionRow');
-    const text = document.getElementById('subText');
+        // 頁面載入時
+        window.addEventListener('load', () => {
+            // 載入使用者名稱 (這個保持 localStorage 沒問題，因為是純文字)
+            const savedName = localStorage.getItem('myProfileName');
+            if (savedName) usernameDisplay.textContent = savedName;
+            
+            // 載入頭像
+            loadAvatar();
+        });
 
-    function checkStatus() {
-        const isPremium = localStorage.getItem('isPremium');
-        if (isPremium === 'true') {
-            row.classList.add('is-premium');
-            text.textContent = "Subscription (Active)";
-        } else {
-            row.classList.remove('is-premium');
-            text.textContent = "Subscription";
+        function triggerUpload() { fileInput.click(); }
+
+        // 儲存頭像
+        fileInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // UI 暫時變透明表示處理中
+            avatarDisplay.style.opacity = '0.5';
+
+            try {
+                if (!db) await initDB();
+
+                const tx = db.transaction("user_profile", "readwrite");
+                const store = tx.objectStore("user_profile");
+                
+                // ★ 直接儲存原始檔案，不壓縮！
+                store.put(file, "avatar");
+
+                tx.oncomplete = () => {
+                    // 儲存成功，更新畫面
+                    const url = URL.createObjectURL(file);
+                    avatarDisplay.innerHTML = `<img src="${url}" alt="Profile">`;
+                    avatarDisplay.style.opacity = '1';
+                };
+
+                tx.onerror = (err) => {
+                    console.error("儲存頭像失敗", err);
+                    alert("儲存失敗");
+                    avatarDisplay.style.opacity = '1';
+                };
+
+            } catch (err) {
+                console.error(err);
+                avatarDisplay.style.opacity = '1';
+            }
+        });
+
+        // --- 3. 訂閱狀態與其他邏輯 (保持不變) ---
+        const row = document.getElementById('subscriptionRow');
+        const text = document.getElementById('subText');
+
+        function checkStatus() {
+            const isPremium = localStorage.getItem('isPremium');
+            if (isPremium === 'true') {
+                row.classList.add('is-premium');
+                text.textContent = "Subscription (Active)";
+            } else {
+                row.classList.remove('is-premium');
+                text.textContent = "Subscription";
+            }
         }
-    }
 
-    function handleSubscription() {
-        const isPremium = localStorage.getItem('isPremium');
-        if (isPremium === 'true') {
-            console.log("已是會員");
-        } else {
-            window.location.href = "payment.html";
+        function handleSubscription() {
+            const isPremium = localStorage.getItem('isPremium');
+            if (isPremium === 'true') {
+                console.log("已是會員");
+            } else {
+                window.location.href = "payment.html";
+            }
         }
-    }
 
-    function resetMember() {
-        // 清除所有資料 (包含可能卡住的舊照片)
-        if(confirm("確定要重置所有會員資料嗎？(包含頭像)")) {
-            localStorage.clear(); 
-            location.reload();
+        async function resetMember() {
+            if(confirm("確定要重置所有會員資料嗎？")) {
+                localStorage.clear(); 
+                // 也要清除資料庫裡的頭像
+                if(!db) await initDB();
+                const tx = db.transaction("user_profile", "readwrite");
+                tx.objectStore("user_profile").delete("avatar");
+                tx.oncomplete = () => location.reload();
+            }
         }
-    }
 
-    function logout() {
-        if(confirm('Are you sure you want to log out?')) {
-            window.location.href = "login.html"; 
+        function logout() {
+            if(confirm('Are you sure you want to log out?')) {
+                window.location.href = "login.html"; 
+            }
         }
-    }
 
-    checkStatus();
-</script>
+        checkStatus();
+    </script>
 </body>
 </html>
