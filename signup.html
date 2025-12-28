@@ -222,11 +222,6 @@
 <body>
 
     <div class="phone-container">
-        <div class="notch"></div>
-        <div class="status-bar">
-            <span>9:41</span>
-            <span>📶 🔋</span>
-        </div>
 
         <div class="header">
             <h1>Make a memory<br>with us</h1>
@@ -309,6 +304,13 @@
             }
 
             if (isValid) {
+                // ★ 關鍵修改：抓取輸入的名字，並存入 localStorage
+                const userName = inputs.name.input.value.trim();
+                localStorage.setItem('myProfileName', userName);
+                
+                // 如果有使用會員狀態功能，也可以順便初始化
+                localStorage.setItem('isPremium', 'false'); 
+
                 signupBtn.textContent = 'Signing up...';
                 signupBtn.style.backgroundColor = '#6D5D55';
                 
