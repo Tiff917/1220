@@ -24,13 +24,20 @@
             position: relative;
             width: 100%;
             aspect-ratio: 1/1; 
-            background-color: #f0f0f0;
+            background-color: #f9f9f9; /* 稍微改淺一點的灰 */
             overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
         }
         
         #mainPreviewImg {
             width: 100%; height: 100%; object-fit: cover;
             transition: opacity 0.2s;
+            display: none; /* 預設隱藏，等有圖再顯示 */
+        }
+        
+        /* 當沒有選取任何照片時顯示的提示 */
+        .empty-placeholder {
+            color: #ccc; display: flex; flex-direction: column; align-items: center; gap: 10px;
         }
 
         .overlay-controls {
@@ -53,16 +60,14 @@
         /* Icon 縮小 */
         .control-btn svg { width: 13px !important; height: 13px !important; }
 
-        /* 按鈕文字 */
         .btn-text { font-size: 13px; font-weight: 600; margin-left: 0; max-width: 0; opacity: 0; white-space: nowrap; transition: all 0.3s ease; }
         .btn-capsule .btn-text-static { font-size: 12px; font-weight: 600; margin-left: 6px; }
 
-        /* Active 狀態 */
         .control-btn.active { background: #be9f82; color: #fff; }
         #locationBtn.active { width: auto; padding: 0 16px; border-radius: 20px; }
         #locationBtn.active .btn-text { max-width: 100px; opacity: 1; margin-left: 6px; }
 
-        /* --- 4. 下方網格與圈圈樣式 --- */
+        /* --- 4. 下方網格 --- */
         .grid-gallery {
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 2px;
         }
@@ -70,7 +75,17 @@
             position: relative; aspect-ratio: 1/1; overflow: hidden; background: #eee; cursor: pointer;
         }
         .grid-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: opacity 0.2s; }
-        .grid-item.active img { opacity: 1; } /* 當前大圖 */
+        .grid-item.active img { opacity: 1; }
+
+        /* ★★★ 相簿/新增按鈕樣式 (第一格) ★★★ */
+        .camera-upload-item {
+            background-color: #f0f0f0;
+            display: flex; align-items: center; justify-content: center;
+            color: #999;
+            cursor: pointer;
+        }
+        .camera-upload-item:active { background-color: #e0e0e0; }
+        .camera-upload-item svg { width: 24px; height: 24px; } /* 這個 icon 可以大一點點 */
 
         /* 遮罩 */
         .overlay-mask {
@@ -78,32 +93,23 @@
         }
         .grid-item.selected .overlay-mask { display: block; }
 
-        /* 圈圈核心樣式 */
+        /* 圈圈 */
         .check-circle {
             position: absolute; top: 6px; right: 6px;
             width: 22px; height: 22px;
             border-radius: 50%; 
             z-index: 10;
             display: none; 
-            
-            /* 空心狀態 */
             border: 2px solid rgba(255, 255, 255, 0.9);
             background-color: rgba(0, 0, 0, 0.2); 
             box-shadow: 0 0 4px rgba(0,0,0,0.2);
-
             justify-content: center; align-items: center;
             font-size: 11px; font-weight: 700; color: white;
             transition: transform 0.1s ease;
         }
-
-        /* 多選模式開啟顯示空圈圈 */
         .grid-item.mode-select .check-circle { display: flex; }
-
-        /* 選中後填滿 */
         .grid-item.selected .check-circle {
-            background-color: #be9f82; 
-            border-color: #be9f82;     
-            transform: scale(1.1);     
+            background-color: #be9f82; border-color: #be9f82; transform: scale(1.1);     
         }
 
         canvas { display: none; }
@@ -119,6 +125,10 @@
 
     <div id="contentArea">
         <div class="main-preview-container">
+            <div id="emptyPlaceholder" class="empty-placeholder">
+                <i data-lucide="image" style="width:48px; height:48px; opacity:0.2;"></i>
+            </div>
+            
             <img id="mainPreviewImg" src="" alt="Preview">
             
             <div class="overlay-controls">
@@ -127,7 +137,10 @@
                 <button class="control-btn btn-capsule" id="multiSelectBtn"><i data-lucide="layers"></i><span class="btn-text-static">SELECT MULTIPLE</span></button>
             </div>
         </div>
-        <div class="grid-gallery" id="gridGallery"></div>
+        
+        <div class="grid-gallery" id="gridGallery">
+            </div>
+        
         <input type="file" id="imageLoader" accept="image/*" multiple style="display: none;">
     </div>
 
@@ -152,54 +165,111 @@
         }
 
         const mainPreviewImg = document.getElementById('mainPreviewImg');
+        const emptyPlaceholder = document.getElementById('emptyPlaceholder');
         const gridGallery = document.getElementById('gridGallery');
         const multiSelectBtn = document.getElementById('multiSelectBtn');
         const tagFriendBtn = document.getElementById('tagFriendBtn');
         const locationBtn = document.getElementById('locationBtn');
         const shareBtn = document.getElementById('shareBtn');
+        const imageLoader = document.getElementById('imageLoader');
         const compressCanvas = document.getElementById('compressCanvas');
         const ctx = compressCanvas.getContext('2d');
 
-        let pendingImages = [
-            "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80", 
-            "https://images.unsplash.com/photo-1551334787-21e6bd3ab135?w=800&q=80", 
-            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80", 
-            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80", 
-            "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80", 
-            "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&q=80"
-        ];
+        // ★★★ 初始狀態為空，但會保留第一格按鈕 ★★★
+        let pendingImages = []; 
         
         let selectedIndices = []; 
         let isSelectMode = false;
         let isFriendTagged = false; 
         let currentLocation = null; 
-        let currentMainIndex = 0;   
+        let currentMainIndex = -1; // -1 代表沒選任何照片
 
         window.onload = () => {
-            if (pendingImages.length > 0) {
-                // 預設情況下（單張模式），selectedIndices 設為全部，
-                // 這樣如果不按多選直接發布，會預設發布全部。
-                selectedIndices = pendingImages.map((_, i) => i);
-                renderMainPreview();
-                renderGrid();
-            }
+            renderGrid(); // 即使沒照片，也要渲染出第一格按鈕
         };
 
+        // --- 核心：上傳處理邏輯 ---
+        imageLoader.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            // 處理圖片
+            for (const file of files) {
+                const base64 = await processImage(file);
+                pendingImages.push(base64);
+            }
+
+            // 上傳後，自動選取剛上傳的第一張（也就是目前陣列的最後一張或是這批的第一張）
+            // 為了體驗更好，我們切換到剛上傳的最後一張
+            const newIndex = pendingImages.length - 1;
+            
+            // 如果不在多選模式，直接切換過去
+            if (!isSelectMode) {
+                currentMainIndex = newIndex;
+                selectedIndices = [newIndex]; // 單選模式下就選這張
+            } else {
+                // 如果在多選模式，看是否要自動幫他加選？
+                // 通常 Instagram 邏輯是：在多選模式下新增照片，不會自動打勾，但會把視角切過去
+                currentMainIndex = newIndex;
+            }
+
+            renderMainPreview();
+            renderGrid();
+        });
+
+        function processImage(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        const max = 1080;
+                        if (w > max || h > max) {
+                           if (w > h) { h *= max/w; w = max; } else { w *= max/h; h = max; }
+                        }
+                        compressCanvas.width = w; compressCanvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(compressCanvas.toDataURL('image/jpeg', 0.8));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // --- 渲染 ---
         function renderMainPreview() {
-            if (pendingImages[currentMainIndex]) {
+            if (currentMainIndex !== -1 && pendingImages[currentMainIndex]) {
+                emptyPlaceholder.style.display = 'none';
+                mainPreviewImg.style.display = 'block';
+                // 淡入效果
                 mainPreviewImg.style.opacity = 0;
                 setTimeout(() => {
                     mainPreviewImg.src = pendingImages[currentMainIndex];
                     mainPreviewImg.style.opacity = 1;
                 }, 50);
+            } else {
+                emptyPlaceholder.style.display = 'flex';
+                mainPreviewImg.style.display = 'none';
             }
         }
 
         function renderGrid() {
-            gridGallery.innerHTML = pendingImages.map((src, idx) => {
+            let html = '';
+
+            // ★★★ 第一格：固定的相機/相簿按鈕 ★★★
+            // 點擊觸發 input file
+            html += `
+                <div class="grid-item camera-upload-item" onclick="document.getElementById('imageLoader').click()">
+                    <i data-lucide="image-plus"></i>
+                </div>
+            `;
+
+            // ★★★ 後面的格子：渲染 pendingImages ★★★
+            html += pendingImages.map((src, idx) => {
                 const isActive = (idx === currentMainIndex);
                 
-                // 計算編號
                 const selectionIndex = selectedIndices.indexOf(idx);
                 const isSelected = selectionIndex !== -1;
                 const selectionNumber = isSelected ? selectionIndex + 1 : '';
@@ -215,6 +285,9 @@
                     </div>
                 `;
             }).join('');
+
+            gridGallery.innerHTML = html;
+            lucide.createIcons(); // 重新渲染剛插入的 icon
         }
 
         window.handleGridClick = (idx) => {
@@ -228,6 +301,9 @@
                 } else {
                     selectedIndices.push(idx);
                 }
+            } else {
+                // 單選模式：點擊即選中該張 (為了發布準備)
+                selectedIndices = [idx];
             }
             renderGrid();
         };
@@ -251,29 +327,32 @@
             }
         });
 
-        // ★★★ 核心修正：多選按鈕邏輯 ★★★
         multiSelectBtn.addEventListener('click', () => {
+            if (pendingImages.length === 0) return; // 沒照片不能切換
+            
             isSelectMode = !isSelectMode;
             multiSelectBtn.classList.toggle('active', isSelectMode);
             
             if (isSelectMode) {
-                // 進入多選模式時：
-                // 不再全選！只選擇「當前顯示的那一張」
-                // 讓使用者從 1 開始自己加
-                selectedIndices = [currentMainIndex];
+                // 進入多選：只選當前這一張
+                if (currentMainIndex !== -1) {
+                    selectedIndices = [currentMainIndex];
+                }
             } else {
-                // 退出多選模式時：
-                // 為了方便（如果不小心按錯退出），我們保留選擇？
-                // 還是恢復全選？通常恢復全選比較符合「取消編輯」的直覺
-                // 這裡設定為恢復全選，讓單張模式下能正常發布所有
-                selectedIndices = pendingImages.map((_, i) => i);
+                // 退出多選：(邏輯可自訂，這裡設為只保留當前這張，或你要恢復單選狀態)
+                if (currentMainIndex !== -1) {
+                    selectedIndices = [currentMainIndex];
+                }
             }
-
             renderGrid();
         });
 
         shareBtn.addEventListener('click', async () => {
-            // 如果在多選模式下，但沒選任何照片 (理論上切換時會選一張，但如果手動取消了)
+            if (pendingImages.length === 0) {
+                 alert("Please add photos first."); 
+                 return;
+            }
+            // 防呆：如果多選模式下全部取消了，或者單選模式下沒選到 (理論上單選一定會選一張)
             if (selectedIndices.length === 0) { 
                 alert("Please select at least one photo."); 
                 return; 
