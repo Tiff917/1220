@@ -153,11 +153,15 @@
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 2);
+                const request = indexedDB.open(dbName, 3);
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
-                    if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
-                    if (!db.objectStoreNames.contains("all_photos")) db.createObjectStore("all_photos", { autoIncrement: true });
+                    if (!db.objectStoreNames.contains("posts_timeline")) {
+                        db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    }
+                    if (!db.objectStoreNames.contains("all_photos")) {
+                        db.createObjectStore("all_photos", { autoIncrement: true });
+                    }
                 };
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e);
@@ -224,13 +228,13 @@
                     const img = new Image();
                     img.onload = () => {
                         let w = img.width, h = img.height;
-                        const max = 1080;
+                        const max = 800;
                         if (w > max || h > max) {
                            if (w > h) { h *= max/w; w = max; } else { w *= max/h; h = max; }
                         }
                         compressCanvas.width = w; compressCanvas.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
-                        resolve(compressCanvas.toDataURL('image/jpeg', 0.8));
+                        resolve(compressCanvas.toDataURL('image/jpeg', 0.7));
                     };
                     img.src = e.target.result;
                 };
@@ -380,7 +384,7 @@
             const memoriesStore = tx.objectStore("all_photos");
             memoryItems.forEach(item => memoriesStore.add(item));
 
-            tx.oncomplete = () => { window.location.href = "home.html"; };
+            tx.oncomplete = () => { window.location.href = "index.html"; };
             tx.onerror = () => { alert("Error saving post"); shareBtn.textContent = "Finish"; };
         });
 
