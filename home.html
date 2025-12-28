@@ -123,9 +123,9 @@
     <div id="loading-toast">Saving...</div>
 
     <script>
-        // ★★★ 這是主頁專用的 Script (載入照片、資料庫)，請勿替換成 Profile 的程式碼 ★★★
+        // ★★★ Home Page Script (高效能 Blob 版) ★★★
 
-        // 1. 載入左上角頭像
+        // 1. 載入左上角頭像 (維持不變)
         function loadUserProfile() {
             const avatarDiv = document.querySelector('.avatar-placeholder');
             const savedAvatar = localStorage.getItem('myProfileAvatar');
@@ -146,100 +146,87 @@
         window.addEventListener('pageshow', loadUserProfile);
         window.addEventListener('load', loadUserProfile);
 
-        // 2. 資料庫與照片邏輯
+        // 2. 資料庫初始化 (對齊 Post 頁面的結構)
         const dbName = "MemoriesDB";
-        const storeName = "photos";
         const channel = new BroadcastChannel('memory_update'); 
         let db;
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 1);
+                // 升級到版本 5，與 Post 頁面保持一致
+                const request = indexedDB.open(dbName, 5);
+                
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
+                    // 建立貼文時間軸倉庫
+                    if (!db.objectStoreNames.contains("posts_timeline")) {
+                        db.createObjectStore("posts_timeline", { keyPath: "id" });
+                    }
+                    // 建立所有照片倉庫 (這是首頁讀取的地方)
+                    if (!db.objectStoreNames.contains("all_photos")) {
+                        db.createObjectStore("all_photos", { autoIncrement: true });
+                    }
                 };
+
                 request.onsuccess = (e) => {
                     db = e.target.result;
                     resolve(db);
                 };
+                
                 request.onerror = (e) => reject(e);
             });
         }
 
-        function getAllMemories() {
-            return new Promise((resolve) => {
-                if (!db) return resolve({});
-                const tx = db.transaction([storeName], "readonly");
-                const store = tx.objectStore(storeName);
-                const req = store.get("all_photos");
-                req.onsuccess = (e) => resolve(e.target.result || {});
-                req.onerror = () => resolve({});
-            });
-        }
-
-        function saveAllMemories(data) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([storeName], "readwrite");
-                const store = tx.objectStore(storeName);
-                const req = store.put(data, "all_photos");
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject();
-            });
-        }
-
-       // --- 讀取最新照片 (高效能 Cursor 版) ---
+        // --- 讀取最新照片 (高效能 Cursor 版) ---
         async function loadLatestPhoto() {
             if (!db) await initDB();
-        
+            
             return new Promise((resolve, reject) => {
                 const tx = db.transaction("all_photos", "readonly");
                 const store = tx.objectStore("all_photos");
-        
-                // openCursor(null, 'prev') 的意思就是：
-                // 從資料庫的「最後面」開始讀取 (prev = previous)，也就是最新的資料
+                
+                // 只讀取最後一筆 (最新)
                 const request = store.openCursor(null, 'prev');
-        
+                
                 request.onsuccess = (e) => {
                     const cursor = e.target.result;
                     if (cursor) {
-                        // cursor.value 就是我們存進去的物件： { date:..., timestamp:..., image: File }
                         const record = cursor.value;
-        
-                        // 檢查是否有 image 屬性
                         if (record.image) {
                             const imgElement = document.getElementById('displayImg');
                             
-                            // ★ 關鍵修改：判斷是 Blob 還是舊的 Base64
+                            // 直接處理 Blob/File 物件，不處理 Base64
                             if (record.image instanceof Blob || record.image instanceof File) {
-                                // 新版資料：建立連結
+                                // 釋放舊的 URL 以節省記憶體
+                                if (imgElement.src.startsWith('blob:')) {
+                                    URL.revokeObjectURL(imgElement.src);
+                                }
                                 imgElement.src = URL.createObjectURL(record.image);
-                            } else {
-                                // 舊版資料 (相容舊代碼)
-                                imgElement.src = record.image;
                             }
                         }
-                        resolve(record); // 找到最新一筆就結束，不繼續迴圈
+                        resolve(record);
                     } else {
-                        // 資料庫是空的
                         resolve(null);
                     }
                 };
-        
-                request.onerror = (e) => {
-                    console.error("讀取最新照片失敗:", e);
-                    reject(e);
-                };
+                
+                request.onerror = (e) => reject(e);
             });
         }
-        
-        // 執行
+
+        // 啟動時讀取
         initDB().then(loadLatestPhoto);
 
-        // 3. 按鈕互動
+        // 監聽其他頁面的更新通知 (例如在 Post 頁面發布後，回到首頁自動更新)
+        channel.onmessage = (event) => {
+            if (event.data === 'updated') {
+                loadLatestPhoto();
+            }
+        };
+
+        // 3. UI 按鈕互動 (維持不變)
         const shutterBtn = document.querySelector('.shutter-btn');
         const overlay = document.getElementById('action-sheet-overlay');
-        const mainImage = document.getElementById('displayImg');
         const toast = document.getElementById('loading-toast');
         
         shutterBtn.addEventListener('click', (e) => { e.preventDefault(); overlay.classList.add('show'); });
@@ -249,62 +236,75 @@
         document.getElementById('btn_camera').addEventListener('click', () => { document.getElementById('input_camera').click(); overlay.classList.remove('show'); });
         document.getElementById('btn_gallery').addEventListener('click', () => { document.getElementById('input_gallery').click(); overlay.classList.remove('show'); });
 
-        // 4. 檔案處理 (含壓縮)
+        // 4. 檔案處理 (全新邏輯：無壓縮、直接存 Blob)
         async function handleFileSelect(e) {
             const files = e.target.files;
             if (!files || files.length === 0) return;
 
             toast.style.display = 'block';
-            if (!db) await initDB();
-            
-            let memories = await getAllMemories();
-            const now = new Date();
-            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-            
-            if (!memories[dateKey]) memories[dateKey] = [];
-            if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
+            toast.textContent = "Saving..."; // 顯示儲存中
 
-            let processedCount = 0;
+            try {
+                if (!db) await initDB();
+                
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+                
+                // 開啟交易：同時寫入 "posts_timeline" 和 "all_photos"
+                const tx = db.transaction(["posts_timeline", "all_photos"], "readwrite");
+                const timelineStore = tx.objectStore("posts_timeline");
+                const photosStore = tx.objectStore("all_photos");
 
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    compressImage(event.target.result, 1024, 0.8, async function(base64) {
-                        memories[dateKey].push(base64);
-                        mainImage.src = base64; 
-                        processedCount++;
-                        
-                        if (processedCount === files.length) {
-                            try {
-                                await saveAllMemories(memories);
-                                channel.postMessage('updated');
-                                toast.textContent = "Saved!";
-                                setTimeout(() => { toast.style.display = 'none'; toast.textContent = "Saving..."; }, 1500);
-                            } catch (err) {
-                                alert("Save failed.");
-                                toast.style.display = 'none';
-                            }
-                        }
+                Array.from(files).forEach(file => {
+                    // 1. 存入 all_photos (供首頁與相簿讀取)
+                    photosStore.add({ 
+                        date: dateStr, 
+                        timestamp: now.getTime(), 
+                        image: file // ★ 直接存 File 物件，不轉 Base64
                     });
+
+                    // 2. 存入 posts_timeline (保持資料一致性，建立一個簡易貼文)
+                    timelineStore.add({
+                        id: Date.now() + Math.random(), // 確保 ID 唯一
+                        timestamp: now.getTime(),
+                        dateString: dateStr,
+                        images: [file], // 陣列格式
+                        location: null,
+                        isFriendTagged: false,
+                        likes: 0,
+                        comments: []
+                    });
+                });
+
+                tx.oncomplete = () => {
+                    // 儲存完成後，立刻更新畫面
+                    loadLatestPhoto(); 
+                    
+                    // 通知其他頁面更新
+                    channel.postMessage('updated');
+                    
+                    // UI 反饋
+                    toast.textContent = "Saved!";
+                    setTimeout(() => { toast.style.display = 'none'; }, 1000);
+                    
+                    // 清空 Input，允許重複上傳相同檔案
+                    e.target.value = '';
                 };
-                reader.readAsDataURL(file);
-            });
+
+                tx.onerror = (err) => {
+                    console.error("儲存失敗", err);
+                    alert("儲存失敗，請重試");
+                    toast.style.display = 'none';
+                };
+
+            } catch (err) {
+                console.error("系統錯誤", err);
+                alert("發生錯誤：" + err.message);
+                toast.style.display = 'none';
+            }
         }
 
-        function compressImage(base64Str, maxWidth, quality, callback) {
-            const img = new Image();
-            img.src = base64Str;
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                let w = img.width, h = img.height;
-                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
-                canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                callback(canvas.toDataURL('image/jpeg', quality));
-            };
-        }
-
+        // 綁定事件
         document.getElementById('input_camera').addEventListener('change', handleFileSelect);
         document.getElementById('input_gallery').addEventListener('change', handleFileSelect);
     </script>
