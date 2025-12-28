@@ -7,8 +7,9 @@
     <style>
         /* --- 1. 基礎設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        
         body { 
-            background-color: #ffffff; 
+            background-color: #ffffff; /* 確保背景全白 */
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             color: #262626; 
             overflow-x: hidden;
@@ -16,37 +17,25 @@
         body::-webkit-scrollbar { display: none; }
 
         /* --- 2. 動態牆容器 --- */
-        /* 修正：移除頂部留白，底部留一點點空間給 footer 防止遮擋，但不多留 */
         #feed-container { width: 100%; margin: 0; padding-top: 0; padding-bottom: 60px; }
 
         /* 貼文卡片 */
         .post-card { background: white; border-bottom: 1px solid #efefef; margin-bottom: 0; padding-bottom: 10px; }
 
-        /* 貼文頭部 */
-        .post-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; }
+        /* 貼文頭部 (加入 position: relative 以便定位下拉選單) */
+        .post-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; position: relative; }
         .user-info { display: flex; align-items: center; gap: 10px; }
         .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1); }
         .username { font-weight: 600; font-size: 14px; text-decoration: none; color: #262626; }
         .location { font-size: 12px; color: #262626; display: block; }
 
-        /* 主頁貼文的頭像 */
-        .avatar { 
-            width: 32px; height: 32px; border-radius: 50%; object-fit: cover; 
-            border: 1px solid rgba(0,0,0,0.1); 
-            background-color: #9C7C66; 
+        /* 頭像樣式 */
+        .avatar, .user-avatar-small, .caption-avatar { 
+            background-color: #dbdbdb; /* 預設灰色背景 */
         }
-        
-        /* 留言區的小頭像 */
-        .user-avatar-small { 
-            width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; object-fit: cover; 
-            background-color: #9C7C66;
-        }
-        
-        /* 全螢幕留言板的頭像 */
-        .caption-avatar { 
-            width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
-            background-color: #9C7C66; 
-        }
+        .user-avatar-small { width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; object-fit: cover; }
+        .caption-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+
         /* 圖片輪播 */
         .media-container { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #fafafa; }
         .slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; height: 100%; }
@@ -68,7 +57,6 @@
         .icon-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
         .icon-btn:active { transform: scale(0.9); }
         
-        /* 讓愛心變紅色時有動畫 */
         .heart-anim { animation: likeBounce 0.3s ease; }
         @keyframes likeBounce { 0%{transform:scale(1);} 50%{transform:scale(1.2);} 100%{transform:scale(1);} }
 
@@ -86,7 +74,6 @@
 
         /* 留言輸入 */
         .add-comment-section { display: flex; align-items: center; padding-top: 10px; border-top: 1px solid #efefef; margin-top: 5px; }
-        .user-avatar-small { width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; object-fit: cover; }
         .comment-input { flex: 1; border: none; font-size: 14px; padding: 5px 0; background: transparent; }
         .post-btn { color: #bfa093; font-weight: 600; font-size: 14px; border: none; background: none; cursor: pointer; padding-left: 10px; opacity: 0.5; pointer-events: none; }
         .post-btn.active { opacity: 1; pointer-events: auto; }
@@ -108,7 +95,6 @@
         .back-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;}
         .overlay-content { flex: 1; overflow-y: auto; padding: 16px; }
         .caption-block { display: flex; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #efefef; margin-bottom: 12px; }
-        .caption-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover;}
         .caption-text-area { flex: 1; font-size: 14px; line-height: 1.4; }
         .overlay-footer {
             border-top: 1px solid #dbdbdb; padding: 10px 16px;
@@ -120,34 +106,33 @@
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #8e8e8e; gap: 15px; }
         .empty-icon { font-size: 40px; opacity: 0.3; }
 
-        /* --- 檢舉選單樣式 --- */
-        .options-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); z-index: 10000;
-            display: none; align-items: center; justify-content: center;
-            opacity: 0; transition: opacity 0.2s;
-        }
-        .options-overlay.show { display: flex; opacity: 1; }
-        
-        .options-box {
-            background: white; width: 80%; max-width: 300px;
-            border-radius: 12px; overflow: hidden;
+        /* --- 新增：下拉式選單樣式 --- */
+        .popup-menu {
+            display: none; /* 預設隱藏 */
+            position: absolute;
+            top: 40px; /* 在 icon 下方 */
+            right: 14px; /* 對齊右邊 */
+            background: white;
+            border: 1px solid #efefef;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 8px;
+            z-index: 100;
+            width: 100px;
+            animation: fadeIn 0.1s ease;
         }
-        
-        .option-btn {
-            width: 100%; padding: 15px; text-align: center;
-            font-size: 16px; border: none; background: white;
-            border-bottom: 1px solid #efefef; cursor: pointer;
+        .popup-menu.show { display: block; }
+
+        .menu-item {
+            padding: 12px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ed4956; /* 檢舉用紅色 */
+            cursor: pointer;
         }
-        .option-btn:active { background-color: #f5f5f5; }
-        
-        /* 檢舉按鈕用紅色，強調警示 */
-        .option-btn.report { color: #ed4956; font-weight: 700; }
-        .option-btn.cancel { color: #262626; border-bottom: none; }
-        
-        @keyframes popIn { from{transform:scale(0.9);} to{transform:scale(1);} }
+        .menu-item:active { background-color: #fafafa; }
+
+        @keyframes fadeIn { from{opacity:0; transform:translateY(-5px);} to{opacity:1; transform:translateY(0);} }
     </style>
 </head>
 <body>
@@ -175,11 +160,6 @@
         </div>
     </div>
 
-    <div id="options-overlay" class="options-overlay" onclick="closeOptions()">
-        <div class="options-box" onclick="event.stopPropagation()"> <div class="option-btn report" onclick="confirmReport()">檢舉</div>
-            <div class="option-btn cancel" onclick="closeOptions()">取消</div>
-        </div>
-    </div>
     <script>
         // --- 1. 使用者資訊與資料庫 ---
         const dbName = "MemoriesDB";
@@ -187,12 +167,20 @@
         let db;
         let postsData = [];
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        // 初始化時嘗試抓一次
         let userName = localStorage.getItem('myProfileName') || "Me";
 
         // 監聽更新
         channel.onmessage = (event) => {
             if (event.data === 'updated') loadAndRender();
         };
+
+        // 點擊空白處關閉選單
+        window.onclick = function(event) {
+            if (!event.target.closest('.icon-btn') && !event.target.closest('.popup-menu')) {
+                document.querySelectorAll('.popup-menu').forEach(menu => menu.classList.remove('show'));
+            }
+        }
 
         function initDB() {
             return new Promise((resolve, reject) => {
@@ -210,9 +198,6 @@
         // --- 2. 讀取資料 ---
         async function loadAndRender() {
             try {
-                userName = localStorage.getItem('myProfileName') || "Me";
-                console.log("Current User Name Loaded:", userName); // 方便除錯
-                
                 await initDB();
                 
                 // 讀取頭像
@@ -238,11 +223,9 @@
                     const cursor = e.target.result;
                     if (cursor) {
                         const post = cursor.value;
-                        // 處理圖片 Blob -> URL
                         post.imageUrls = post.images.map(blob => 
                             (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
                         );
-                        // 初始化讚數
                         if (!post.likes) post.likes = 0;
                         if (!post.isLiked) post.isLiked = false;
                         
@@ -253,7 +236,6 @@
                         renderPosts();
                     }
                 };
-
             } catch (e) {
                 console.error("Loading error:", e);
             }
@@ -262,19 +244,19 @@
         // --- 3. 渲染畫面 ---
         const feedContainer = document.getElementById('feed-container');
         
-        // 修正後的圖示：愛心改成標準線條，看起來不醜了
         const icons = {
             more: '<svg aria-label="More" color="#262626" fill="#262626" height="24" viewBox="0 0 24 24" width="24"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>',
-            // 修正：使用 stroke-width="2" 的標準愛心
             heartOutline: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#262626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
             heartFilled: '<svg width="24" height="24" viewBox="0 0 24 24" fill="#ed4956" stroke="#ed4956" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
             comment: '<svg aria-label="Comment" fill="none" height="24" viewBox="0 0 24 24" width="24"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z" stroke="black" stroke-linejoin="round" stroke-width="2"></path></svg>'
         };
 
         function renderPosts() {
-            
+            // ★ 強制每次渲染都抓取最新的名字
             const currentName = localStorage.getItem('myProfileName') || "Me";
-            
+            // 為了除錯，我們更新全域變數
+            userName = currentName; 
+
             if (postsData.length === 0) {
                 feedContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">📷</div><div>No posts yet.</div></div>`;
                 return;
@@ -290,9 +272,8 @@
                 if (post.comments && post.comments.length > 0) {
                     captionText = post.comments[0].text;
                 }
-                const locationHtml = post.location ? `<span class="location">${post.location}</span>` : `<span class="location">${post.dateString}</span>`;
                 
-                // 愛心狀態
+                const locationHtml = post.location ? `<span class="location">${post.location}</span>` : `<span class="location">${post.dateString}</span>`;
                 const initialHeart = post.isLiked ? icons.heartFilled : icons.heartOutline;
 
                 return `
@@ -300,9 +281,14 @@
                     <div class="post-header">
                         <div class="user-info">
                             <img src="${userAvatarUrl}" class="avatar">
-                            <div><span class="username">${userName}</span>${locationHtml}</div>
+                            <div><span class="username">${currentName}</span>${locationHtml}</div>
                         </div>
-                        <div class="icon-btn" onclick="showOptions(${post.id})">${icons.more}</div>
+                        
+                        <div class="icon-btn" onclick="toggleMenu(event, ${post.id})">${icons.more}</div>
+                        
+                        <div id="menu-${post.id}" class="popup-menu">
+                            <div class="menu-item" onclick="confirmReport(${post.id})">檢舉</div>
+                        </div>
                     </div>
                     <div class="media-container">
                         <div class="image-counter" id="counter-${post.id}" style="display:${counterDisplay}">1/${post.imageUrls.length}</div>
@@ -318,7 +304,8 @@
                     <div class="post-content">
                         <span class="likes-count" id="likes-count-${post.id}">${post.likes} likes</span>
                         
-                        <div class="comment-row"><span class="comment-user">${userName}</span>${captionText}</div>
+                        ${ captionText ? `<div class="comment-row"><span class="comment-user">${currentName}</span>${captionText}</div>` : '' }
+                        
                         ${ post.comments.length > 1 ? `<div style="color:#8e8e8e; margin-bottom:4px; cursor:pointer;" onclick="openCommentPage(${post.id})">View all ${post.comments.length} comments</div>` : '' }
                         <div class="timestamp">${new Date(post.timestamp).toDateString()}</div>
                         
@@ -342,29 +329,24 @@
             counter.innerText = `${index + 1}/${dotsContainer.children.length}`;
         }
 
-        // --- 4. 按讚功能 (即時+1/ -1) ---
+        // --- 4. 按讚功能 ---
         async function toggleLike(postId) {
             const post = postsData.find(p => p.id === postId);
             const btn = document.getElementById(`like-btn-${postId}`);
             const countSpan = document.getElementById(`likes-count-${postId}`);
 
             if (post.isLiked) {
-                // 取消讚
                 post.likes--;
                 post.isLiked = false;
                 btn.innerHTML = icons.heartOutline;
                 btn.classList.remove('heart-anim');
             } else {
-                // 按讚
                 post.likes++;
                 post.isLiked = true;
                 btn.innerHTML = icons.heartFilled;
                 btn.classList.add('heart-anim');
             }
-            // 更新數字
             countSpan.innerText = `${post.likes} likes`;
-
-            // 存回資料庫
             await saveTimelineToDB();
         }
 
@@ -377,14 +359,16 @@
             const overlay = document.getElementById('comment-overlay');
             const contentArea = document.getElementById('overlay-scroll-area');
             
-            // 內文
+            // ★ 再次抓取名字給留言板用
+            const myName = localStorage.getItem('myProfileName') || "Me";
+            
             let captionText = (post.comments && post.comments.length > 0) ? post.comments[0].text : `Memory from ${post.dateString} ✨`;
 
             let html = `
                 <div class="caption-block">
                     <img src="${userAvatarUrl}" class="caption-avatar">
                     <div class="caption-text-area">
-                        <span class="comment-user">${userName}</span>
+                        <span class="comment-user">${myName}</span>
                         <span>${captionText}</span>
                         <div style="font-size:12px; color:#8e8e8e; margin-top:4px;">${new Date(post.timestamp).toDateString()}</div>
                     </div>
@@ -392,10 +376,9 @@
                 <div class="all-comments-list">
             `;
             
-            // 其他留言 (從 index 1 開始，因為 0 是內文)
             for (let i = 1; i < post.comments.length; i++) {
                 const c = post.comments[i];
-                let avatarSrc = (c.user === userName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
+                let avatarSrc = (c.user === myName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
                 html += `
                     <div class="comment-row" style="margin-bottom: 12px; display:flex; gap:12px;">
                         <img src="${avatarSrc}" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">
@@ -422,7 +405,7 @@
         function closeCommentPage() {
             document.getElementById('comment-overlay').classList.remove('open');
             currentOpenPostId = null;
-            renderPosts(); // 關閉時重新渲染，更新首頁的留言預覽
+            renderPosts(); 
         }
 
         function checkInput(inputEl, btnId) {
@@ -435,16 +418,13 @@
             if (e.key === 'Enter') postComment(postId, inputId);
         }
 
-        // 儲存所有變更 (讚、留言)
         async function saveTimelineToDB() {
             const tx = db.transaction(["posts_timeline"], "readwrite");
             const store = tx.objectStore("posts_timeline");
-            // 因為我們是修改了 postsData 裡的物件，所以要把每個物件都 put 回去
             postsData.forEach(post => {
-                // 注意：imageUrls 不需要存回資料庫，那是顯示用的
                 const postToSave = { ...post }; 
                 delete postToSave.imageUrls; 
-                delete postToSave.user; // user 資訊也是動態抓的，不存
+                delete postToSave.user; 
                 store.put(postToSave);
             });
         }
@@ -453,8 +433,10 @@
             const input = document.getElementById(inputId);
             const text = input.value.trim();
             if (!text) return;
+            // 抓最新名字
+            const myName = localStorage.getItem('myProfileName') || "Me";
             const post = postsData.find(p => p.id === postId);
-            post.comments.push({ user: userName, text: text });
+            post.comments.push({ user: myName, text: text });
             input.value = '';
             renderPosts();
             await saveTimelineToDB(); 
@@ -464,42 +446,37 @@
             const input = document.getElementById('overlay-input');
             const text = input.value.trim();
             if (!text) return;
+            const myName = localStorage.getItem('myProfileName') || "Me";
             const post = postsData.find(p => p.id === postId);
-            post.comments.push({ user: userName, text: text });
-            openCommentPage(postId); // 重新渲染 Overlay 內容
+            post.comments.push({ user: myName, text: text });
+            openCommentPage(postId);
             await saveTimelineToDB(); 
+        }
+
+        // --- 下拉選單邏輯 ---
+        function toggleMenu(event, postId) {
+            event.stopPropagation(); // 阻止冒泡
+            
+            // 先關閉所有打開的選單
+            document.querySelectorAll('.popup-menu.show').forEach(menu => {
+                if (menu.id !== `menu-${postId}`) {
+                    menu.classList.remove('show');
+                }
+            });
+
+            // 切換目前這個選單
+            const menu = document.getElementById(`menu-${postId}`);
+            menu.classList.toggle('show');
+        }
+        
+        function confirmReport(postId) {
+            alert(`已收到您對貼文 (ID: ${postId}) 的檢舉，我們會盡快審核。`);
+            // 關閉選單
+            document.getElementById(`menu-${postId}`).classList.remove('show');
         }
 
         loadAndRender();
 
-        // --- 檢舉功能邏輯 ---
-        let reportPostId = null; // 暫存目前要檢舉哪一篇
-        
-        function showOptions(postId) {
-            reportPostId = postId;
-            const overlay = document.getElementById('options-overlay');
-            overlay.style.display = 'flex';
-            // 稍微延遲加 class 讓淡入動畫生效
-            setTimeout(() => overlay.classList.add('show'), 10);
-        }
-        
-        function closeOptions() {
-            const overlay = document.getElementById('options-overlay');
-            overlay.classList.remove('show');
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                reportPostId = null;
-            }, 200); // 等動畫跑完再隱藏
-        }
-        
-        function confirmReport() {
-            if (!reportPostId) return;
-            
-            // 這裡可以傳送檢舉請求給後端，目前先用 alert 模擬
-            alert(`已收到您對貼文 (ID: ${reportPostId}) 的檢舉，我們會盡快審核。`);
-            
-            closeOptions();
-        }
     </script>
 </body>
 </html>
