@@ -3,246 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>New Post</title>
+    <title>Edit Photo</title>
     <style>
-        /* --- 全局設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            background-color: #F3ECE5;
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
-        }
+        body { background-color: #F3ECE5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* --- 頂部導航 --- */
-        .header {
-            flex-shrink: 0; height: 50px; padding: 0 16px; margin-top: 40px;
-            display: flex; justify-content: space-between; align-items: center;
-            background-color: #F3ECE5; 
-            z-index: 10;
-        }
-
-        .header-btn { font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; background: none; }
-        .cancel-btn { color: #6D5D55; }
+        .header { flex-shrink: 0; padding: 50px 20px 15px 20px; display: flex; justify-content: space-between; align-items: center; background-color: #F3ECE5; z-index: 10; }
+        .cancel-btn { font-size: 16px; color: #8C7B6D; text-decoration: none; font-weight: 500; }
         .title { font-size: 18px; font-weight: 700; color: #6D5D50; }
-        .next-btn { color: #9C7C66; font-weight: 700; }
-        .next-btn:disabled { color: #D6CCC2; }
+        .share-btn { font-size: 16px; font-weight: 700; color: #fff; background-color: #9C7C66; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
+        .share-btn:active { opacity: 0.8; transform: scale(0.95); }
 
-        /* --- 預覽區域 --- */
-        .preview-container {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            background-color: #E3D5CA;
-            position: relative;
-            overflow: hidden;
-            flex-shrink: 0;
+        .editor-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; overflow: hidden; position: relative; background-color: #F3ECE5; }
+        canvas { max-width: 100%; max-height: 100%; box-shadow: 0 10px 30px rgba(156, 124, 102, 0.2); border-radius: 8px; display: none; }
+
+        .upload-placeholder { text-align: center; color: #8C7B6D; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .upload-icon { font-size: 48px; opacity: 0.5; }
+        .upload-btn { padding: 12px 24px; background: #9C7C66; color: white; border-radius: 25px; font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(156, 124, 102, 0.3); transition: transform 0.1s; }
+        .upload-btn:active { transform: scale(0.95); }
+
+        /* 新增：重選按鈕 (Re-select) */
+        .reselect-btn {
+            position: absolute; bottom: 20px; right: 20px;
+            width: 44px; height: 44px; border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: none; /* 預設隱藏 */
+            justify-content: center; align-items: center;
+            cursor: pointer; z-index: 20; color: #666;
         }
-
-        #mainPreview {
-            width: 100%; height: 100%; object-fit: cover;
-            transition: opacity 0.2s;
-            display: none; 
-        }
-
-        /* --- 浮動功能列 --- */
-        .overlay-bar {
-            position: absolute; bottom: 12px; left: 12px; right: 12px;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 5;
-            pointer-events: none; 
-        }
-        .overlay-bar > * { pointer-events: auto; } 
-
-        .left-actions { display: flex; gap: 8px; align-items: center; }
-
-        /* 按鈕基礎樣式 */
-        .overlay-btn {
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            border-radius: 20px;
-            height: 32px;
-            padding: 0 8px; /* 基礎 padding */
-            border: none;
-            display: flex; align-items: center; justify-content: center; /* 預設置中 */
-            gap: 6px;
-            font-size: 12px; font-weight: 600;
-            backdrop-filter: blur(4px);
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); /* 平滑彈性動畫 */
-            overflow: hidden;
-            white-space: nowrap;
-        }
-        
-        .circle-icon-btn {
-            width: 32px; padding: 0; border-radius: 50%;
-        }
-
-  /* --- 修正後的：地點按鈕樣式 --- */
-        #btnLocation {
-            /* 1. 強制設定為正圓形 */
-            width: 32px;       
-            height: 32px;
-            padding: 0;        /* 關鍵：預設沒有內距，不然會變橢圓 */
-            border-radius: 50%;
-            
-            /* 2. 讓 Icon 絕對置中 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            
-            /* 3. 過渡動畫設定 */
-            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        /* 啟用狀態：變成膠囊並展開 */
-        #btnLocation.active {
-            width: auto;       /* 寬度自動適應文字 */
-            padding: 0 12px;   /* 展開後才補回內距 */
-            border-radius: 20px;
-            background: #9C7C66; 
-            justify-content: flex-start; /* 內容靠左 */
-        }
-
-        .location-text {
-            opacity: 0; 
-            display: none;     /* 預設完全隱藏，不佔空間 */
-            transform: translateX(10px);
-            margin-left: 0;    /* 預設沒有間距 */
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-
-        /* 當按鈕變 active 時，顯示文字 */
-        #btnLocation.active .location-text {
-            display: inline-block;
-            opacity: 1;
-            transform: translateX(0);
-            margin-left: 6px;  /* 展開後才給文字左邊一點空隙 */
-        }
-        /* 一般按鈕啟用狀態 */
-        .overlay-btn.active:not(#btnLocation) {
-            background: #9C7C66; 
-            color: white;
-        }
-        
-        .overlay-btn svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
-
-        /* 載入動畫 (閃爍) */
-        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
-        .overlay-btn.loading { animation: pulse 1s infinite ease-in-out; }
-
-
-        /* --- 下方相簿網格 --- */
-        .gallery-scroll {
-            flex: 1; overflow-y: auto; background: #F3ECE5;
-        }
-
-        /* 3欄網格 */
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 2px;
-            padding: 2px;
-        }
-
-        .gallery-item {
-            aspect-ratio: 1 / 1;
-            position: relative;
-            cursor: pointer;
-            overflow: hidden;
-            background-color: #E3D5CA;
-        }
-
-        .gallery-item img {
-            width: 100%; height: 100%; object-fit: cover;
-            display: block; transition: opacity 0.2s;
-        }
-
-        /* 上傳按鈕方塊 */
-        .upload-tile {
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background-color: #EBE1D7; 
-            color: #9C7C66;
-            font-size: 13px; font-weight: 700; gap: 5px;
-            text-align: center;
-            cursor: pointer;
-        }
-        .upload-tile svg { width: 28px; height: 28px; stroke-width: 2; }
-        .upload-tile:active { background-color: #dccbc0; }
-
-        /* 選取樣式 */
-        .gallery-item.selected img { opacity: 0.5; }
-        
-        .selection-badge {
-            position: absolute; top: 6px; right: 6px; width: 22px; height: 22px;
-            border-radius: 50%; border: 2px solid #F3ECE5;
-            background: rgba(0,0,0,0.3);
-            display: flex; justify-content: center; align-items: center;
-            font-size: 12px; font-weight: 700; color: white; z-index: 2;
-            transition: transform 0.1s;
-        }
-
-        .gallery-item.selected .selection-badge {
-            background: #9C7C66; border-color: #F3ECE5; transform: scale(1.1);
-        }
-        
-        #hiddenFileInput { display: none; }
-        
+        .reselect-btn:active { background-color: #ddd; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <a href="home.html" class="header-btn cancel-btn">Cancel</a>
+        <a href="home.html" class="cancel-btn">Cancel</a>
         <div class="title">New Post</div>
-        <button class="header-btn next-btn" id="nextBtn">Share</button>
+        <button class="share-btn" id="shareBtn">Share</button>
     </div>
 
-    <div class="preview-container">
-        <img id="mainPreview" src="" alt="">
+    <div class="editor-container">
+        <div class="upload-placeholder" id="placeholder">
+            <div class="upload-icon">📷</div>
+            <p>Select a photo</p>
+            <label class="upload-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> Open Gallery
+                <input type="file" id="imageLoader" accept="image/*" style="display: none;">
+            </label>
+        </div>
+        
+        <canvas id="imageCanvas"></canvas>
 
-        <div class="overlay-bar">
-            <div class="left-actions">
-                <button id="btnTagPeople" class="overlay-btn circle-icon-btn">
-                    <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
-                </button>
-                <button id="btnLocation" class="overlay-btn">
-                    <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
-                    <span class="location-text">Kaohsiung</span>
-                </button>
-            </div>
-
-            <button class="overlay-btn" id="multiSelectBtn" onclick="toggleMultiSelect()">
-                <svg style="margin-right:4px;" viewBox="0 0 24 24"><path d="M21 17h-2v2h-2v-2h-2v-2h2v-2h2v2h2v2zm-4-6V7H5v10h12v-2h2v4H3V5h16v6h-2z"></path></svg>
-                SELECT MULTIPLE
-            </button>
+        <div class="reselect-btn" id="reselectBtn" onclick="resetSelection()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
         </div>
     </div>
-
-    <div class="gallery-scroll">
-        <div class="gallery-grid" id="galleryGrid">
-            <div class="gallery-item upload-tile" onclick="document.getElementById('hiddenFileInput').click()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg>
-                <span>Gallery</span>
-            </div>
-        </div>
-    </div>
-
-    <input type="file" id="hiddenFileInput" accept="image/*" multiple>
 
     <script>
-        // --- IndexedDB 初始化 ---
         const dbName = "MemoriesDB";
-        const storeName = "posts_timeline"; // 改名：不再存 photos，改存 timeline
+        const storeName = "photos";
+        const channel = new BroadcastChannel('memory_update'); 
         let db;
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 2); // ★★★ 版本號升級為 2，觸發更新 ★★★
+                const request = indexedDB.open(dbName, 1);
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
-                    // 建立新的儲存區來放貼文列表
                     if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
                 };
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
@@ -250,141 +78,112 @@
             });
         }
 
-        // 取得所有貼文列表 (這會是一個 Array)
-        function getTimeline() {
+        function getAllMemories() {
             return new Promise((resolve) => {
-                if (!db) return resolve([]);
+                if (!db) return resolve({});
                 const tx = db.transaction([storeName], "readonly");
                 const store = tx.objectStore(storeName);
-                const req = store.get("feed_data");
-                req.onsuccess = (e) => resolve(e.target.result || []); // 預設回傳空陣列
-                req.onerror = () => resolve([]);
+                const req = store.get("all_photos");
+                req.onsuccess = (e) => resolve(e.target.result || {});
+                req.onerror = () => resolve({});
             });
         }
 
-        // 儲存整個列表
-        function saveTimeline(data) {
+        function saveAllMemories(data) {
             return new Promise((resolve, reject) => {
                 const tx = db.transaction([storeName], "readwrite");
                 const store = tx.objectStore(storeName);
-                const req = store.put(data, "feed_data");
+                const req = store.put(data, "all_photos");
                 req.onsuccess = () => resolve();
                 req.onerror = () => reject();
             });
         }
 
-        // --- 變數與 UI 邏輯 (保持不變) ---
+        // --- 介面邏輯 ---
         const imageLoader = document.getElementById('imageLoader');
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
         const placeholder = document.getElementById('placeholder');
-        const previewSlider = document.getElementById('previewSlider');
         const reselectBtn = document.getElementById('reselectBtn');
-        const shareBtn = document.getElementById('shareBtn');
-        const pageIndicator = document.getElementById('pageIndicator');
-        const compressCanvas = document.getElementById('compressCanvas');
-        const ctx = compressCanvas.getContext('2d');
-        let pendingImages = []; 
+        let currentImgObj = null; 
 
-        // 圖片選擇邏輯 (與上一版相同)
-        imageLoader.addEventListener('change', async function(e) {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) return;
-            placeholder.innerHTML = `<div style="opacity:0.6">Processing ${files.length} photos...</div>`;
-            pendingImages = [];
-            previewSlider.innerHTML = ''; 
-            for (const file of files) {
-                try {
-                    const base64 = await processImage(file);
-                    pendingImages.push(base64);
-                } catch (err) { console.error(err); }
-            }
-            if (pendingImages.length > 0) {
-                renderPreview();
-                placeholder.style.display = 'none';
-                previewSlider.style.display = 'flex';
-                reselectBtn.style.display = 'flex';
-                shareBtn.disabled = false;
-                if(pendingImages.length > 1) {
-                    pageIndicator.style.display = 'block';
-                    pageIndicator.textContent = `1/${pendingImages.length}`;
+        // 載入圖片
+        imageLoader.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImgObj = img;
+                    let maxWidth = 1024; 
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // UI 切換
+                    placeholder.style.display = 'none';
+                    canvas.style.display = 'block';
+                    reselectBtn.style.display = 'flex'; // 顯示重選按鈕
+
+                    ctx.drawImage(currentImgObj, 0, 0, canvas.width, canvas.height);
                 }
-            } else { resetSelection(); }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
         });
 
-        function processImage(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        let maxWidth = 1080;
-                        let w = img.width; let h = img.height;
-                        if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
-                        compressCanvas.width = w; compressCanvas.height = h;
-                        ctx.drawImage(img, 0, 0, w, h);
-                        resolve(compressCanvas.toDataURL('image/jpeg', 0.85));
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function renderPreview() {
-            previewSlider.innerHTML = pendingImages.map(src => `<div class="preview-item"><img src="${src}"></div>`).join('');
-        }
-        
-        previewSlider.addEventListener('scroll', () => {
-            const index = Math.round(previewSlider.scrollLeft / previewSlider.offsetWidth);
-            pageIndicator.textContent = `${index + 1}/${pendingImages.length}`;
-        });
-
+        // 重選邏輯
         function resetSelection() {
-            pendingImages = [];
-            imageLoader.value = ""; 
-            previewSlider.style.display = 'none'; previewSlider.innerHTML = '';
-            reselectBtn.style.display = 'none'; pageIndicator.style.display = 'none';
+            currentImgObj = null;
+            imageLoader.value = ""; // 清空 input 才能重複選同一張
+            canvas.style.display = 'none';
+            reselectBtn.style.display = 'none';
             placeholder.style.display = 'flex';
-            placeholder.innerHTML = `<div class="upload-icon">📷</div><p>Select photos</p><label class="upload-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> Open Gallery<input type="file" id="imageLoader" accept="image/*" multiple style="display: none;"></label>`;
-            shareBtn.disabled = true;
         }
 
-        // --- ★★★ 關鍵修改：儲存邏輯 ★★★ ---
+        // Share 邏輯
+        const shareBtn = document.getElementById('shareBtn');
         shareBtn.addEventListener('click', async () => {
-            if (pendingImages.length === 0) return;
-            shareBtn.textContent = "Posting...";
-            shareBtn.disabled = true;
+            if (!currentImgObj) {
+                document.querySelector('.upload-btn').click();
+                return;
+            }
+
+            shareBtn.textContent = "Saving...";
+            shareBtn.style.opacity = "0.7";
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
             if (!db) await initDB();
-            
-            // 1. 讀取目前的貼文列表 (Array)
-            let timeline = await getTimeline();
+            let memories = await getAllMemories();
 
             const now = new Date();
-            const dateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-            
-            // 2. 建立一個全新的貼文物件
-            const newPost = {
-                id: Date.now(), // 使用時間戳當作唯一 ID
-                timestamp: now.getTime(),
-                dateString: dateStr,
-                images: pendingImages, // 這次選的這組照片
-                likes: 0,
-                isLiked: false,
-                comments: [] // 初始為空，我們在 social.html 會自動補上作者內文
-            };
+            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 
-            // 3. 加到列表最前面 (Unshift)
-            timeline.unshift(newPost);
+            if (!memories[dateKey]) memories[dateKey] = [];
+            if (!Array.isArray(memories[dateKey])) memories[dateKey] = [memories[dateKey]];
+
+            memories[dateKey].push(imageData);
 
             try {
-                // 4. 存回資料庫
-                await saveTimeline(timeline);
-                window.location.href = "social.html";
+                await saveAllMemories(memories);
+                channel.postMessage('updated');
+                alert("Shared to Memories!");
+                window.location.href = "home.html";
             } catch (err) {
                 console.error(err);
-                alert("Upload failed.");
+                alert("Save failed.");
                 shareBtn.textContent = "Share";
-                shareBtn.disabled = false;
+                shareBtn.style.opacity = "1";
             }
         });
 
@@ -392,4 +191,3 @@
     </script>
 </body>
 </html>
-       
