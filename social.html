@@ -22,7 +22,7 @@
         /* 貼文卡片 */
         .post-card { background: #F3ECE5; border-bottom: 1px solid #efefef; margin-bottom: 0; padding-bottom: 10px; }
 
-        /* 貼文頭部 (加入 position: relative 以便定位下拉選單) */
+        /* 貼文頭部 */
         .post-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; position: relative; }
         .user-info { display: flex; align-items: center; gap: 10px; }
         .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1); }
@@ -31,7 +31,7 @@
 
         /* 頭像樣式 */
         .avatar, .user-avatar-small, .caption-avatar { 
-            background-color: #dbdbdb; /* 預設灰色背景 */
+            background-color: #dbdbdb; 
         }
         .user-avatar-small { width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; object-fit: cover; }
         .caption-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
@@ -106,7 +106,7 @@
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #8e8e8e; gap: 15px; }
         .empty-icon { font-size: 40px; opacity: 0.3; }
 
-        /* --- 新增：下拉式選單樣式 --- */
+        /* --- 下拉式選單樣式 --- */
         .popup-menu {
             display: none; /* 預設隱藏 */
             position: absolute;
@@ -119,6 +119,7 @@
             z-index: 100;
             width: 100px;
             animation: fadeIn 0.1s ease;
+            overflow: hidden; /* 確保圓角 */
         }
         .popup-menu.show { display: block; }
 
@@ -127,12 +128,30 @@
             text-align: center;
             font-size: 14px;
             font-weight: 600;
-            color: #ed4956; /* 檢舉用紅色 */
             cursor: pointer;
+            color: #262626; /* 預設顏色 */
         }
         .menu-item:active { background-color: #fafafa; }
+        
+        /* 讓檢舉和刪除中間有一條線 */
+        .menu-item:not(:last-child) {
+            border-bottom: 1px solid #efefef;
+        }
+
+        /* 檢舉為一般黑色，刪除為紅色 (危險操作) */
+        .menu-item.delete { color: #ed4956; }
 
         @keyframes fadeIn { from{opacity:0; transform:translateY(-5px);} to{opacity:1; transform:translateY(0);} }
+
+        /* --- 自動消失提示 (Toast) 的樣式 --- */
+        .toast-notification {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8); color: white;
+            padding: 15px 25px; border-radius: 8px;
+            font-size: 14px; font-weight: 600; z-index: 20000;
+            display: none; text-align: center; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .toast-notification.show { display: block; opacity: 1; }
     </style>
 </head>
 <body>
@@ -159,6 +178,8 @@
             <button class="post-btn" id="overlay-post-btn">Post</button>
         </div>
     </div>
+
+    <div id="toast-msg" class="toast-notification"></div>
 
     <script>
         // --- 1. 使用者資訊與資料庫 ---
@@ -250,7 +271,6 @@
         };
 
         function renderPosts() {
-            // ★ 名稱修正：每次渲染時，都直接去 localStorage 拿一次，不依賴全域變數
             const storedName = localStorage.getItem('myProfileName');
             const currentName = storedName ? storedName : "Me"; 
 
@@ -264,7 +284,6 @@
                 const dotsHtml = post.imageUrls.length > 1 ? `<div class="pagination-dots" id="dots-${post.id}">${post.imageUrls.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('')}</div>` : '';
                 const counterDisplay = post.imageUrls.length > 1 ? 'block' : 'none';
                 
-                // 內文邏輯
                 let captionText = "";
                 if (post.comments && post.comments.length > 0) {
                     captionText = post.comments[0].text;
@@ -285,6 +304,7 @@
                         
                         <div id="menu-${post.id}" class="popup-menu">
                             <div class="menu-item" onclick="confirmReport(${post.id})">檢舉</div>
+                            <div class="menu-item delete" onclick="deletePost(${post.id})">刪除</div>
                         </div>
                     </div>
                     <div class="media-container">
@@ -356,7 +376,6 @@
             const overlay = document.getElementById('comment-overlay');
             const contentArea = document.getElementById('overlay-scroll-area');
             
-            // ★ 再次抓取名字給留言板用
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
             
@@ -468,23 +487,36 @@
             const toast = document.getElementById('toast-msg');
             toast.innerText = message;
             toast.classList.add('show');
-            
-            // 3秒後自動消失
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
         }
 
         function confirmReport(postId) {
-            // 關閉下拉選單
             document.getElementById(`menu-${postId}`).classList.remove('show');
-            // 顯示 Toast 提示
             showToast("已送出檢舉，我們會盡快審核。");
+        }
+
+        // --- 刪除貼文功能 ---
+        function deletePost(postId) {
+            if(confirm("確定要刪除這則貼文嗎？")) {
+                const tx = db.transaction(["posts_timeline"], "readwrite");
+                const store = tx.objectStore("posts_timeline");
+                store.delete(postId); // 從資料庫刪除
+
+                tx.oncomplete = () => {
+                    // 更新本地陣列並重新渲染
+                    postsData = postsData.filter(p => p.id !== postId);
+                    renderPosts();
+                    showToast("貼文已刪除");
+                };
+            }
+            // 關閉選單
+            document.getElementById(`menu-${postId}`).classList.remove('show');
         }
 
         loadAndRender();
 
     </script>
 </body>
-</html>
 </html>
