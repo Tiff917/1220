@@ -107,33 +107,93 @@
     <a href="profile.html" class="cancel-link">Cancel</a>
 
     <script>
+        // 1. 選取 DOM 元素
         const payBtn = document.getElementById('payBtn');
         const spinner = document.getElementById('spinner');
         const btnText = document.getElementById('btnText');
+        
+        // 透過 placeholder 選取輸入框 (為了不改動您的 HTML 結構)
         const inputCard = document.getElementById('inputCard');
+        const inputName = document.querySelector('input[placeholder="Name on card"]');
+        const inputExpiry = document.querySelector('input[placeholder="MM/YY"]');
+        const inputCvv = document.querySelector('input[placeholder="123"]');
 
-        // 簡單的輸入格式化 (4位一空)
+        // 2. 輸入限制邏輯 (即時監聽)
+
+        // [卡號]：純數字、每4位加空格、最多16位數字
         inputCard.addEventListener('input', function (e) {
-            e.target.value = e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
+            let value = e.target.value.replace(/\D/g, ''); // 移除所有非數字
+            value = value.substring(0, 16); // 限制最大長度
+            // 每4位加空格
+            let formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+            e.target.value = formatted;
         });
 
+        // [持卡人]：純英文、空格 (移除數字和符號)
+        inputName.addEventListener('input', function (e) {
+            e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+        });
+
+        // [到期日]：純數字、自動加斜線、限制月份邏輯
+        inputExpiry.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, ''); // 移除非數字
+            value = value.substring(0, 4); // 限制只能輸入4個數字 (MMYY)
+
+            if (value.length >= 2) {
+                // 自動插入斜線
+                e.target.value = value.substring(0, 2) + '/' + value.substring(2);
+            } else {
+                e.target.value = value;
+            }
+        });
+
+        // [CVV]：純數字、最多3碼
+        inputCvv.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            e.target.value = value.substring(0, 3);
+        });
+
+        // 3. 付款按鈕點擊事件 (最終檢查)
         payBtn.addEventListener('click', function() {
-            // 開始模擬付款
+            // 驗證邏輯
+            const rawCard = inputCard.value.replace(/\s/g, ''); // 移除空格後的卡號
+            const rawExpiry = inputExpiry.value;
+            const rawCvv = inputCvv.value;
+            const rawName = inputName.value.trim();
+
+            let errorMessage = "";
+
+            if (rawCard.length !== 16) {
+                errorMessage = "卡號格式錯誤 (需為16碼)";
+            } else if (rawName.length === 0) {
+                errorMessage = "請輸入持卡人姓名";
+            } else if (rawExpiry.length !== 5 || !rawExpiry.includes('/')) {
+                errorMessage = "到期日格式錯誤 (MM/YY)";
+            } else if (rawCvv.length !== 3) {
+                errorMessage = "CVV 需為 3 碼";
+            }
+
+            // 如果有錯誤訊息，跳出警告並停止
+            if (errorMessage) {
+                alert(errorMessage);
+                return; 
+            }
+
+            // --- 驗證通過，開始模擬付款動畫 ---
             payBtn.style.opacity = "0.8";
             payBtn.disabled = true;
             spinner.style.display = "inline-block";
             btnText.textContent = "Processing...";
 
             setTimeout(() => {
-                // 付款成功！
-                // 1. 設定 localStorage 狀態
+                // 付款成功
                 localStorage.setItem('isPremium', 'true');
                 
-                // 2. 提示並跳轉
+                // 成功提示
                 alert("Payment Successful! You are now a Premium Member.");
                 window.location.href = "profile.html";
                 
-            }, 2000); // 假裝跑 2 秒
+            }, 2000);
         });
     </script>
 </body>
