@@ -39,7 +39,7 @@
             pointer-events: none; 
         }
 
-        /* --- 按鈕樣式 (維持不變) --- */
+        /* --- 按鈕樣式 --- */
         .control-btn {
             height: 36px; border: none; color: white;
             background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);
@@ -62,7 +62,7 @@
         #locationBtn.active { width: auto; padding: 0 16px; border-radius: 20px; }
         #locationBtn.active .btn-text { max-width: 100px; opacity: 1; margin-left: 6px; }
 
-        /* --- 4. 下方網格與圈圈樣式 (核心修正) --- */
+        /* --- 4. 下方網格與圈圈樣式 --- */
         .grid-gallery {
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 2px;
         }
@@ -72,41 +72,38 @@
         .grid-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: opacity 0.2s; }
         .grid-item.active img { opacity: 1; } /* 當前大圖 */
 
-        /* 遮罩：被選中時變暗 */
+        /* 遮罩 */
         .overlay-mask {
             position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: none;
         }
         .grid-item.selected .overlay-mask { display: block; }
 
-        /* ★★★ 圈圈核心樣式修正 ★★★ */
+        /* 圈圈核心樣式 */
         .check-circle {
             position: absolute; top: 6px; right: 6px;
             width: 22px; height: 22px;
             border-radius: 50%; 
             z-index: 10;
-            display: none; /* 預設不顯示 */
+            display: none; 
             
-            /* 空心狀態樣式 */
-            border: 2px solid rgba(255, 255, 255, 0.9); /* 白色邊框加粗一點點 */
-            background-color: rgba(0, 0, 0, 0.2); /* 淡淡的黑底，確保淺色照片上看得到 */
-            box-shadow: 0 0 4px rgba(0,0,0,0.2); /* 加點陰影增加層次 */
+            /* 空心狀態 */
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            background-color: rgba(0, 0, 0, 0.2); 
+            box-shadow: 0 0 4px rgba(0,0,0,0.2);
 
-            /* 數字置中 */
             justify-content: center; align-items: center;
             font-size: 11px; font-weight: 700; color: white;
             transition: transform 0.1s ease;
         }
 
-        /* 1. 當處於多選模式時，所有圈圈都要顯示 (這就是您要的空心圈圈) */
-        .grid-item.mode-select .check-circle {
-            display: flex; 
-        }
+        /* 多選模式開啟顯示空圈圈 */
+        .grid-item.mode-select .check-circle { display: flex; }
 
-        /* 2. 當被選中時，圈圈變色填滿 */
+        /* 選中後填滿 */
         .grid-item.selected .check-circle {
-            background-color: #be9f82; /* 金色背景 */
-            border-color: #be9f82;     /* 邊框同色 */
-            transform: scale(1.1);     /* 選中時稍微放大，視覺回饋更強 */
+            background-color: #be9f82; 
+            border-color: #be9f82;     
+            transform: scale(1.1);     
         }
 
         canvas { display: none; }
@@ -141,7 +138,6 @@
         const dbName = "MemoriesDB";
         let db;
 
-        // DB 初始化 (與之前相同)
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 2);
@@ -181,6 +177,8 @@
 
         window.onload = () => {
             if (pendingImages.length > 0) {
+                // 預設情況下（單張模式），selectedIndices 設為全部，
+                // 這樣如果不按多選直接發布，會預設發布全部。
                 selectedIndices = pendingImages.map((_, i) => i);
                 renderMainPreview();
                 renderGrid();
@@ -197,7 +195,6 @@
             }
         }
 
-        // ★★★ 核心修正：渲染邏輯 ★★★
         function renderGrid() {
             gridGallery.innerHTML = pendingImages.map((src, idx) => {
                 const isActive = (idx === currentMainIndex);
@@ -205,12 +202,8 @@
                 // 計算編號
                 const selectionIndex = selectedIndices.indexOf(idx);
                 const isSelected = selectionIndex !== -1;
-                // 有選中顯示數字，沒選中顯示空字串 (但CSS會讓圈圈空心顯示)
                 const selectionNumber = isSelected ? selectionIndex + 1 : '';
 
-                // CSS 類別控制：
-                // mode-select: 用來觸發「顯示空心圈圈」
-                // selected: 用來觸發「填滿顏色 + 顯示數字」
                 let classes = `grid-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
                 if (isSelectMode) classes += ' mode-select';
 
@@ -224,28 +217,21 @@
             }).join('');
         }
 
-        // ★★★ 核心修正：點擊邏輯 ★★★
         window.handleGridClick = (idx) => {
-            // 1. 無論是否多選，先切換上方大圖 (滿足您的同步切換需求)
             currentMainIndex = idx;
             renderMainPreview();
 
-            // 2. 如果是多選模式，處理選取狀態
             if (isSelectMode) {
                 const existingIndex = selectedIndices.indexOf(idx);
                 if (existingIndex !== -1) {
-                    // 已選 -> 移除 (數字自動遞補)
                     selectedIndices.splice(existingIndex, 1);
                 } else {
-                    // 未選 -> 加入
                     selectedIndices.push(idx);
                 }
             }
-            // 3. 重新渲染網格 (更新圈圈和數字)
             renderGrid();
         };
 
-        // 按鈕事件處理
         tagFriendBtn.addEventListener('click', () => {
             isFriendTagged = !isFriendTagged;
             tagFriendBtn.classList.toggle('active', isFriendTagged);
@@ -265,15 +251,35 @@
             }
         });
 
+        // ★★★ 核心修正：多選按鈕邏輯 ★★★
         multiSelectBtn.addEventListener('click', () => {
             isSelectMode = !isSelectMode;
             multiSelectBtn.classList.toggle('active', isSelectMode);
+            
+            if (isSelectMode) {
+                // 進入多選模式時：
+                // 不再全選！只選擇「當前顯示的那一張」
+                // 讓使用者從 1 開始自己加
+                selectedIndices = [currentMainIndex];
+            } else {
+                // 退出多選模式時：
+                // 為了方便（如果不小心按錯退出），我們保留選擇？
+                // 還是恢復全選？通常恢復全選比較符合「取消編輯」的直覺
+                // 這裡設定為恢復全選，讓單張模式下能正常發布所有
+                selectedIndices = pendingImages.map((_, i) => i);
+            }
+
             renderGrid();
         });
 
         shareBtn.addEventListener('click', async () => {
+            // 如果在多選模式下，但沒選任何照片 (理論上切換時會選一張，但如果手動取消了)
+            if (selectedIndices.length === 0) { 
+                alert("Please select at least one photo."); 
+                return; 
+            }
+
             const imagesToPost = selectedIndices.map(i => pendingImages[i]);
-            if (imagesToPost.length === 0) { alert("Please select at least one photo."); return; }
 
             shareBtn.textContent = "Posting...";
             if (!db) await initDB();
