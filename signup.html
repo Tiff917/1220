@@ -266,7 +266,7 @@
         <div class="home-indicator"></div>
     </div>
 
-    <script>
+   <script>
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('passwordInput');
         const signupBtn = document.getElementById('signupBtn');
@@ -304,24 +304,31 @@
             }
 
             if (isValid) {
-                // ★ 關鍵修改：抓取輸入的名字，並存入 localStorage
+                // --- ★ 修改處開始：抓取 Name 和 Email ---
+                
+                // 1. 抓取名字
                 const userName = inputs.name.input.value.trim();
                 localStorage.setItem('myProfileName', userName);
+
+                // 2. 抓取 Email (新增這段)
+                const userEmail = inputs.email.input.value.trim();
+                localStorage.setItem('myProfileEmail', userEmail);
                 
-                // 如果有使用會員狀態功能，也可以順便初始化
+                // 初始化會員狀態
                 localStorage.setItem('isPremium', 'false'); 
+
+                // --- ★ 修改處結束 ---
 
                 signupBtn.textContent = 'Signing up...';
                 signupBtn.style.backgroundColor = '#6D5D55';
                 
                 setTimeout(() => {
-                    // 註冊成功跳轉
                     window.location.href = "onboarding.html";
                 }, 1000);
             }
         });
         
-        // 增加鍵盤輸入體驗：按 Enter 觸發
+        // 按 Enter 觸發
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 signupBtn.click();
