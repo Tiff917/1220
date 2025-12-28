@@ -211,6 +211,8 @@
         async function loadAndRender() {
             try {
                 userName = localStorage.getItem('myProfileName') || "Me";
+                console.log("Current User Name Loaded:", userName); // 方便除錯
+                
                 await initDB();
                 
                 // 讀取頭像
@@ -270,6 +272,9 @@
         };
 
         function renderPosts() {
+            
+            const currentName = localStorage.getItem('myProfileName') || "Me";
+            
             if (postsData.length === 0) {
                 feedContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">📷</div><div>No posts yet.</div></div>`;
                 return;
