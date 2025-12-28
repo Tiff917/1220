@@ -176,6 +176,7 @@
         // --- 2. 讀取資料 ---
         async function loadAndRender() {
             try {
+                userName = localStorage.getItem('myProfileName') || "Me";
                 await initDB();
                 
                 // 讀取頭像
