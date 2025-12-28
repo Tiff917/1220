@@ -188,16 +188,28 @@
             });
         }
 
+        // 修改後的讀取最新照片函式
         async function loadLatestPhoto() {
             if (!db) await initDB();
             const memories = await getAllMemories();
             
-            const now = new Date();
-            const dateKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-            
-            if (memories[dateKey] && memories[dateKey].length > 0) {
-                const photos = memories[dateKey];
-                const lastPhoto = photos[photos.length - 1];
+            // 1. 取得所有有存照片的日期 (例如 ['2023-10-20', '2023-10-27'])
+            const dates = Object.keys(memories);
+
+            // 如果資料庫是空的，就什麼都不做，維持預設圖片
+            if (dates.length === 0) return;
+
+            // 2. 對日期進行排序 (由新到舊)
+            // 因為日期格式是 YYYY-M-D，直接比字串可能會錯，轉成 Date 物件比時間戳記最準
+            dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+            // 3. 取得最新的日期
+            const newestDate = dates[0];
+            const photosInNewestDate = memories[newestDate];
+
+            // 4. 取得該日期中「最後一張」上傳的照片
+            if (photosInNewestDate && photosInNewestDate.length > 0) {
+                const lastPhoto = photosInNewestDate[photosInNewestDate.length - 1];
                 document.getElementById('displayImg').src = lastPhoto;
             }
         }
