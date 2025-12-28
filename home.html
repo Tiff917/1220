@@ -31,22 +31,22 @@
         .card { 
             width: 100%; 
             max-width: 500px; 
-            
-            /* 強制正方形 */
             aspect-ratio: 1 / 1; 
             
-            border-radius: 80px; 
+            /* --- ★★★ 關鍵修正：統一圓角設定 ★★★ --- */
+            /* 將 overflow: hidden 和 border-radius 放在一起 */
+            /* 使用較大的值 (例如 80px) 來製作明顯的圓角正方形 */
+            border-radius: 80px;
             overflow: hidden; 
-            
-            /* --- ★★★ 關鍵修正 1：強制開啟 GPU 加速與遮罩修復 ★★★ --- */
-            transform: translateZ(0); 
-            -webkit-transform: translateZ(0);
-            backface-visibility: hidden;
-            -webkit-mask-image: -webkit-radial-gradient(white, black); /* 上次那招留著，當雙重保險 */
             
             background-color: transparent; 
             position: relative; 
-           
+            
+            /* 移除不必要的 GPU 加速屬性，有時會導致邊緣渲染問題 */
+            /* transform: translateZ(0); */
+            /* -webkit-transform: translateZ(0); */
+            /* backface-visibility: hidden; */
+            /* -webkit-mask-image: -webkit-radial-gradient(white, black); */
             
             transition: transform 0.2s ease; 
             cursor: grab;
@@ -60,9 +60,10 @@
             pointer-events: none; 
             user-select: none;
             
-            /* --- ★★★ 關鍵修正 2：圖片自己也設圓角 ★★★ --- */
-            /* 這樣就算溢出容器，圖片本身也是圓的，就不會看到尖角 */
-            border-radius: 80px; 
+            /* --- ★★★ 關鍵修正：移除圖片自身的圓角 ★★★ --- */
+            /* 既然父容器 .card 已經設定了 overflow: hidden 和 border-radius，
+               圖片就不需要再設定一次，否則兩層圓角疊加可能產生鋸齒或奇怪的角。 */
+            /* border-radius: 80px;  <-- 移除這行 */
         }
         /* Footer */
         .footer { flex-shrink: 0; padding: 20px 40px 100px 40px; display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; align-self: center; }
@@ -167,7 +168,7 @@
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                // 升級到版本 5，與 Post 頁面保持一致
+                // 升級到版本 6 (或更高，確保與 profile.html 一致)
                 const request = indexedDB.open(dbName, 6);
                 
                 request.onupgradeneeded = (e) => {
@@ -180,6 +181,7 @@
                     if (!db.objectStoreNames.contains("all_photos")) {
                         db.createObjectStore("all_photos", { autoIncrement: true });
                     }
+                    // 建立使用者資料倉庫
                     if (!db.objectStoreNames.contains("user_profile")){
                         db.createObjectStore("user_profile");
                     }
@@ -326,5 +328,4 @@
         document.getElementById('input_gallery').addEventListener('change', handleFileSelect);
     </script>
 </body>
-</html>   
-  
+</html>
