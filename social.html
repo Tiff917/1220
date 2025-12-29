@@ -64,7 +64,7 @@
         .comment-user { font-weight: 600; margin-right: 5px; }
         .timestamp { font-size: 10px; color: #8e8e8e; text-transform: uppercase; margin-bottom: 12px; display: block; }
 
-        /* 簡易留言輸入 (保留在主頁的快速輸入) */
+        /* 簡易留言輸入 */
         .add-comment-section { display: flex; align-items: center; padding-top: 10px; border-top: 1px solid #efefef; margin-top: 5px; }
         .user-avatar-small { width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; object-fit: cover; background-color: #dbdbdb;}
         .comment-input { flex: 1; border: none; font-size: 14px; padding: 5px 0; background: transparent; }
@@ -123,7 +123,7 @@
         // --- 資料庫初始化 ---
         function initDB() {
             return new Promise((resolve, reject) => {
-                // ★ 建議：版本號升級到 7，避免舊資料卡住
+                // ★ 建議：版本號升級到 7
                 const request = indexedDB.open(dbName, 7);
                 
                 request.onupgradeneeded = (e) => {
@@ -135,7 +135,6 @@
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 
                 request.onerror = (e) => { 
-                    // ★ 除錯：如果 Safari 拒絕存取，這裡會跳出警告
                     alert("資料庫開啟失敗：可能是私密瀏覽模式導致");
                     reject(e); 
                 };
@@ -168,7 +167,6 @@
                     const cursor = e.target.result;
                     if (cursor) {
                         const post = cursor.value;
-                        // 處理圖片連結
                         if (post.images) {
                             post.imageUrls = post.images.map(blob => 
                                 (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
@@ -179,19 +177,18 @@
                         
                         if (!post.likes) post.likes = 0;
                         if (!post.isLiked) post.isLiked = false;
-                        if (!post.comments) post.comments = []; // 確保 comments 存在
+                        if (!post.comments) post.comments = []; 
 
                         tempPosts.push(post);
                         cursor.continue();
                     } else {
                         postsData = tempPosts;
-                        renderPosts(); // 這裡執行渲染
+                        renderPosts(); // 執行渲染
                     }
                 };
                 
                 request.onerror = (e) => {
                     alert("讀取貼文失敗");
-                    // 即使失敗也要把 loading 拿掉
                     document.getElementById('feed-container').innerHTML = `<div class="empty-state"><div>讀取錯誤</div></div>`;
                 };
 
@@ -214,10 +211,9 @@
             const storedName = localStorage.getItem('myProfileName');
             const currentName = storedName ? storedName : "Me"; 
 
-            // ★★★ 這裡原本有錯誤代碼，已經移除 ★★★
+            // ★★★ 修正點：移除這裡的錯誤語法 ★★★
 
             if (postsData.length === 0) {
-                // 如果沒有貼文，顯示空白或提示
                 feedContainer.innerHTML = ""; 
                 return;
             }
@@ -235,7 +231,7 @@
                 const locationHtml = post.location ? `<span class="location">${post.location}</span>` : `<span class="location">${post.dateString}</span>`;
                 const initialHeart = post.isLiked ? icons.heartFilled : icons.heartOutline;
 
-                // 跳轉連結
+                // ★★★ 修正點：連結必須定義在迴圈裡面 ★★★
                 const goToComments = `window.location.href='comments.html?id=${post.id}'`;
 
                 return `
@@ -305,7 +301,6 @@
             await saveTimelineToDB();
         }
 
-        // --- 功能函式 ---
         function checkInput(inputEl, btnId) {
             const btn = document.getElementById(btnId);
             if (inputEl.value.trim().length > 0) btn.classList.add('active');
@@ -334,7 +329,6 @@
             const myName = storedName ? storedName : "Me";
             const post = postsData.find(p => p.id === postId);
             
-            // 確保 comments 存在
             if(!post.comments) post.comments = [];
             
             post.comments.push({ user: myName, text: text });
