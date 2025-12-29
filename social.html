@@ -83,7 +83,11 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: white; z-index: 9999;
             display: flex; flex-direction: column;
-            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            transform: translateX(100%); 
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            /* ★★★ 新增：防止內容捲動到底部時觸發父層滑動 ★★★ */
+            overscroll-behavior-x: none; 
+            touch-action: pan-y; /* 只允許垂直滑動，禁止水平滑動 */
         }
         #comment-overlay.open { transform: translateX(0); }
 
@@ -188,6 +192,7 @@
         let db;
         let postsData = [];
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
         
         // 監聽更新
         channel.onmessage = (event) => {
@@ -431,6 +436,9 @@
             contentArea.innerHTML = html;
             overlay.classList.add('open'); 
 
+            // ★★★ 新增：告訴父頁面鎖定滑動 ★★★
+            window.parent.postMessage({ action: 'lockSwiping' }, '*');
+            
             const input = document.getElementById('overlay-input');
             const btn = document.getElementById('overlay-post-btn');
             input.value = '';
@@ -443,6 +451,10 @@
         function closeCommentPage() {
             document.getElementById('comment-overlay').classList.remove('open');
             currentOpenPostId = null;
+            
+            // ★★★ 新增：告訴父頁面解鎖，恢復可以左右滑動 ★★★
+            window.parent.postMessage({ action: 'unlockSwiping' }, '*');
+
             renderPosts(); 
         }
 
@@ -518,24 +530,28 @@
             showToast("已送出檢舉，我們會盡快審核。");
         }
 
-        // --- 刪除貼文功能 ---
+        // --- 修正後的刪除功能 (防卡頓版) ---
         function deletePost(postId) {
-            if(confirm("確定要刪除這則貼文嗎？")) {
-                const tx = db.transaction(["posts_timeline"], "readwrite");
-                const store = tx.objectStore("posts_timeline");
-                store.delete(postId); // 從資料庫刪除
+            // 1. 先關閉選單，避免選單殘留在畫面上
+            const menu = document.getElementById(`menu-${postId}`);
+            if (menu) menu.classList.remove('show');
 
-                tx.oncomplete = () => {
-                    // 更新本地陣列並重新渲染
-                    postsData = postsData.filter(p => p.id !== postId);
-                    renderPosts();
-                    showToast("貼文已刪除");
-                };
-            }
-            // 關閉選單
-            document.getElementById(`menu-${postId}`).classList.remove('show');
+            // 2. 稍微延遲 10ms 再跳出確認視窗，讓 UI 有時間刷新
+            setTimeout(() => {
+                if(confirm("確定要刪除這則貼文嗎？")) {
+                    const tx = db.transaction(["posts_timeline"], "readwrite");
+                    const store = tx.objectStore("posts_timeline");
+                    store.delete(postId); // 從資料庫刪除
+
+                    tx.oncomplete = () => {
+                        // 更新本地陣列並重新渲染
+                        postsData = postsData.filter(p => p.id !== postId);
+                        renderPosts();
+                        showToast("貼文已刪除");
+                    };
+                }
+            }, 10);
         }
-
         loadAndRender();
 
     </script>
