@@ -112,9 +112,9 @@
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
         let currentPost = null; 
         
-        // 1. 抓取網址上的標籤 (ID)
+        // 1. 抓取網址上的標籤 (這是字串 String)
         const params = new URLSearchParams(window.location.search);
-        const rawId = params.get('id'); // 可能是字串
+        const rawId = params.get('id'); 
 
         // 啟動程式
         async function init() {
@@ -127,8 +127,8 @@
 
             try {
                 await initDB();
-                loadUserProfile(); // 讀取自己的頭像
-                loadPostData();    // 讀取貼文資料
+                loadUserProfile(); 
+                loadPostData();    
             } catch (e) {
                 console.error(e);
                 alert("資料庫連線失敗");
@@ -137,7 +137,7 @@
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                // ★★★ 關鍵：版本號設為 8，對齊其他頁面 ★★★
+                // ★★★ 確保版本是 8 ★★★
                 const request = indexedDB.open(dbName, 8);
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e);
@@ -153,36 +153,41 @@
                     userAvatarUrl = URL.createObjectURL(res);
                 }
                 document.getElementById('my-avatar').src = userAvatarUrl;
-                // 如果貼文已經讀取好了，就刷新一下畫面更新頭像
                 if (currentPost) renderComments();
             };
         }
 
-        // --- 核心：去倉庫找箱子 ---
+        // --- ★★★ 核心修正：抓取 ID 邏輯 ★★★ ---
         function loadPostData() {
             const tx = db.transaction("posts_timeline", "readonly");
             const store = tx.objectStore("posts_timeline");
 
-            // 雙重嘗試：先試著把 ID 當數字找，找不到再當字串找
-            const numId = parseInt(rawId);
+            // 1. 先把網址的文字轉成數字 (因為資料庫是用 Date.now() 存的，那是數字)
+            const numId = Number(rawId);
             
-            // 嘗試 1: 用數字 ID 找
+            // 嘗試 1: 用數字 ID 找 (正確做法)
             const reqNum = store.get(numId);
+            
             reqNum.onsuccess = (e) => {
                 if (e.target.result) {
+                    // 找到了！
+                    console.log("用數字 ID 找到貼文了");
                     currentPost = e.target.result;
                     prepareComments();
                 } else {
-                    // 嘗試 2: 用字串 ID 找
+                    // 沒找到？再試一次用文字找 (以防萬一有舊資料)
+                    console.log("數字找不到，嘗試用文字 ID...");
                     const reqStr = store.get(rawId);
+                    
                     reqStr.onsuccess = (e2) => {
                         if (e2.target.result) {
                             currentPost = e2.target.result;
                             prepareComments();
                         } else {
-                            // 真的找不到 -> 顯示提示
+                            // 真的找不到 (可能按了核彈級 Reset)
+                            console.log("真的找不到貼文");
                             document.getElementById('comments-list').innerHTML = 
-                                '<div style="text-align:center; margin-top:50px; color:#999;">Post not found.</div>';
+                                '<div style="text-align:center; margin-top:50px; color:#999;">Post not found.<br>(此貼文可能已被刪除)</div>';
                         }
                     };
                 }
@@ -190,7 +195,6 @@
         }
 
         function prepareComments() {
-            // 如果這個箱子裡還沒有放信的地方，幫它造一個
             if (!currentPost.comments) {
                 currentPost.comments = [];
             }
@@ -205,9 +209,7 @@
 
             const comments = currentPost.comments;
             
-            // 標題 (Caption) - 顯示貼文的第一則留言作為標題
             let captionText = (comments.length > 0) ? comments[0].text : "";
-            // 如果沒有標題，就不顯示內容，只顯示名字
             let captionHtml = captionText ? `<span>${captionText}</span>` : ``;
 
             let html = `
@@ -221,7 +223,6 @@
                 </div>
             `;
 
-            // 留言列表 (從第 2 則開始)
             if (comments.length > 1) {
                 for (let i = 1; i < comments.length; i++) {
                     const c = comments[i];
@@ -255,22 +256,18 @@
 
         function submitComment() {
             const text = input.value.trim();
-            // 如果沒有載入貼文或是沒輸入文字，就不執行
             if (!currentPost || !text) return;
 
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
-            // 1. 把信放入箱子 (記憶體中)
             currentPost.comments.push({ user: myName, text: text });
 
-            // 2. 把整箱搬回倉庫存好 (寫入資料庫)
             const tx = db.transaction(["posts_timeline"], "readwrite");
             const store = tx.objectStore("posts_timeline");
-            const request = store.put(currentPost); // put 會更新舊資料
+            const request = store.put(currentPost); 
 
             request.onsuccess = () => {
-                // 成功後更新畫面
                 input.value = '';
                 btn.classList.remove('active');
                 renderComments();
