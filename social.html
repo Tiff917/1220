@@ -187,7 +187,10 @@
         function renderPosts() {
             const storedName = localStorage.getItem('myProfileName');
             const currentName = storedName ? storedName : "Me"; 
+            const goToComments = `window.location.href='comments.html?id=${post.id}'`;
 
+            <div class="icon-btn" onclick="${goToComments}">${icons.comment}</div>
+            
             if (postsData.length === 0) {
                 feedContainer.innerHTML = ""; // 設定為空，就不會顯示 No posts yet
                 return;
