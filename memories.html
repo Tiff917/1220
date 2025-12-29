@@ -358,7 +358,7 @@
         const overlay = document.getElementById('storyOverlay');
         const DURATION = 3000; // 3秒
 
-function openStoryViewer(clickedDateKey) {
+        function openStoryViewer(clickedDateKey) {
             storyList = [];
             // 依照日期排序
             const sortedKeys = Object.keys(savedMemories).sort((a, b) => new Date(a.replace(/-/g, '/')) - new Date(b.replace(/-/g, '/')));
@@ -387,22 +387,16 @@ function openStoryViewer(clickedDateKey) {
 
             currentIndex = targetIndex;
 
-            // --- ★★★ 修正這裡 (Fix Start) ★★★ ---
             // 1. 強制清除上次手勢滑動留下的殘留樣式
             overlay.style.transform = ''; 
             overlay.style.opacity = '';
-            overlay.style.transition = ''; // 清除可能被設為 none 的 transition
+            overlay.style.transition = ''; 
             
-            // 2. 強制瀏覽器重繪 (Reflow)，確保 CSS 動畫能正常運作
-            // 這行看起來沒做什麼，但能確保瀏覽器知道 "狀態已經乾淨了"
+            // 2. 強制瀏覽器重繪 (Reflow)
             void overlay.offsetWidth; 
-            // --- ★★★ 修正結束 (Fix End) ★★★ ---
 
             overlay.classList.add('active');
             renderStory();
-        }
-
-           
         }
 
         async function deleteCurrentStory(e) {
@@ -457,6 +451,7 @@ function openStoryViewer(clickedDateKey) {
                 }
             }, 10);
         }
+        
         function renderStory() {
             if (currentIndex < 0 || currentIndex >= storyList.length) return;
             const currentItem = storyList[currentIndex];
