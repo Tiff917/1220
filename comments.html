@@ -107,31 +107,39 @@
         <button class="post-btn" id="post-btn">Post</button>
     </div>
 
-    <script>
+<script>
         const dbName = "MemoriesDB";
         let db;
+        // 預設頭像
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
         let currentPost = null;
         let postId = null;
 
-        // 1. 從網址取得貼文 ID
+        // --- 1. 抓取網址 ID 並檢查 ---
         const params = new URLSearchParams(window.location.search);
         const idParam = params.get('id');
-        // 增加防呆：如果有 ID 才轉數字，否則 null
+        
+        // 這裡很重要：如果 feed.html 傳過來的 ID 是數字，這裡就要轉數字
+        // 如果發現一直讀不到，試著把 parseInt 拿掉改成： postId = idParam;
         postId = idParam ? parseInt(idParam) : null;
+
+        console.log("目前的 Post ID 是:", postId); // 在 F12 Console 顯示
 
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 6);
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-                request.onerror = (e) => reject(e);
+                request.onerror = (e) => {
+                    alert("資料庫開啟失敗");
+                    reject(e);
+                };
             });
         }
 
         async function init() {
-            // 如果沒有 ID，直接清空畫面 (不顯示 Error 文字)
+            // ★ 防呆 1：如果網址沒有 ?id=xxx，直接警告
             if (!postId) {
-                document.getElementById('comments-list').innerHTML = ''; 
+                document.getElementById('comments-list').innerHTML = '<div style="text-align:center; margin-top:50px;">錯誤：網址缺少貼文 ID<br>請從首頁重新進入</div>';
                 return;
             }
 
@@ -149,6 +157,7 @@
                     userAvatarUrl = URL.createObjectURL(res);
                 }
                 document.getElementById('my-avatar').src = userAvatarUrl;
+                // 如果已經讀取到貼文，就更新頭像顯示
                 if (currentPost) renderComments();
             };
         }
@@ -162,15 +171,24 @@
                 currentPost = e.target.result;
                 
                 if (currentPost) {
-                    // ★★★ 邏輯修正 1：確保 comments 陣列一定存在，避免後續報錯 ★★★
+                    console.log("成功讀取貼文:", currentPost);
+                    // 確保陣列存在
                     if (!currentPost.comments) {
                         currentPost.comments = [];
                     }
                     renderComments();
                 } else {
-                    // ★★★ 視覺修正：刪除 "Post not found" 文字，改為空字串 ★★★
-                    document.getElementById('comments-list').innerHTML = '';
+                    console.log("找不到 ID 為", postId, "的貼文");
+                    // ★ 防呆 2：資料庫裡找不到這則貼文
+                    document.getElementById('comments-list').innerHTML = '<div style="text-align:center; margin-top:50px;">這則貼文似乎已被刪除</div>';
+                    // 讓 currentPost 保持 null，這樣按鈕點擊時會觸發警告
+                    currentPost = null; 
                 }
+            };
+            
+            request.onerror = (e) => {
+                console.error("讀取貼文失敗", e);
+                alert("讀取資料失敗");
             };
         }
 
@@ -179,12 +197,13 @@
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
-            // 確保 comments 存在 (雙重保險)
             const comments = currentPost.comments || [];
 
-            // 第一則留言當作 Caption (如果有的話)
-            let captionText = (comments.length > 0) ? comments[0].text : "";
+            // ★ 注意：這裡的邏輯是「第 1 則留言 = 貼文標題 (Caption)」
+            // 所以如果您發了第一則留言，它會出現在「最上面」，而不是下面的列表
+            let captionText = (comments.length > 0) ? comments[0].text : "<span style='color:#999; font-style:italic;'>(無標題)</span>";
             
+            // 渲染上半部 (標題區)
             let html = `
                 <div class="caption-block">
                     <img src="${userAvatarUrl}" class="caption-avatar">
@@ -196,32 +215,43 @@
                 </div>
             `;
 
-            // 從第二則開始渲染為普通留言
-            for (let i = 1; i < comments.length; i++) {
-                const c = comments[i];
-                let avatarSrc = (c.user === myName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
-                
-                html += `
-                    <div class="comment-row">
-                        <img src="${avatarSrc}" class="comment-avatar">
-                        <div class="comment-text-block">
-                            <span class="comment-user">${c.user}</span>
-                            <span>${c.text}</span>
+            // 渲染下半部 (留言列表，從第 2 則開始)
+            if (comments.length > 1) {
+                for (let i = 1; i < comments.length; i++) {
+                    const c = comments[i];
+                    // 判斷頭像
+                    let avatarSrc = (c.user === myName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
+                    
+                    html += `
+                        <div class="comment-row">
+                            <img src="${avatarSrc}" class="comment-avatar">
+                            <div class="comment-text-block">
+                                <span class="comment-user">${c.user}</span>
+                                <span>${c.text}</span>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
+            } else if (comments.length === 1) {
+                // 如果只有 1 則留言 (剛發的)，它變成了標題，下面會是空的
+                // 這裡可以不顯示東西，或者顯示 "尚無其他留言"
+                html += `<div style="text-align:center; color:#ddd; font-size:12px; margin-top:20px;">尚無其他留言</div>`;
+            } else {
+                 html += `<div style="text-align:center; color:#ddd; font-size:12px; margin-top:20px;">尚無內容</div>`;
             }
+
             list.innerHTML = html;
             
             // 自動捲動到底部
             setTimeout(() => {
                 list.scrollTop = list.scrollHeight;
-            }, 50); // 加一點延遲確保畫面渲染完畢
+            }, 50);
         }
 
         const input = document.getElementById('input-box');
         const btn = document.getElementById('post-btn');
 
+        // 輸入框監聽：有字才亮燈
         input.oninput = () => {
             if (input.value.trim().length > 0) btn.classList.add('active');
             else btn.classList.remove('active');
@@ -232,35 +262,46 @@
 
         function submitComment() {
             const text = input.value.trim();
-            // 如果 currentPost 是 null (例如 post not found)，直接不執行
-            if (!text || !currentPost) return;
+            
+            // ★ 防呆 3：按鈕點擊後的診斷
+            if (!currentPost) {
+                alert("錯誤：系統還沒抓到這則貼文，無法留言。\n可能原因：網址 ID 錯誤或資料庫已清空。");
+                return;
+            }
+            if (!text) {
+                return; // 內容為空不理會
+            }
 
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
-            // ★★★ 邏輯修正 2：發布前再次檢查陣列是否存在，防止崩潰 ★★★
+            // 確保陣列存在
             if (!currentPost.comments) {
                 currentPost.comments = [];
             }
 
-            // 推入新留言
+            // 1. 推入資料
             currentPost.comments.push({ user: myName, text: text });
-            
-            // 寫入資料庫
+            console.log("準備寫入留言:", text);
+
+            // 2. 寫入資料庫
             const tx = db.transaction(["posts_timeline"], "readwrite");
             const store = tx.objectStore("posts_timeline");
             const request = store.put(currentPost);
 
             request.onsuccess = () => {
-                // 成功後清空輸入框並重新渲染
+                console.log("寫入成功！");
+                // 3. 成功後清空介面
                 input.value = '';
                 btn.classList.remove('active');
+                
+                // 4. 重新渲染畫面 (這時候應該要看到新留言)
                 renderComments();
             };
             
             request.onerror = (e) => {
-                console.error("Save comment failed", e);
-                alert("留言發布失敗");
+                console.error("寫入失敗", e);
+                alert("留言發布失敗，請查看 Console 錯誤訊息");
             };
         }
 
