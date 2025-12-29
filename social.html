@@ -189,7 +189,7 @@
             const currentName = storedName ? storedName : "Me"; 
 
             if (postsData.length === 0) {
-                feedContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">📷</div><div>No posts yet.</div></div>`;
+                feedContainer.innerHTML = ""; // 設定為空，就不會顯示 No posts yet
                 return;
             }
 
