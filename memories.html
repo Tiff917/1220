@@ -134,8 +134,8 @@
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                // ★★★ 關鍵：版本號設為 6，對齊 new-post.html ★★★
-                const request = indexedDB.open(dbName, 6);
+                // ★★★ 關鍵：版本號設為 8，對齊 new-post.html ★★★
+                const request = indexedDB.open(dbName, 8);
 
                 request.onupgradeneeded = function(e) {
                     db = e.target.result;
