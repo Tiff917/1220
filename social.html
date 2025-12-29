@@ -107,7 +107,7 @@
     </div>
     <div id="toast-msg" class="toast-notification"></div>
 
-    <script>
+<script>
         const dbName = "MemoriesDB";
         let db;
         let postsData = [];
@@ -123,14 +123,22 @@
         // --- 資料庫初始化 ---
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 6);
+                // ★ 建議：版本號升級到 7，避免舊資料卡住
+                const request = indexedDB.open(dbName, 7);
+                
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
                     if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
                     if (!db.objectStoreNames.contains("user_profile")) db.createObjectStore("user_profile");
                 };
+                
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-                request.onerror = (e) => reject(e);
+                
+                request.onerror = (e) => { 
+                    // ★ 除錯：如果 Safari 拒絕存取，這裡會跳出警告
+                    alert("資料庫開啟失敗：可能是私密瀏覽模式導致");
+                    reject(e); 
+                };
             });
         }
 
@@ -160,19 +168,37 @@
                     const cursor = e.target.result;
                     if (cursor) {
                         const post = cursor.value;
-                        post.imageUrls = post.images.map(blob => 
-                            (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
-                        );
+                        // 處理圖片連結
+                        if (post.images) {
+                            post.imageUrls = post.images.map(blob => 
+                                (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
+                            );
+                        } else {
+                            post.imageUrls = [];
+                        }
+                        
                         if (!post.likes) post.likes = 0;
                         if (!post.isLiked) post.isLiked = false;
+                        if (!post.comments) post.comments = []; // 確保 comments 存在
+
                         tempPosts.push(post);
                         cursor.continue();
                     } else {
                         postsData = tempPosts;
-                        renderPosts();
+                        renderPosts(); // 這裡執行渲染
                     }
                 };
-            } catch (e) { console.error("Loading error:", e); }
+                
+                request.onerror = (e) => {
+                    alert("讀取貼文失敗");
+                    // 即使失敗也要把 loading 拿掉
+                    document.getElementById('feed-container').innerHTML = `<div class="empty-state"><div>讀取錯誤</div></div>`;
+                };
+
+            } catch (e) { 
+                console.error("Loading error:", e);
+                alert("系統錯誤: " + e.message);
+            }
         }
 
         // --- 渲染貼文 ---
@@ -187,12 +213,12 @@
         function renderPosts() {
             const storedName = localStorage.getItem('myProfileName');
             const currentName = storedName ? storedName : "Me"; 
-            const goToComments = `window.location.href='comments.html?id=${post.id}'`;
 
-            <div class="icon-btn" onclick="${goToComments}">${icons.comment}</div>
-            
+            // ★★★ 這裡原本有錯誤代碼，已經移除 ★★★
+
             if (postsData.length === 0) {
-                feedContainer.innerHTML = ""; // 設定為空，就不會顯示 No posts yet
+                // 如果沒有貼文，顯示空白或提示
+                feedContainer.innerHTML = ""; 
                 return;
             }
 
@@ -209,7 +235,7 @@
                 const locationHtml = post.location ? `<span class="location">${post.location}</span>` : `<span class="location">${post.dateString}</span>`;
                 const initialHeart = post.isLiked ? icons.heartFilled : icons.heartOutline;
 
-                // ★★★ 關鍵修改：跳轉到 comments.html 並帶上 id ★★★
+                // 跳轉連結
                 const goToComments = `window.location.href='comments.html?id=${post.id}'`;
 
                 return `
@@ -307,6 +333,10 @@
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
             const post = postsData.find(p => p.id === postId);
+            
+            // 確保 comments 存在
+            if(!post.comments) post.comments = [];
+            
             post.comments.push({ user: myName, text: text });
             input.value = '';
             renderPosts();
