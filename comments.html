@@ -116,19 +116,22 @@
 
         // 1. 從網址取得貼文 ID
         const params = new URLSearchParams(window.location.search);
-        postId = parseInt(params.get('id'));
+        const idParam = params.get('id');
+        // 增加防呆：如果有 ID 才轉數字，否則 null
+        postId = idParam ? parseInt(idParam) : null;
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 6); // 版本號要跟 feed.html 一樣
+                const request = indexedDB.open(dbName, 6);
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e);
             });
         }
 
         async function init() {
+            // 如果沒有 ID，直接清空畫面 (不顯示 Error 文字)
             if (!postId) {
-                document.getElementById('comments-list').innerHTML = '<div style="text-align:center; margin-top:20px;">Error: No post ID found.</div>';
+                document.getElementById('comments-list').innerHTML = ''; 
                 return;
             }
 
@@ -157,10 +160,16 @@
 
             request.onsuccess = (e) => {
                 currentPost = e.target.result;
+                
                 if (currentPost) {
+                    // ★★★ 邏輯修正 1：確保 comments 陣列一定存在，避免後續報錯 ★★★
+                    if (!currentPost.comments) {
+                        currentPost.comments = [];
+                    }
                     renderComments();
                 } else {
-                    document.getElementById('comments-list').innerHTML = '<div style="text-align:center; margin-top:20px;">Post not found.</div>';
+                    // ★★★ 視覺修正：刪除 "Post not found" 文字，改為空字串 ★★★
+                    document.getElementById('comments-list').innerHTML = '';
                 }
             };
         }
@@ -170,7 +179,11 @@
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
-            let captionText = (currentPost.comments && currentPost.comments.length > 0) ? currentPost.comments[0].text : "";
+            // 確保 comments 存在 (雙重保險)
+            const comments = currentPost.comments || [];
+
+            // 第一則留言當作 Caption (如果有的話)
+            let captionText = (comments.length > 0) ? comments[0].text : "";
             
             let html = `
                 <div class="caption-block">
@@ -183,8 +196,9 @@
                 </div>
             `;
 
-            for (let i = 1; i < currentPost.comments.length; i++) {
-                const c = currentPost.comments[i];
+            // 從第二則開始渲染為普通留言
+            for (let i = 1; i < comments.length; i++) {
+                const c = comments[i];
                 let avatarSrc = (c.user === myName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
                 
                 html += `
@@ -198,7 +212,11 @@
                 `;
             }
             list.innerHTML = html;
-            list.scrollTop = list.scrollHeight;
+            
+            // 自動捲動到底部
+            setTimeout(() => {
+                list.scrollTop = list.scrollHeight;
+            }, 50); // 加一點延遲確保畫面渲染完畢
         }
 
         const input = document.getElementById('input-box');
@@ -214,21 +232,35 @@
 
         function submitComment() {
             const text = input.value.trim();
+            // 如果 currentPost 是 null (例如 post not found)，直接不執行
             if (!text || !currentPost) return;
 
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
+            // ★★★ 邏輯修正 2：發布前再次檢查陣列是否存在，防止崩潰 ★★★
+            if (!currentPost.comments) {
+                currentPost.comments = [];
+            }
+
+            // 推入新留言
             currentPost.comments.push({ user: myName, text: text });
             
+            // 寫入資料庫
             const tx = db.transaction(["posts_timeline"], "readwrite");
             const store = tx.objectStore("posts_timeline");
-            store.put(currentPost);
+            const request = store.put(currentPost);
 
-            tx.oncomplete = () => {
+            request.onsuccess = () => {
+                // 成功後清空輸入框並重新渲染
                 input.value = '';
                 btn.classList.remove('active');
                 renderComments();
+            };
+            
+            request.onerror = (e) => {
+                console.error("Save comment failed", e);
+                alert("留言發布失敗");
             };
         }
 
