@@ -8,53 +8,52 @@
         /* 1. 歸零 */
         * { margin: 0; padding: 0; box-sizing: border-box; border: 0; outline: 0; }
 
-        /* 2. 背景設定 (確保跟 App 同色) */
+        /* 2. 背景設定 */
         html, body {
             width: 100%; height: 100%;
-            background-color: #F3ECE5; /* 關鍵：米色背景 */
-            overflow: hidden;
+            background-color: #F3ECE5; 
+            overflow: hidden; /* 禁止 Body 捲動 */
         }
 
         /* 3. 滑動容器 */
         .app-container {
             display: flex;
             flex-wrap: nowrap;
-            width: 101%; height: 100%;
+            width: 100%; /* 修正為 100% 比較穩定 */
+            height: 100%;
             
             overflow-x: scroll; 
             overflow-y: hidden;
-            scroll-snap-type: x mandatory;
+            scroll-snap-type: x mandatory; /* 強制分頁停靠 */
             
-            background-color: #F3ECE5; /* 容器也設米色 */
+            background-color: #F3ECE5;
             
+            /* 隱藏捲軸 */
             scrollbar-width: none; 
             -ms-overflow-style: none;
-            scroll-behavior: auto;
+            -webkit-overflow-scrolling: touch; /* 讓 iOS 滑動更順暢 */
         }
         .app-container::-webkit-scrollbar { display: none; }
 
         /* 4. iframe 設定 */
         iframe {
             display: block;
-            /* 設為 100% 寬度 */
-            min-width: 100.5%; 
-            width: 100.5%;
+            /* 使用 flex 屬性來固定寬度，比 min-width 更穩定 */
+            flex: 0 0 100%; 
+            width: 100%;
             height: 100%;
             
-            /* 關鍵：強制移除所有邊框和陰影 */
             border: none !important;
             box-shadow: none !important;
-            
             background-color: #F3ECE5;
-            scroll-snap-align: start; 
+            
+            scroll-snap-align: center; /* 改為 center 確保停在正中間 */
             scroll-snap-stop: always;
         }
 
-        /* 5. 終極修正：相鄰的 iframe 往左擠 */
-        /* 只要不是第一個 iframe，全部往左拉 2px，蓋住上一張的邊緣 */
-        iframe + iframe {
-            margin-left: -4px;
-        }
+        /* 5. 修正 iframe 間隙 (視需要保留) */
+        /* 如果發現有白線，可以保留這個 margin 設定 */
+        /* iframe + iframe { margin-left: -1px; } */
 
     </style>
 </head>
@@ -72,62 +71,69 @@
 
         // 1. 初始化定位 (回到中間的 home.html)
         window.onload = function() {
+            // 給瀏覽器一點時間渲染，確保 offsetLeft 數值正確
             setTimeout(() => {
                 if(container && homeFrame) {
-                    container.scrollLeft = homeFrame.offsetLeft;
+                    // 使用 scrollTo 比較平滑 (也可以用 behavior: 'instant' 瞬間跳轉)
+                    container.scrollTo({
+                        left: homeFrame.offsetLeft,
+                        behavior: 'auto' 
+                    });
                 }
-            }, 10);
+            }, 100);
         };
 
-        // 2. ★ 智慧鎖定邏輯 (加強版) ★
-        // 每 0.1 秒檢查一次目前 homeFrame 裡面顯示的是哪個檔案
+        // 2. ★ 智慧鎖定邏輯 ★
         setInterval(function() {
-            let shouldLock = false; // 預設不鎖定 (可以滑)
+            let shouldLock = false; 
 
             try {
-                // 抓取目前中間 iframe 載入的網址
-                const currentUrl = homeFrame.contentWindow.location.href.toLowerCase();
-                
-                // ★ 關鍵清單：這些頁面出現時，禁止左右滑動
-                const lockList = [
-                    'login.html', 
-                    'signup.html', 
-                    'forgot-password.html',
-                    'profile.html',
-                    'payment.html',
-                    'otp_verify.html',
-                    'reset_password.html',
-                    'search.html', 
-                    'edit.html', 
-                    'message.html',
-                    'onboarding.html'
-                ];
+                // 注意：如果是在本機 (file://) 執行，這一行通常會報錯 (Cross-origin)
+                // 必須要在 Local Server 環境下這行才有效
+                if (homeFrame.contentWindow.location.href) {
+                    const currentUrl = homeFrame.contentWindow.location.href.toLowerCase();
+                    
+                    const lockList = [
+                        'login.html', 
+                        'signup.html', 
+                        'forgot-password.html',
+                        'profile.html',
+                        'payment.html',
+                        'otp_verify.html',
+                        'reset_password.html',
+                        'search.html', 
+                        'edit.html', 
+                        'message.html',
+                        'onboarding.html'
+                    ];
 
-                // 檢查目前網址是否包含上述任何一個關鍵字
-                if (lockList.some(page => currentUrl.includes(page))) {
-                    shouldLock = true;
+                    // 檢查目前網址
+                    if (lockList.some(page => currentUrl.includes(page))) {
+                        shouldLock = true;
+                    }
                 }
-
             } catch (e) {
-                // 跨網域存取可能會報錯，這裡忽略
-                console.log("Cross-origin error or loading:", e);
+                // 忽略跨域錯誤，避免 console 跳太多紅字
+                // console.log("Cross-origin restriction");
             }
 
             // 執行鎖定或解鎖
             if (shouldLock) {
-                // 鎖定：隱藏捲軸，並強制定位在中間 iframe
+                // 鎖定狀態
                 if (container.style.overflowX !== 'hidden') {
+                    console.log("🔒 鎖定滑動：進入特定頁面");
                     container.style.overflowX = 'hidden';
-                    container.scrollLeft = homeFrame.offsetLeft; // 強制拉回中間
+                    container.scrollTo({ left: homeFrame.offsetLeft, behavior: 'auto' });
                 }
             } else {
-                // 解鎖：恢復可滑動狀態 (回到 home.html 時)
+                // 解鎖狀態
                 if (container.style.overflowX !== 'scroll') {
+                    console.log("🔓 解鎖滑動：回到一般頁面");
                     container.style.overflowX = 'scroll';
                 }
             }
-      
-
+        
+        }, 100); // <--- 原本這裡少了括號與時間設定
     </script>
 </body>
 </html>
