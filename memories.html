@@ -392,38 +392,57 @@
         }
 
         async function deleteCurrentStory(e) {
-            if(e) { e.stopPropagation(); e.preventDefault(); }
-
-            if (confirm("Delete this photo?")) {
-                clearTimeout(storyTimer);
-                const currentItem = storyList[currentIndex];
-                const dbKey = currentItem.dbKey; // 取得資料庫 ID
-
-                // 1. 從資料庫刪除
-                if(!db) await initDB();
-                const tx = db.transaction("all_photos", "readwrite");
-                tx.objectStore("all_photos").delete(dbKey);
-                
-                tx.oncomplete = async () => {
-                    // 2. 重新讀取資料 (保持同步)
-                    await loadDataFromDB();
-                    channel.postMessage('updated');
-
-                    // 3. 更新播放清單 UI
-                    storyList.splice(currentIndex, 1);
-
-                    if (storyList.length === 0) {
-                        closeStory();
-                        renderCalendar();
-                    } else {
-                        if (currentIndex >= storyList.length) currentIndex = storyList.length - 1;
-                        renderStory();
-                        renderCalendar(); // 背景日曆也要更新
-                    }
-                };
+            // 1. 阻止事件冒泡，避免點擊穿透
+            if(e) { 
+                e.stopPropagation(); 
+                e.preventDefault(); 
             }
-        }
 
+            // 2. ★ 關鍵修正：一點擊就立刻暫停故事播放，避免背景倒數與 Confirm 衝突
+            clearTimeout(storyTimer);
+
+            // 3. ★ 關鍵修正：稍微延遲 10ms 再跳出 Confirm
+            // 這讓瀏覽器有時間先 "完成" 點擊動作的渲染，避免 UI 卡死
+            setTimeout(async () => {
+                
+                if (confirm("Delete this photo?")) {
+                    // --- 使用者按了「確定」 ---
+                    
+                    const currentItem = storyList[currentIndex];
+                    const dbKey = currentItem.dbKey;
+
+                    // A. 從資料庫刪除
+                    if(!db) await initDB();
+                    const tx = db.transaction("all_photos", "readwrite");
+                    tx.objectStore("all_photos").delete(dbKey);
+                    
+                    tx.oncomplete = async () => {
+                        // B. 重新讀取資料
+                        await loadDataFromDB();
+                        channel.postMessage('updated');
+
+                        // C. 更新播放清單 UI
+                        storyList.splice(currentIndex, 1);
+
+                        if (storyList.length === 0) {
+                            closeStory();
+                            renderCalendar();
+                        } else {
+                            // 如果刪除的是最後一張，索引往前移
+                            if (currentIndex >= storyList.length) {
+                                currentIndex = storyList.length - 1;
+                            }
+                            renderStory();
+                            renderCalendar();
+                        }
+                    };
+                } else {
+                    // --- 使用者按了「取消」 ---
+                    // 恢復計時器，繼續播放故事
+                    storyTimer = setTimeout(() => nextStory(), DURATION);
+                }
+            }, 10);
+        }
         function renderStory() {
             if (currentIndex < 0 || currentIndex >= storyList.length) return;
             const currentItem = storyList[currentIndex];
