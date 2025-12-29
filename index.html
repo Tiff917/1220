@@ -70,9 +70,11 @@
 <body>
     
     <div class="app-container" id="appContainer">
-        <iframe src="memories.html" frameborder="0"></iframe>
+        <iframe src="memories.html" id="memoriesFrame" frameborder="0"></iframe>
+        
         <iframe src="home.html" id="homeFrame" frameborder="0"></iframe>
-        <iframe src="social.html" frameborder="0"></iframe>
+        
+        <iframe src="social.html" id="socialFrame" frameborder="0"></iframe>
     </div>
 
     <script>
@@ -151,40 +153,63 @@
             }
         });
 
-        // 2. 智慧鎖定邏輯
-        setInterval(function() {
-            let shouldLock = false; 
+        // 取得三個 iframe 的元素
+const frame1 = document.getElementById('memoriesFrame');
+const frame2 = document.getElementById('homeFrame');
+const frame3 = document.getElementById('socialFrame');
 
-            try {
-                if (homeFrame.contentWindow.location.href) {
-                    const currentUrl = homeFrame.contentWindow.location.href.toLowerCase();
-                    
-                    const lockList = [
-                        'login.html', 'signup.html', 'forgot-password.html',
-                        'profile.html', 'payment.html', 'otp_verify.html',
-                        'reset_password.html', 'search.html', 'edit.html', 
-                        'message.html', 'onboarding.html', 'comments.html'
-                    ];
+// 定義需要鎖定的頁面清單 (全小寫)
+const lockList = [
+    'login.html', 'signup.html', 'forgot-password.html',
+    'profile.html', 'payment.html', 'otp_verify.html',
+    'reset_password.html', 'search.html', 'edit.html', 
+    'message.html', 'onboarding.html', 'comments.html' // 這裡有 comments.html
+];
 
-                    if (lockList.some(page => currentUrl.includes(page))) {
-                        shouldLock = true;
-                    }
-                }
-            } catch (e) { }
+// 輔助函式：檢查單一 iframe 是否在鎖定清單中
+function checkFrameNeedsLock(frame) {
+    try {
+        if (frame && frame.contentWindow && frame.contentWindow.location.href) {
+            const url = frame.contentWindow.location.href.toLowerCase();
+            // 只要網址包含清單中的任何一個關鍵字，就回傳 true
+            return lockList.some(page => url.includes(page));
+        }
+    } catch (e) {
+        // 忽略跨域讀取錯誤
+    }
+    return false;
+}
 
-            if (shouldLock) {
-                if (container.style.overflowX !== 'hidden') {
-                    console.log("🔒 智慧鎖定");
-                    container.style.overflowX = 'hidden';
-                    container.scrollTo({ left: homeFrame.offsetLeft, behavior: 'auto' });
-                }
-            } else {
-                if (container.style.overflowX !== 'scroll') {
-                    console.log("🔓 智慧解鎖");
-                    container.style.overflowX = 'scroll';
-                }
+    // 2. ★ 加強版智慧鎖定邏輯 ★
+    setInterval(function() {
+        let shouldLock = false; 
+    
+        // 同時檢查三個 iframe，只要有一個符合就鎖定
+        if (checkFrameNeedsLock(frame1) || checkFrameNeedsLock(frame2) || checkFrameNeedsLock(frame3)) {
+            shouldLock = true;
+        }
+    
+        // 執行鎖定或解鎖
+        if (shouldLock) {
+            // 只有當「目前還沒鎖」的時候才執行鎖定，避免重複執行
+            if (container.style.overflowX !== 'hidden') {
+                console.log("🔒 偵測到特定頁面：鎖定滑動");
+                container.style.overflowX = 'hidden';
+                
+                // ★ 修正：這裡要判斷「誰」觸發了鎖定，就停在「誰」身上
+                // 如果是 socialFrame 觸發的，我們就不應該強制跳回 homeFrame
+                // 但為了簡單起見，通常鎖定時不亂跳轉是最好的
+                // container.scrollTo(...) <--- 這行建議拿掉，讓使用者停在他原本的位置
             }
-        }, 100);
+        } else {
+            // 解鎖狀態
+            if (container.style.overflowX !== 'scroll') {
+                console.log("🔓 回到一般頁面：解鎖滑動");
+                container.style.overflowX = 'scroll';
+            }
+        }
+    
+    }, 100);
     </script>
 </body>
 </html>
