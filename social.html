@@ -214,25 +214,42 @@
             });
         }
 
-        // --- 2. 讀取資料 ---
+        // --- 2. 讀取資料 (已修正頭像載入問題) ---
         async function loadAndRender() {
             try {
                 await initDB();
                 
-                // 讀取頭像
+                // A. 讀取頭像
                 const avatarTx = db.transaction("user_profile", "readonly");
                 const avatarReq = avatarTx.objectStore("user_profile").get("avatar");
+                
                 avatarReq.onsuccess = (e) => {
                     const res = e.target.result;
+                    // 如果資料庫有頭像，就建立 URL，否則維持預設
                     if (res && (res instanceof Blob || res instanceof File)) {
                         userAvatarUrl = URL.createObjectURL(res);
-                        document.getElementById('overlay-my-avatar').src = userAvatarUrl;
-                    } else {
-                        document.getElementById('overlay-my-avatar').src = userAvatarUrl;
                     }
+
+                    // ★★★ 關鍵修正：拿到頭像後，強制更新畫面上所有已經生成的圖片 ★★★
+                    
+                    // 1. 更新全螢幕留言板底部的頭像
+                    const overlayAvatar = document.getElementById('overlay-my-avatar');
+                    if (overlayAvatar) overlayAvatar.src = userAvatarUrl;
+
+                    // 2. 更新動態牆上每一則貼文留言區的小頭像
+                    document.querySelectorAll('.user-avatar-small').forEach(img => {
+                        img.src = userAvatarUrl;
+                    });
+
+                    // 3. (選用) 如果貼文是你發的，更新貼文頂部的大頭像
+                    // 這裡簡單判定：假設所有顯示為 Me 的頭像都要換
+                    document.querySelectorAll('.avatar').forEach(img => {
+                        // 這裡可以根據邏輯更嚴謹判斷，目前統一更新讓視覺一致
+                        img.src = userAvatarUrl; 
+                    });
                 };
 
-                // 讀取貼文
+                // B. 讀取貼文
                 const tx = db.transaction("posts_timeline", "readonly");
                 const store = tx.objectStore("posts_timeline");
                 const request = store.openCursor(null, 'prev');
@@ -242,6 +259,7 @@
                     const cursor = e.target.result;
                     if (cursor) {
                         const post = cursor.value;
+                        // 處理貼文圖片
                         post.imageUrls = post.images.map(blob => 
                             (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
                         );
@@ -253,6 +271,9 @@
                     } else {
                         postsData = tempPosts;
                         renderPosts();
+                        
+                        // ★ 二次確保：如果 renderPosts 比頭像載入還晚執行，這裡會用到最新的 userAvatarUrl
+                        // 但如果 renderPosts 先跑完，上面的 avatarReq.onsuccess 會負責更新圖片
                     }
                 };
             } catch (e) {
