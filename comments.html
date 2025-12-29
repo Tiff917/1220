@@ -8,22 +8,23 @@
         /* --- 基礎設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
         
-        /* ★★★ 關鍵修改區：禁止左右滑動設定 ★★★ */
+        /* 禁止左右滑動 */
         html, body {
             width: 100%;
             height: 100vh;
-            overflow-x: hidden;          /* 隱藏水平捲軸，防止內容溢出 */
-            overscroll-behavior-x: none; /* 禁止瀏覽器預設的「水平滑動」行為 (例如滑動回上一頁) */
+            overflow-x: hidden; 
+            overscroll-behavior-x: none; 
         }
 
         body { 
             background-color: white; 
-            position: fixed; /* 【關鍵】將 body 釘死在畫面上，徹底根除 iOS 回彈 */
+            position: fixed; /* 釘死畫面 */
+            left: 0; top: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             color: #262626; 
             display: flex;
-            overflow: hidden; /* 鎖死 body 捲軸 */
-            touch-action: pan-y; /* 【關鍵】告訴瀏覽器：這裡只允許「垂直」滑動，忽略水平手勢 */
+            overflow: hidden; 
+            touch-action: pan-y; 
             flex-direction: column;
         }
 
@@ -33,18 +34,18 @@
             display: flex; align-items: center; padding: 0 16px;
             font-weight: 600; font-size: 16px; justify-content: space-between;
             background: white; flex-shrink: 0;
-            width: 100%; /* 確保滿版 */
+            width: 100%; z-index: 10;
         }
         .back-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;}
         
         /* 留言列表區 */
         .content { 
             flex: 1; 
-            overflow-y: auto;       /* 允許垂直滑動 */
-            overflow-x: hidden;     /* 禁止內容區水平滑動 */
+            overflow-y: auto; 
+            overflow-x: hidden; 
             padding: 16px; 
             overscroll-behavior-y: contain; 
-            -webkit-overflow-scrolling: touch; /* 讓 iOS 捲動保持順暢 */
+            -webkit-overflow-scrolling: touch; 
             width: 100%;
         }
         
@@ -52,10 +53,9 @@
         .caption-block { display: flex; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #efefef; margin-bottom: 12px; }
         .caption-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #dbdbdb; flex-shrink: 0; }
         
-        /* ★★★ 加入 word-break 防止長文字撐開頁面 ★★★ */
         .caption-text-area { 
             flex: 1; font-size: 14px; line-height: 1.4; 
-            word-break: break-word; /* 強制長單字斷行 */
+            word-break: break-word; 
         }
         
         /* 一般留言 */
@@ -63,12 +63,11 @@
         .comment-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #dbdbdb; flex-shrink: 0; }
         .comment-user { font-weight: 600; margin-right: 5px; }
         
-        /* ★★★ 加入 word-break 防止長文字撐開頁面 ★★★ */
         .comment-text-block { 
             font-size: 14px; line-height: 1.4; 
-            flex: 1; /* 確保文字區塊佔滿剩餘空間 */
-            word-break: break-word; /* 強制長單字斷行 */
-            min-width: 0; /* Flexbox 換行小技巧，防止溢出 */
+            flex: 1; 
+            word-break: break-word; 
+            min-width: 0; 
         }
 
         .time-text { font-size: 12px; color: #8e8e8e; margin-top: 4px; display: block; }
@@ -79,7 +78,7 @@
             display: flex; align-items: center; background: white;
             padding-bottom: calc(10px + env(safe-area-inset-bottom));
             flex-shrink: 0;
-            width: 100%;
+            width: 100%; z-index: 10;
         }
         .user-avatar-small { width: 32px; height: 32px; border-radius: 50%; margin-right: 12px; object-fit: cover; background: #dbdbdb;}
         .comment-input { flex: 1; border: none; font-size: 14px; padding: 8px 0; background: transparent; }
@@ -107,11 +106,11 @@
         <button class="post-btn" id="post-btn">Post</button>
     </div>
 
-<script>
+    <script>
         const dbName = "MemoriesDB";
         let db;
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-        let currentPost = null; // 這就是我們現在正在看的「箱子」
+        let currentPost = null; 
         
         // 1. 抓取網址上的標籤 (ID)
         const params = new URLSearchParams(window.location.search);
@@ -119,8 +118,12 @@
 
         // 啟動程式
         async function init() {
-            // 如果網址沒有 ID，代表沒選中貼文，就不做任何事 (畫面留白)
-            if (!rawId) return;
+            // 如果網址沒有 ID，清空 Loading 並顯示錯誤
+            if (!rawId) {
+                document.getElementById('comments-list').innerHTML = 
+                    '<div style="text-align:center; margin-top:50px; color:#999;">Error: No ID found.</div>';
+                return;
+            }
 
             try {
                 await initDB();
@@ -128,12 +131,14 @@
                 loadPostData();    // 讀取貼文資料
             } catch (e) {
                 console.error(e);
+                alert("資料庫連線失敗");
             }
         }
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName,8);
+                // ★★★ 關鍵：版本號設為 8，對齊其他頁面 ★★★
+                const request = indexedDB.open(dbName, 8);
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e);
             });
@@ -159,7 +164,6 @@
             const store = tx.objectStore("posts_timeline");
 
             // 雙重嘗試：先試著把 ID 當數字找，找不到再當字串找
-            // 這樣可以保證抓到 ID
             const numId = parseInt(rawId);
             
             // 嘗試 1: 用數字 ID 找
@@ -176,8 +180,9 @@
                             currentPost = e2.target.result;
                             prepareComments();
                         } else {
-                            // 真的找不到 (可能貼文已被刪除) -> 畫面保持空白
-                            console.log("貼文不存在");
+                            // 真的找不到 -> 顯示提示
+                            document.getElementById('comments-list').innerHTML = 
+                                '<div style="text-align:center; margin-top:50px; color:#999;">Post not found.</div>';
                         }
                     };
                 }
@@ -200,7 +205,7 @@
 
             const comments = currentPost.comments;
             
-            // 標題 (Caption)
+            // 標題 (Caption) - 顯示貼文的第一則留言作為標題
             let captionText = (comments.length > 0) ? comments[0].text : "";
             // 如果沒有標題，就不顯示內容，只顯示名字
             let captionHtml = captionText ? `<span>${captionText}</span>` : ``;
@@ -250,6 +255,7 @@
 
         function submitComment() {
             const text = input.value.trim();
+            // 如果沒有載入貼文或是沒輸入文字，就不執行
             if (!currentPost || !text) return;
 
             const storedName = localStorage.getItem('myProfileName');
@@ -268,6 +274,11 @@
                 input.value = '';
                 btn.classList.remove('active');
                 renderComments();
+            };
+            
+            request.onerror = (e) => {
+                console.error("Save failed", e);
+                alert("留言失敗，請稍後再試");
             };
         }
 
