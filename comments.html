@@ -110,42 +110,36 @@
 <script>
         const dbName = "MemoriesDB";
         let db;
-        // 預設頭像
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
         let currentPost = null;
-        let postId = null;
-
-        // --- 1. 抓取網址 ID 並檢查 ---
-        const params = new URLSearchParams(window.location.search);
-        const idParam = params.get('id');
         
-        postId = idParam ? parseInt(idParam) : null;
+        // 1. 抓取網址 ID (先保持原始字串狀態)
+        const params = new URLSearchParams(window.location.search);
+        const rawId = params.get('id');
 
-        console.log("目前的 Post ID 是:", postId); 
+        console.log("【系統】網址上的原始 ID:", rawId);
 
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 6);
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => {
-                    // 資料庫錯誤通常還是建議 alert 一下，不然完全不知道發生什麼事
-                    // 如果連這個都不想要，可以把 alert 註解掉
-                    // alert("資料庫開啟失敗"); 
+                    console.error("資料庫打開失敗", e);
                     reject(e);
                 };
             });
         }
 
         async function init() {
-            // ★ 修改 1：如果沒有 ID，直接留白，不顯示錯誤文字
-            if (!postId) {
-                document.getElementById('comments-list').innerHTML = '';
+            if (!rawId) {
+                document.getElementById('comments-list').innerHTML = 
+                    '<div style="text-align:center; margin-top:50px; color:red;">錯誤：網址沒有 ID<br>請從動態牆點擊留言進入</div>';
                 return;
             }
 
             await initDB();
             loadUserProfile();
-            loadPostData();
+            loadPostData(); // 開始抓資料
         }
 
         function loadUserProfile() {
@@ -161,63 +155,76 @@
             };
         }
 
+        // ★★★ 關鍵修改：雙重嘗試抓取 (數字 或 字串) ★★★
         function loadPostData() {
             const tx = db.transaction("posts_timeline", "readonly");
             const store = tx.objectStore("posts_timeline");
-            const request = store.get(postId);
 
-            request.onsuccess = (e) => {
-                currentPost = e.target.result;
+            // 嘗試 1：把 ID 當成「數字」去抓 (最常見的情況)
+            const numericId = parseInt(rawId);
+            const requestNum = store.get(numericId);
+
+            requestNum.onsuccess = (e) => {
+                const result = e.target.result;
                 
-                if (currentPost) {
-                    console.log("成功讀取貼文:", currentPost);
-                    if (!currentPost.comments) {
-                        currentPost.comments = [];
-                    }
-                    renderComments();
+                if (result) {
+                    console.log("【成功】用「數字 ID」抓到了！", result);
+                    currentPost = result;
+                    initComments(); // 初始化並渲染
                 } else {
-                    console.log("找不到 ID 為", postId, "的貼文");
-                    // ★ 修改 2：找不到貼文時，設為空字串，畫面留白
-                    document.getElementById('comments-list').innerHTML = '';
-                    currentPost = null; 
+                    console.warn("【嘗試 1 失敗】用數字抓不到，嘗試用字串抓...");
+                    
+                    // 嘗試 2：把 ID 當成「字串」去抓 (有些 ID 產生器是字串)
+                    const requestStr = store.get(rawId);
+                    
+                    requestStr.onsuccess = (e2) => {
+                        const result2 = e2.target.result;
+                        if (result2) {
+                            console.log("【成功】用「字串 ID」抓到了！", result2);
+                            currentPost = result2;
+                            initComments();
+                        } else {
+                            console.error("【失敗】數字和字串都抓不到。");
+                            document.getElementById('comments-list').innerHTML = 
+                                '<div style="text-align:center; margin-top:50px; color:#999;">找不到這則貼文 (可能已刪除)</div>';
+                            currentPost = null;
+                        }
+                    };
                 }
             };
-            
-            request.onerror = (e) => {
-                console.error("讀取貼文失敗", e);
-                // 讀取失敗也留白
-                document.getElementById('comments-list').innerHTML = '';
-            };
+        }
+
+        function initComments() {
+            if (!currentPost.comments) currentPost.comments = [];
+            renderComments();
         }
 
         function renderComments() {
             const list = document.getElementById('comments-list');
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
-
             const comments = currentPost.comments || [];
-
-            // 標題區 (Caption)
-            let captionText = (comments.length > 0) ? comments[0].text : "<span style='color:#999; font-style:italic;'>(無標題)</span>";
             
-            // 渲染上半部
+            // 標題 (Caption)
+            let captionText = (comments.length > 0) ? comments[0].text : "";
+            let captionHtml = captionText ? `<span>${captionText}</span>` : `<span style="color:#ccc;"></span>`;
+
             let html = `
                 <div class="caption-block">
                     <img src="${userAvatarUrl}" class="caption-avatar">
                     <div class="caption-text-area">
                         <span class="comment-user">${myName}</span>
-                        <span>${captionText}</span>
+                        ${captionHtml}
                         <div class="time-text">${new Date(currentPost.timestamp).toDateString()}</div>
                     </div>
                 </div>
             `;
 
-            // 渲染下半部 (留言列表，從第 2 則開始)
+            // 留言列表
             if (comments.length > 1) {
                 for (let i = 1; i < comments.length; i++) {
                     const c = comments[i];
                     let avatarSrc = (c.user === myName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
-                    
                     html += `
                         <div class="comment-row">
                             <img src="${avatarSrc}" class="comment-avatar">
@@ -225,23 +232,15 @@
                                 <span class="comment-user">${c.user}</span>
                                 <span>${c.text}</span>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 }
-            } else if (comments.length === 1) {
-                // ★ 修改 3：只有標題時，下方也不顯示「尚無留言」，直接留白
-                html += ``; 
-            } else {
-                 html += ``;
-            }
+            } 
 
             list.innerHTML = html;
-            
-            setTimeout(() => {
-                list.scrollTop = list.scrollHeight;
-            }, 50);
+            setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
         }
 
+        // --- 發布留言邏輯 ---
         const input = document.getElementById('input-box');
         const btn = document.getElementById('post-btn');
 
@@ -249,45 +248,41 @@
             if (input.value.trim().length > 0) btn.classList.add('active');
             else btn.classList.remove('active');
         };
-
         btn.onclick = submitComment;
         input.onkeypress = (e) => { if (e.key === 'Enter') submitComment(); };
 
         function submitComment() {
             const text = input.value.trim();
             
+            // ★ 防呆：如果沒抓到貼文，這裡會擋住並提示
             if (!currentPost) {
-                // 如果找不到貼文還硬按發送，這裡還是稍微擋一下，但不顯示醜醜的 alert
-                console.log("無法留言：沒有貼文資料"); 
+                console.error("無法發布：沒有 currentPost 資料");
+                alert("無法發布：找不到原始貼文資料，請重新整理頁面。");
                 return;
             }
-            if (!text) {
-                return; 
-            }
+            if (!text) return;
 
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
-            if (!currentPost.comments) {
-                currentPost.comments = [];
-            }
-
+            if (!currentPost.comments) currentPost.comments = [];
             currentPost.comments.push({ user: myName, text: text });
-            console.log("準備寫入留言:", text);
 
             const tx = db.transaction(["posts_timeline"], "readwrite");
             const store = tx.objectStore("posts_timeline");
+            
+            // 寫入資料庫
             const request = store.put(currentPost);
 
             request.onsuccess = () => {
-                console.log("寫入成功！");
+                console.log("留言寫入成功");
                 input.value = '';
                 btn.classList.remove('active');
                 renderComments();
             };
-            
             request.onerror = (e) => {
-                console.error("寫入失敗", e);
+                alert("寫入失敗");
+                console.error(e);
             };
         }
 
