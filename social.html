@@ -123,8 +123,7 @@
         // --- 資料庫初始化 ---
         function initDB() {
             return new Promise((resolve, reject) => {
-                // ★ 建議：版本號升級到 7
-                const request = indexedDB.open(dbName, 7);
+                const request = indexedDB.open(dbName, 6);
                 
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
