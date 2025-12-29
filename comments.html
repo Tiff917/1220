@@ -5,12 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Comments</title>
     <style>
+        /* --- 基礎設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        /* ★★★ 關鍵修改區：禁止左右滑動設定 ★★★ */
+        html, body {
+            width: 100%;
+            height: 100vh;
+            overflow-x: hidden;          /* 隱藏水平捲軸，防止內容溢出 */
+            overscroll-behavior-x: none; /* 禁止瀏覽器預設的「水平滑動」行為 (例如滑動回上一頁) */
+        }
+
         body { 
             background-color: white; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             color: #262626; 
-            height: 100vh;
             display: flex;
             flex-direction: column;
         }
@@ -21,25 +30,43 @@
             display: flex; align-items: center; padding: 0 16px;
             font-weight: 600; font-size: 16px; justify-content: space-between;
             background: white; flex-shrink: 0;
+            width: 100%; /* 確保滿版 */
         }
         .back-btn { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;}
         
         /* 留言列表區 */
         .content { 
-            flex: 1; overflow-y: auto; padding: 16px; 
-            overscroll-behavior-y: contain; /* 優化滑動體驗 */
+            flex: 1; 
+            overflow-y: auto;       /* 允許垂直滑動 */
+            overflow-x: hidden;     /* 禁止內容區水平滑動 */
+            padding: 16px; 
+            overscroll-behavior-y: contain; 
+            width: 100%;
         }
         
         /* 第一則留言 (Caption) */
         .caption-block { display: flex; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #efefef; margin-bottom: 12px; }
         .caption-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #dbdbdb; flex-shrink: 0; }
-        .caption-text-area { flex: 1; font-size: 14px; line-height: 1.4; }
+        
+        /* ★★★ 加入 word-break 防止長文字撐開頁面 ★★★ */
+        .caption-text-area { 
+            flex: 1; font-size: 14px; line-height: 1.4; 
+            word-break: break-word; /* 強制長單字斷行 */
+        }
         
         /* 一般留言 */
         .comment-row { display: flex; gap: 12px; margin-bottom: 16px; }
         .comment-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #dbdbdb; flex-shrink: 0; }
         .comment-user { font-weight: 600; margin-right: 5px; }
-        .comment-text-block { font-size: 14px; line-height: 1.4; }
+        
+        /* ★★★ 加入 word-break 防止長文字撐開頁面 ★★★ */
+        .comment-text-block { 
+            font-size: 14px; line-height: 1.4; 
+            flex: 1; /* 確保文字區塊佔滿剩餘空間 */
+            word-break: break-word; /* 強制長單字斷行 */
+            min-width: 0; /* Flexbox 換行小技巧，防止溢出 */
+        }
+
         .time-text { font-size: 12px; color: #8e8e8e; margin-top: 4px; display: block; }
 
         /* 底部輸入框 */
@@ -48,6 +75,7 @@
             display: flex; align-items: center; background: white;
             padding-bottom: calc(10px + env(safe-area-inset-bottom));
             flex-shrink: 0;
+            width: 100%;
         }
         .user-avatar-small { width: 32px; height: 32px; border-radius: 50%; margin-right: 12px; object-fit: cover; background: #dbdbdb;}
         .comment-input { flex: 1; border: none; font-size: 14px; padding: 8px 0; background: transparent; }
@@ -114,7 +142,6 @@
                     userAvatarUrl = URL.createObjectURL(res);
                 }
                 document.getElementById('my-avatar').src = userAvatarUrl;
-                // 重新渲染列表以更新頭像
                 if (currentPost) renderComments();
             };
         }
@@ -139,7 +166,6 @@
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
-            // 處理第一則留言 (Caption)
             let captionText = (currentPost.comments && currentPost.comments.length > 0) ? currentPost.comments[0].text : "";
             
             let html = `
@@ -153,10 +179,8 @@
                 </div>
             `;
 
-            // 處理其餘留言
             for (let i = 1; i < currentPost.comments.length; i++) {
                 const c = currentPost.comments[i];
-                // 這裡簡單判定：如果是 "Me" 或設定的名字就用自己的頭像，其他人用假頭像
                 let avatarSrc = (c.user === myName) ? userAvatarUrl : `https://i.pravatar.cc/150?u=${c.user}`;
                 
                 html += `
@@ -170,11 +194,9 @@
                 `;
             }
             list.innerHTML = html;
-            // 自動捲動到底部
             list.scrollTop = list.scrollHeight;
         }
 
-        // --- 發送留言 ---
         const input = document.getElementById('input-box');
         const btn = document.getElementById('post-btn');
 
@@ -193,15 +215,10 @@
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
-            // 更新資料
             currentPost.comments.push({ user: myName, text: text });
             
-            // 寫回資料庫
             const tx = db.transaction(["posts_timeline"], "readwrite");
             const store = tx.objectStore("posts_timeline");
-            // 注意：存回去前要確保圖片格式正確 (原本的 blob)，但這裡我們讀出來只有資料，沒有轉成 URL，所以直接存即可
-            // 小心：如果 loadPostData 時沒處理圖片 Blob，直接存回去可能會遺失圖片資料嗎？
-            // 答：IndexedDB get 出來的物件包含原始 Blob。我們只修改了 comments 陣列。
             store.put(currentPost);
 
             tx.oncomplete = () => {
@@ -211,7 +228,6 @@
             };
         }
 
-        // 啟動
         init();
     </script>
 </body>
