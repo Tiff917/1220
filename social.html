@@ -107,7 +107,7 @@
     </div>
     <div id="toast-msg" class="toast-notification"></div>
 
-<script>
+    <script>
         const dbName = "MemoriesDB";
         let db;
         let postsData = [];
@@ -123,7 +123,8 @@
         // --- 資料庫初始化 ---
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 6);
+                // ★★★ 強制使用版本 8，解決同步問題 ★★★
+                const request = indexedDB.open(dbName, 8);
                 
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
@@ -134,7 +135,7 @@
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 
                 request.onerror = (e) => { 
-                    alert("資料庫開啟失敗：可能是私密瀏覽模式導致");
+                    alert("資料庫開啟失敗：可能是私密瀏覽模式導致，請使用一般模式。");
                     reject(e); 
                 };
             });
@@ -166,7 +167,9 @@
                     const cursor = e.target.result;
                     if (cursor) {
                         const post = cursor.value;
-                        if (post.images) {
+                        
+                        // ★★★ 關鍵修復：正確讀取 Blob 圖片 ★★★
+                        if (post.images && Array.isArray(post.images)) {
                             post.imageUrls = post.images.map(blob => 
                                 (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
                             );
@@ -187,13 +190,11 @@
                 };
                 
                 request.onerror = (e) => {
-                    alert("讀取貼文失敗");
                     document.getElementById('feed-container').innerHTML = `<div class="empty-state"><div>讀取錯誤</div></div>`;
                 };
 
             } catch (e) { 
                 console.error("Loading error:", e);
-                alert("系統錯誤: " + e.message);
             }
         }
 
@@ -209,8 +210,6 @@
         function renderPosts() {
             const storedName = localStorage.getItem('myProfileName');
             const currentName = storedName ? storedName : "Me"; 
-
-            // ★★★ 修正點：移除這裡的錯誤語法 ★★★
 
             if (postsData.length === 0) {
                 feedContainer.innerHTML = ""; 
@@ -230,7 +229,6 @@
                 const locationHtml = post.location ? `<span class="location">${post.location}</span>` : `<span class="location">${post.dateString}</span>`;
                 const initialHeart = post.isLiked ? icons.heartFilled : icons.heartOutline;
 
-                // ★★★ 修正點：連結必須定義在迴圈裡面 ★★★
                 const goToComments = `window.location.href='comments.html?id=${post.id}'`;
 
                 return `
@@ -300,6 +298,7 @@
             await saveTimelineToDB();
         }
 
+        // --- 功能函式 ---
         function checkInput(inputEl, btnId) {
             const btn = document.getElementById(btnId);
             if (inputEl.value.trim().length > 0) btn.classList.add('active');
@@ -315,6 +314,8 @@
             const store = tx.objectStore("posts_timeline");
             postsData.forEach(post => {
                 const postToSave = { ...post }; 
+                
+                // ★★★ 關鍵：只移除暫時的 URL，但保留原始 images (Blob) ★★★
                 delete postToSave.imageUrls; 
                 store.put(postToSave);
             });
