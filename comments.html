@@ -111,35 +111,32 @@
         const dbName = "MemoriesDB";
         let db;
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-        let currentPost = null;
+        let currentPost = null; // 這就是我們現在正在看的「箱子」
         
-        // 1. 抓取網址 ID (先保持原始字串狀態)
+        // 1. 抓取網址上的標籤 (ID)
         const params = new URLSearchParams(window.location.search);
-        const rawId = params.get('id');
+        const rawId = params.get('id'); // 可能是字串
 
-        console.log("【系統】網址上的原始 ID:", rawId);
+        // 啟動程式
+        async function init() {
+            // 如果網址沒有 ID，代表沒選中貼文，就不做任何事 (畫面留白)
+            if (!rawId) return;
+
+            try {
+                await initDB();
+                loadUserProfile(); // 讀取自己的頭像
+                loadPostData();    // 讀取貼文資料
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(dbName, 6);
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-                request.onerror = (e) => {
-                    console.error("資料庫打開失敗", e);
-                    reject(e);
-                };
+                request.onerror = (e) => reject(e);
             });
-        }
-
-        async function init() {
-            if (!rawId) {
-                document.getElementById('comments-list').innerHTML = 
-                    '<div style="text-align:center; margin-top:50px; color:red;">錯誤：網址沒有 ID<br>請從動態牆點擊留言進入</div>';
-                return;
-            }
-
-            await initDB();
-            loadUserProfile();
-            loadPostData(); // 開始抓資料
         }
 
         function loadUserProfile() {
@@ -151,63 +148,62 @@
                     userAvatarUrl = URL.createObjectURL(res);
                 }
                 document.getElementById('my-avatar').src = userAvatarUrl;
+                // 如果貼文已經讀取好了，就刷新一下畫面更新頭像
                 if (currentPost) renderComments();
             };
         }
 
-        // ★★★ 關鍵修改：雙重嘗試抓取 (數字 或 字串) ★★★
+        // --- 核心：去倉庫找箱子 ---
         function loadPostData() {
             const tx = db.transaction("posts_timeline", "readonly");
             const store = tx.objectStore("posts_timeline");
 
-            // 嘗試 1：把 ID 當成「數字」去抓 (最常見的情況)
-            const numericId = parseInt(rawId);
-            const requestNum = store.get(numericId);
-
-            requestNum.onsuccess = (e) => {
-                const result = e.target.result;
-                
-                if (result) {
-                    console.log("【成功】用「數字 ID」抓到了！", result);
-                    currentPost = result;
-                    initComments(); // 初始化並渲染
+            // 雙重嘗試：先試著把 ID 當數字找，找不到再當字串找
+            // 這樣可以保證抓到 ID
+            const numId = parseInt(rawId);
+            
+            // 嘗試 1: 用數字 ID 找
+            const reqNum = store.get(numId);
+            reqNum.onsuccess = (e) => {
+                if (e.target.result) {
+                    currentPost = e.target.result;
+                    prepareComments();
                 } else {
-                    console.warn("【嘗試 1 失敗】用數字抓不到，嘗試用字串抓...");
-                    
-                    // 嘗試 2：把 ID 當成「字串」去抓 (有些 ID 產生器是字串)
-                    const requestStr = store.get(rawId);
-                    
-                    requestStr.onsuccess = (e2) => {
-                        const result2 = e2.target.result;
-                        if (result2) {
-                            console.log("【成功】用「字串 ID」抓到了！", result2);
-                            currentPost = result2;
-                            initComments();
+                    // 嘗試 2: 用字串 ID 找
+                    const reqStr = store.get(rawId);
+                    reqStr.onsuccess = (e2) => {
+                        if (e2.target.result) {
+                            currentPost = e2.target.result;
+                            prepareComments();
                         } else {
-                            console.error("【失敗】數字和字串都抓不到。");
-                            document.getElementById('comments-list').innerHTML = 
-                                '<div style="text-align:center; margin-top:50px; color:#999;">找不到這則貼文 (可能已刪除)</div>';
-                            currentPost = null;
+                            // 真的找不到 (可能貼文已被刪除) -> 畫面保持空白
+                            console.log("貼文不存在");
                         }
                     };
                 }
             };
         }
 
-        function initComments() {
-            if (!currentPost.comments) currentPost.comments = [];
+        function prepareComments() {
+            // 如果這個箱子裡還沒有放信的地方，幫它造一個
+            if (!currentPost.comments) {
+                currentPost.comments = [];
+            }
             renderComments();
         }
 
+        // --- 渲染畫面 ---
         function renderComments() {
             const list = document.getElementById('comments-list');
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
-            const comments = currentPost.comments || [];
+
+            const comments = currentPost.comments;
             
             // 標題 (Caption)
             let captionText = (comments.length > 0) ? comments[0].text : "";
-            let captionHtml = captionText ? `<span>${captionText}</span>` : `<span style="color:#ccc;"></span>`;
+            // 如果沒有標題，就不顯示內容，只顯示名字
+            let captionHtml = captionText ? `<span>${captionText}</span>` : ``;
 
             let html = `
                 <div class="caption-block">
@@ -220,7 +216,7 @@
                 </div>
             `;
 
-            // 留言列表
+            // 留言列表 (從第 2 則開始)
             if (comments.length > 1) {
                 for (let i = 1; i < comments.length; i++) {
                     const c = comments[i];
@@ -232,15 +228,16 @@
                                 <span class="comment-user">${c.user}</span>
                                 <span>${c.text}</span>
                             </div>
-                        </div>`;
+                        </div>
+                    `;
                 }
-            } 
+            }
 
             list.innerHTML = html;
             setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
         }
 
-        // --- 發布留言邏輯 ---
+        // --- 發布留言 ---
         const input = document.getElementById('input-box');
         const btn = document.getElementById('post-btn');
 
@@ -253,36 +250,24 @@
 
         function submitComment() {
             const text = input.value.trim();
-            
-            // ★ 防呆：如果沒抓到貼文，這裡會擋住並提示
-            if (!currentPost) {
-                console.error("無法發布：沒有 currentPost 資料");
-                alert("無法發布：找不到原始貼文資料，請重新整理頁面。");
-                return;
-            }
-            if (!text) return;
+            if (!currentPost || !text) return;
 
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
 
-            if (!currentPost.comments) currentPost.comments = [];
+            // 1. 把信放入箱子 (記憶體中)
             currentPost.comments.push({ user: myName, text: text });
 
+            // 2. 把整箱搬回倉庫存好 (寫入資料庫)
             const tx = db.transaction(["posts_timeline"], "readwrite");
             const store = tx.objectStore("posts_timeline");
-            
-            // 寫入資料庫
-            const request = store.put(currentPost);
+            const request = store.put(currentPost); // put 會更新舊資料
 
             request.onsuccess = () => {
-                console.log("留言寫入成功");
+                // 成功後更新畫面
                 input.value = '';
                 btn.classList.remove('active');
                 renderComments();
-            };
-            request.onerror = (e) => {
-                alert("寫入失敗");
-                console.error(e);
             };
         }
 
