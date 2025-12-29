@@ -19,7 +19,7 @@
         .app-container {
             display: flex;
             flex-wrap: nowrap;
-            width: 100%; /* 修正為 100% 比較穩定 */
+            width: 100%; 
             height: 100%;
             
             overflow-x: scroll; 
@@ -32,13 +32,23 @@
             scrollbar-width: none; 
             -ms-overflow-style: none;
             -webkit-overflow-scrolling: touch; /* 讓 iOS 滑動更順暢 */
+
+            /* ★★★ 新增：電腦版游標樣式 ★★★ */
+            cursor: grab; /* 預設顯示「手掌」 */
+            user-select: none; /* 禁止拖動時選取文字 */
         }
+        
+        /* 當按住滑鼠時，變成「抓取中」的拳頭 */
+        .app-container.active {
+            cursor: grabbing;
+            scroll-snap-type: none; /* 拖動時暫時關閉吸附，手感比較好 */
+        }
+
         .app-container::-webkit-scrollbar { display: none; }
 
         /* 4. iframe 設定 */
         iframe {
             display: block;
-            /* 使用 flex 屬性來固定寬度，比 min-width 更穩定 */
             flex: 0 0 100%; 
             width: 100%;
             height: 100%;
@@ -47,14 +57,14 @@
             box-shadow: none !important;
             background-color: #F3ECE5;
             
-            scroll-snap-align: center; /* 改為 center 確保停在正中間 */
+            scroll-snap-align: center; 
             scroll-snap-stop: always;
+            pointer-events: none; /* ★ 關鍵：讓滑鼠事件能穿透 iframe 傳給 container */
         }
 
-        /* 5. 修正 iframe 間隙 (視需要保留) */
-        /* 如果發現有白線，可以保留這個 margin 設定 */
-        /* iframe + iframe { margin-left: -1px; } */
-
+        /* ★ 特殊處理：只有當 iframe 需要互動時才開啟 pointer-events */
+        /* 但這樣會導致 iframe 內部無法點擊，為了解決測試問題，我們用 JS 動態控制 pointer-events */
+        
     </style>
 </head>
 <body>
@@ -69,12 +79,55 @@
         const container = document.getElementById('appContainer');
         const homeFrame = document.getElementById('homeFrame');
 
+        // --- ★★★ 新增：電腦版滑鼠拖曳功能 (Mouse Drag) ★★★ ---
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        container.addEventListener('mousedown', (e) => {
+            // 如果目前是被鎖定狀態 (hidden)，就不允許拖曳
+            if(container.style.overflowX === 'hidden') return;
+
+            isDown = true;
+            container.classList.add('active');
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+            
+            // 暫時讓 iframe 不接收事件，這樣拖曳才不會卡住
+            document.querySelectorAll('iframe').forEach(i => i.style.pointerEvents = 'none');
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDown = false;
+            container.classList.remove('active');
+            document.querySelectorAll('iframe').forEach(i => i.style.pointerEvents = 'auto');
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDown = false;
+            container.classList.remove('active');
+            
+            // 恢復 iframe 互動
+            document.querySelectorAll('iframe').forEach(i => i.style.pointerEvents = 'auto');
+            
+            // 恢復 CSS snap 效果，讓畫面自動歸位
+            container.style.scrollSnapType = 'x mandatory'; 
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const walk = (x - startX) * 1.5; // * 1.5 是滑動速度倍率
+            container.scrollLeft = scrollLeft - walk;
+        });
+        // --- ★★★ 電腦版功能結束 ★★★ ---
+
+
         // 1. 初始化定位 (回到中間的 home.html)
         window.onload = function() {
-            // 給瀏覽器一點時間渲染，確保 offsetLeft 數值正確
             setTimeout(() => {
                 if(container && homeFrame) {
-                    // 使用 scrollTo 比較平滑 (也可以用 behavior: 'instant' 瞬間跳轉)
                     container.scrollTo({
                         left: homeFrame.offsetLeft,
                         behavior: 'auto' 
@@ -85,73 +138,53 @@
 
         // 監聽來自 iframe (social.html) 的訊息
         window.addEventListener('message', function(event) {
-            const container = document.getElementById('appContainer'); // 確保你的 ID 對應
-        
             // 1. 收到 "鎖定" 指令
             if (event.data.action === 'lockSwiping') {
-                console.log("🔒 收到鎖定指令：停止左右滑動");
-                container.style.overflowX = 'hidden'; // 隱藏捲軸，禁止滑動
+                console.log("🔒 收到鎖定指令");
+                container.style.overflowX = 'hidden'; 
             }
-        
+            
             // 2. 收到 "解鎖" 指令
             if (event.data.action === 'unlockSwiping') {
-                console.log("🔓 收到解鎖指令：恢復左右滑動");
-                container.style.overflowX = 'scroll'; // 恢復可滑動
+                console.log("🔓 收到解鎖指令");
+                container.style.overflowX = 'scroll'; 
             }
         });
 
-        // 2. ★ 智慧鎖定邏輯 ★
+        // 2. 智慧鎖定邏輯
         setInterval(function() {
             let shouldLock = false; 
 
             try {
-                // 注意：如果是在本機 (file://) 執行，這一行通常會報錯 (Cross-origin)
-                // 必須要在 Local Server 環境下這行才有效
                 if (homeFrame.contentWindow.location.href) {
                     const currentUrl = homeFrame.contentWindow.location.href.toLowerCase();
                     
                     const lockList = [
-                        'login.html', 
-                        'signup.html', 
-                        'forgot-password.html',
-                        'profile.html',
-                        'payment.html',
-                        'otp_verify.html',
-                        'reset_password.html',
-                        'search.html', 
-                        'edit.html', 
-                        'message.html',
-                        'onboarding.html',
-                        'comments.html'
+                        'login.html', 'signup.html', 'forgot-password.html',
+                        'profile.html', 'payment.html', 'otp_verify.html',
+                        'reset_password.html', 'search.html', 'edit.html', 
+                        'message.html', 'onboarding.html', 'comments.html'
                     ];
 
-                    // 檢查目前網址
                     if (lockList.some(page => currentUrl.includes(page))) {
                         shouldLock = true;
                     }
                 }
-            } catch (e) {
-                // 忽略跨域錯誤，避免 console 跳太多紅字
-                // console.log("Cross-origin restriction");
-            }
+            } catch (e) { }
 
-            // 執行鎖定或解鎖
             if (shouldLock) {
-                // 鎖定狀態
                 if (container.style.overflowX !== 'hidden') {
-                    console.log("🔒 鎖定滑動：進入特定頁面");
+                    console.log("🔒 智慧鎖定");
                     container.style.overflowX = 'hidden';
                     container.scrollTo({ left: homeFrame.offsetLeft, behavior: 'auto' });
                 }
             } else {
-                // 解鎖狀態
                 if (container.style.overflowX !== 'scroll') {
-                    console.log("🔓 解鎖滑動：回到一般頁面");
+                    console.log("🔓 智慧解鎖");
                     container.style.overflowX = 'scroll';
                 }
             }
-        
-        }, 100); // <--- 原本這裡少了括號與時間設定
+        }, 100);
     </script>
 </body>
 </html>
