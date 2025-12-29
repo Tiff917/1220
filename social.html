@@ -8,19 +8,26 @@
         /* --- 1. 基礎設定 --- */
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
         
-        body { 
+        /* ★★★ 關鍵修改：讓 Body 佔滿螢幕，禁止 Body 本身捲動 ★★★ */
+        html, body { 
+            width: 100%; height: 100%; 
             background-color: #F3ECE5; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             color: #262626; 
-            overflow-x: hidden;
+            overflow: hidden; /* 鎖死外層 */
         }
-        body::-webkit-scrollbar { display: none; }
 
-        /* --- 2. 動態牆容器 --- */
-        #feed-container { width: 100%; margin: 0; padding-top: 0; padding-bottom: 60px; }
+        /* --- 2. 動態牆容器 (可滑動區域) --- */
+        #feed-wrapper {
+            width: 100%;
+            height: 100%; /* 佔滿高度 */
+            overflow-y: auto; /* ★★★ 允許垂直滑動 ★★★ */
+            -webkit-overflow-scrolling: touch; /* iOS 滑動慣性 */
+            padding-bottom: 80px; /* 預留底部空間，避免被導航遮住 */
+        }
 
         /* 貼文卡片 */
-        .post-card { background: #F3ECE5; border-bottom: 1px solid #efefef; margin-bottom: 0; padding-bottom: 10px; }
+        .post-card { background: #F3ECE5; border-bottom: 1px solid #efefef; margin-bottom: 0; padding-bottom: 15px; }
 
         /* 貼文頭部 */
         .post-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; position: relative; }
@@ -99,12 +106,15 @@
 </head>
 <body>
 
-    <div id="feed-container">
-        <div class="empty-state" id="loading-msg">
-            <div class="empty-icon">📷</div>
-            <div>Loading feed...</div>
+    <div id="feed-wrapper">
+        <div id="feed-container">
+            <div class="empty-state" id="loading-msg">
+                <div class="empty-icon">📷</div>
+                <div>Loading feed...</div>
+            </div>
         </div>
     </div>
+    
     <div id="toast-msg" class="toast-notification"></div>
 
     <script>
@@ -112,36 +122,37 @@
         let db;
         let postsData = [];
         let userAvatarUrl = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        
+        // 建立廣播頻道
+        const channel = new BroadcastChannel('memory_update'); 
+        
+        // 監聽更新
+        channel.onmessage = function(event) {
+            if (event.data === 'updated') {
+                console.log("收到更新通知，重新讀取...");
+                loadAndRender();
+            }
+        };
 
-        // 點擊空白關閉選單
         window.onclick = function(event) {
             if (!event.target.closest('.icon-btn') && !event.target.closest('.popup-menu')) {
                 document.querySelectorAll('.popup-menu').forEach(menu => menu.classList.remove('show'));
             }
         }
 
-        // --- 資料庫初始化 ---
         function initDB() {
             return new Promise((resolve, reject) => {
-                // ★★★ 強制使用版本 8，解決同步問題 ★★★
-                const request = indexedDB.open(dbName, 8);
-                
+                const request = indexedDB.open(dbName, 8); // 版本 8
                 request.onupgradeneeded = (e) => {
                     db = e.target.result;
                     if (!db.objectStoreNames.contains("posts_timeline")) db.createObjectStore("posts_timeline", { keyPath: "id" });
                     if (!db.objectStoreNames.contains("user_profile")) db.createObjectStore("user_profile");
                 };
-                
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-                
-                request.onerror = (e) => { 
-                    alert("資料庫開啟失敗：可能是私密瀏覽模式導致，請使用一般模式。");
-                    reject(e); 
-                };
+                request.onerror = (e) => reject(e); 
             });
         }
 
-        // --- 讀取資料 ---
         async function loadAndRender() {
             try {
                 await initDB();
@@ -167,8 +178,6 @@
                     const cursor = e.target.result;
                     if (cursor) {
                         const post = cursor.value;
-                        
-                        // ★★★ 關鍵修復：正確讀取 Blob 圖片 ★★★
                         if (post.images && Array.isArray(post.images)) {
                             post.imageUrls = post.images.map(blob => 
                                 (blob instanceof Blob || blob instanceof File) ? URL.createObjectURL(blob) : blob
@@ -185,20 +194,14 @@
                         cursor.continue();
                     } else {
                         postsData = tempPosts;
-                        renderPosts(); // 執行渲染
+                        renderPosts(); 
                     }
                 };
-                
-                request.onerror = (e) => {
-                    document.getElementById('feed-container').innerHTML = `<div class="empty-state"><div>讀取錯誤</div></div>`;
-                };
-
             } catch (e) { 
                 console.error("Loading error:", e);
             }
         }
 
-        // --- 渲染貼文 ---
         const feedContainer = document.getElementById('feed-container');
         const icons = {
             more: '<svg aria-label="More" color="#262626" fill="#262626" height="24" viewBox="0 0 24 24" width="24"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>',
@@ -228,7 +231,6 @@
                 
                 const locationHtml = post.location ? `<span class="location">${post.location}</span>` : `<span class="location">${post.dateString}</span>`;
                 const initialHeart = post.isLiked ? icons.heartFilled : icons.heartOutline;
-
                 const goToComments = `window.location.href='comments.html?id=${post.id}'`;
 
                 return `
@@ -257,12 +259,9 @@
                     </div>
                     <div class="post-content">
                         <span class="likes-count" id="likes-count-${post.id}">${post.likes} likes</span>
-                        
                         ${ captionText ? `<div class="comment-row"><span class="comment-user">${currentName}</span>${captionText}</div>` : '' }
-                        
                         ${ post.comments.length > 1 ? `<div style="color:#8e8e8e; margin-bottom:4px; cursor:pointer;" onclick="${goToComments}">View all ${post.comments.length} comments</div>` : '' }
                         <div class="timestamp">${new Date(post.timestamp).toDateString()}</div>
-                        
                         <div class="add-comment-section">
                             <img src="${userAvatarUrl}" class="user-avatar-small">
                             <input type="text" class="comment-input" id="input-${post.id}" placeholder="Add a comment..." autocomplete="off" oninput="checkInput(this, 'btn-${post.id}')" onkeypress="handleEnter(event, ${post.id}, 'input-${post.id}')">
@@ -298,7 +297,6 @@
             await saveTimelineToDB();
         }
 
-        // --- 功能函式 ---
         function checkInput(inputEl, btnId) {
             const btn = document.getElementById(btnId);
             if (inputEl.value.trim().length > 0) btn.classList.add('active');
@@ -314,8 +312,6 @@
             const store = tx.objectStore("posts_timeline");
             postsData.forEach(post => {
                 const postToSave = { ...post }; 
-                
-                // ★★★ 關鍵：只移除暫時的 URL，但保留原始 images (Blob) ★★★
                 delete postToSave.imageUrls; 
                 store.put(postToSave);
             });
@@ -328,9 +324,7 @@
             const storedName = localStorage.getItem('myProfileName');
             const myName = storedName ? storedName : "Me";
             const post = postsData.find(p => p.id === postId);
-            
             if(!post.comments) post.comments = [];
-            
             post.comments.push({ user: myName, text: text });
             input.value = '';
             renderPosts();
